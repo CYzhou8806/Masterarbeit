@@ -11,6 +11,8 @@ conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
 =1.10
 
 
+conda env export > detectron2.yml
+
 
 ########## 安装CUDA ####################
 mkdir cuda-11.3.1
