@@ -59,6 +59,11 @@ class Trainer(DefaultTrainer):
         For your own dataset, you can simply create an evaluator manually in your
         script and do not have to worry about the hacky if-else logic here.
         """
+
+        '''
+        与模板相比, 这里对模板中的build_evaluator进行了合并, 本质上还是相同的, 没有大的改变
+        '''
+
         if cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED:
             return None
         if output_folder is None:
@@ -112,6 +117,10 @@ class Trainer(DefaultTrainer):
     def build_optimizer(cls, cfg, model):
         """
         Build an optimizer from config.
+        """
+        """
+        与default相比, 这里更改了参数设置, 并且使用了不同的优化器. 
+        所有的优化器都在相同的目录里, 按照需要调用即可
         """
         params = get_default_optimizer_params(
             model,
