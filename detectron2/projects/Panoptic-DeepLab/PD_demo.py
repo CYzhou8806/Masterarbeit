@@ -19,7 +19,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
-        default="configs/Cityscapes-PanopticSegmentation/demo_panoptic_deeplab.yaml",
+        default="./configs/Cityscapes-PanopticSegmentation/demo_panoptic_deeplab.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -42,7 +42,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=["model/model_final_23d03a.pkl"],
+        default=["detectron2://model/model_final_23d03a.pkl"],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -63,6 +63,7 @@ def main(args):
             assert args.input, "The input path(s) was not found"
         for path in tqdm.tqdm(args.input, disable=not args.output):
             # use PIL, to be consistent with evaluation
+            print(path)
             img = read_image(path, format="BGR")
             start_time = time.time()
             predictions, visualized_output = demo.run_on_image(img)
@@ -105,6 +106,5 @@ def main(args):
 if __name__ == "__main__":
     args = get_parser().parse_args()  # 用于预设/捕获命令行配置
     # args = default_argument_parser().parse_args()  # 用于预设/捕获命令行配置, 和上面自定义的get_parser没啥区别
-    print("Command Line Args:", args)
 
     main(args)
