@@ -1,6 +1,10 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import importlib
 from pathlib import Path
+'''
+使用时, 按照其他project的格式整理文件结构, 然后在下面的字典中添加相应的关键字
+'''
+
 
 _PROJECTS = {
     "point_rend": "PointRend",
