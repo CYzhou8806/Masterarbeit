@@ -27,7 +27,6 @@ def get_parser():
     parser.add_argument("--video-input", help="Path to video file.")
     parser.add_argument(
         "--input",
-        nargs="+",
         default="input1.jpg",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
@@ -42,7 +41,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=["detectron2://model/model_final_23d03a.pkl"],
+        default=['MODEL.WEIGHTS', 'model/model_final_23d03a.pkl'],
         nargs=argparse.REMAINDER,
     )
     return parser
