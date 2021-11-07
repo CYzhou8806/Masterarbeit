@@ -22,9 +22,9 @@ parser.add_argument('--datapath', default='/media/jiaren/ImageNet/data_scene_flo
                     help='select model')
 parser.add_argument('--loadmodel', default='./weights/pretrained_model_KITTI2015.tar',
                     help='loading model')
-parser.add_argument('--leftimg', default= './000005_10_L.png',
+parser.add_argument('--leftimg', default= '/home/eistrauben/github/Masterarbeit/datasets/data_scene_flow/training/image_2/000048_10.png',
                     help='load model')
-parser.add_argument('--rightimg', default= './000005_10_R.png',
+parser.add_argument('--rightimg', default= '/home/eistrauben/github/Masterarbeit/datasets/data_scene_flow/training/image_3/000048_10.png',
                     help='load model')                                      
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
@@ -120,7 +120,7 @@ def main():
         
         img = (img*256).astype('uint16')
         img = Image.fromarray(img)
-        img.save('Test_disparity.png')
+        img.save('./cashe/Test_disparity.png')
 
 if __name__ == '__main__':
    main()

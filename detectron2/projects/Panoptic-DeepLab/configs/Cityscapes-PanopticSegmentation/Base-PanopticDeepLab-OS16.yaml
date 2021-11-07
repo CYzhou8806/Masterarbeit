@@ -10,6 +10,7 @@ MODEL:
     IN_FEATURES: ["res2", "res3", "res5"]
     PROJECT_FEATURES: ["res2", "res3"]
     PROJECT_CHANNELS: [32, 64]
+    # PROJECT_CHANNELS: None
     ASPP_CHANNELS: 256
     ASPP_DILATIONS: [6, 12, 18]
     ASPP_DROPOUT: 0.1
@@ -57,7 +58,7 @@ INPUT:
   MAX_SIZE_TRAIN: 4096
   MAX_SIZE_TEST: 2048
   CROP:
-    ENABLED: True
+    ENABLED: False
     TYPE: "absolute"
     SIZE: (1024, 2048)
 DATALOADER:
