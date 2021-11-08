@@ -1,214 +1,198 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import numpy as np
+import math
 from typing import Callable, Dict, List, Union
 import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
-
+from torch.autograd import Variable
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
-from detectron2.layers import Conv2d, DepthwiseSeparableConv2d, ShapeSpec, get_norm
+from detectron2.layers import convbn_3d
 from detectron2.modeling import (
     META_ARCH_REGISTRY,
-    SEM_SEG_HEADS_REGISTRY,
     build_backbone,
-    build_sem_seg_head,
 )
-from detectron2.modeling.postprocessing import sem_seg_postprocess
-from detectron2.projects.deeplab import DeepLabV3PlusHead
-from detectron2.projects.deeplab.loss import DeepLabCE
-from detectron2.structures import BitMasks, ImageList, Instances
-from detectron2.utils.registry import Registry
-
-from .post_processing import get_panoptic_segmentation
 
 
+class hourglass(nn.Module):
+    def __init__(self, inplanes):
+        super(hourglass, self).__init__()
+
+        self.conv1 = nn.Sequential(convbn_3d(inplanes, inplanes * 2, kernel_size=3, stride=2, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        self.conv2 = convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1)
+
+        self.conv3 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=2, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        self.conv4 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        # note: the conv5 and conv6 is without relu
+        self.conv5 = nn.Sequential(
+            nn.ConvTranspose3d(inplanes * 2, inplanes * 2, kernel_size=3, padding=1, output_padding=1, stride=2,
+                               bias=False),
+            nn.BatchNorm3d(inplanes * 2))  # +conv2
+
+        self.conv6 = nn.Sequential(
+            nn.ConvTranspose3d(inplanes * 2, inplanes, kernel_size=3, padding=1, output_padding=1, stride=2,
+                               bias=False),
+            nn.BatchNorm3d(inplanes))  # +x
+
+    def forward(self, x, presqu, postsqu):
+
+        out = self.conv1(x)  # in:1/4 out:1/8
+        pre = self.conv2(out)  # in:1/8 out:1/8
+        if postsqu is not None:
+            pre = F.relu(pre + postsqu, inplace=True)  # the red connection in the figure of paper
+        else:
+            pre = F.relu(pre, inplace=True)
+
+        out = self.conv3(pre)  # in:1/8 out:1/16
+        out = self.conv4(out)  # in:1/16 out:1/16
+
+        if presqu is not None:
+            # the green connection
+            # if this is not the first hourglass, take the output of pre-conv5 to make the fusion
+            # a little different from what is written in the paper?!?!??!
+            post = F.relu(self.conv5(out) + presqu, inplace=True)  # in:1/16 out:1/8
+        else:
+            post = F.relu(self.conv5(out) + pre, inplace=True)
+
+        out = self.conv6(post)  # in:1/8 out:1/4
+
+        return out, pre, post
+
+
+class disparityregression(nn.Module):
+    def __init__(self, maxdisp):
+        super(disparityregression, self).__init__()
+        self.disp = torch.Tensor(np.reshape(np.array(range(maxdisp)), [1, maxdisp, 1, 1])).cuda()
+
+    def forward(self, x):
+        out = torch.sum(x * self.disp.data, 1, keepdim=True)
+        return out
 
 
 @META_ARCH_REGISTRY.register()
-class baseline(nn.Module):
+class PSMNet(nn.Module):
     """
-    Main class for baseline architectures.
+    Main class for PSM architectures.
     """
 
-    def __init__(self, cfg):
+    def __init__(self, cfg, maxdisp):  # TODO: add maxdisp to cfg $$$
         super().__init__()
+        self.maxdisp = maxdisp
+        self.backbone = build_backbone(cfg)  # TODO: add the relationship
+        self.feature_extraction = self.backbone  # TODO: residual, check and eliminate duplicate content
 
-        # the backbone of branch panoptic-seg, which should equal to panoptic-deeplab
-        self.backbone_panoptic = build_backbone(cfg)
+        self.dres0 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True),
+                                   convbn_3d(32, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True))
 
-        self.sem_seg_head = build_sem_seg_head(cfg, self.backbone_panoptic.output_shape())
-        self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone_panoptic.output_shape())
-        self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
-        self.register_buffer("pixel_std", torch.tensor(cfg.MODEL.PIXEL_STD).view(-1, 1, 1), False)
-        self.meta = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])  # is this about the dataset!?!?!
-        self.stuff_area = cfg.MODEL.PANOPTIC_DEEPLAB.STUFF_AREA
-        self.threshold = cfg.MODEL.PANOPTIC_DEEPLAB.CENTER_THRESHOLD
-        self.nms_kernel = cfg.MODEL.PANOPTIC_DEEPLAB.NMS_KERNEL
-        self.top_k = cfg.MODEL.PANOPTIC_DEEPLAB.TOP_K_INSTANCE
-        self.predict_instances = cfg.MODEL.PANOPTIC_DEEPLAB.PREDICT_INSTANCES
-        self.use_depthwise_separable_conv = cfg.MODEL.PANOPTIC_DEEPLAB.USE_DEPTHWISE_SEPARABLE_CONV
-        assert (
-            cfg.MODEL.SEM_SEG_HEAD.USE_DEPTHWISE_SEPARABLE_CONV
-            == cfg.MODEL.PANOPTIC_DEEPLAB.USE_DEPTHWISE_SEPARABLE_CONV
-        )
-        self.size_divisibility = cfg.MODEL.PANOPTIC_DEEPLAB.SIZE_DIVISIBILITY
-        self.benchmark_network_speed = cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED
+        self.dres1 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True),
+                                   convbn_3d(32, 32, 3, 1, 1))
 
+        self.dres2 = hourglass(32)
+
+        self.dres3 = hourglass(32)
+
+        self.dres4 = hourglass(32)
+
+        self.classif1 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+
+        self.classif2 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+
+        self.classif3 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.Conv3d):
+                n = m.kernel_size[0] * m.kernel_size[1] * m.kernel_size[2] * m.out_channels
+                m.weight.data.normal_(0, math.sqrt(2. / n))
+            elif isinstance(m, nn.BatchNorm2d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.BatchNorm3d):
+                m.weight.data.fill_(1)
+                m.bias.data.zero_()
+            elif isinstance(m, nn.Linear):
+                m.bias.data.zero_()
+
+    # TODO: not sure if this method is Necessary or not
     @property
     def device(self):
         return self.pixel_mean.device
 
-    def forward(self, batched_inputs):
-        """
-        Args:
-            batched_inputs: a list, batched outputs of :class:`DatasetMapper`.
-                Each item in the list contains the inputs for one image.
-                For now, each item in the list is a dict that contains:
-                   * "image": Tensor, image in (C, H, W) format.
-                   * "sem_seg": semantic segmentation ground truth
-                   * "center": center points heatmap ground truth
-                   * "offset": pixel offsets to center points ground truth
-                   * Other information that's included in the original dicts, such as:
-                     "height", "width" (int): the output resolution of the model (may be different
-                     from input resolution), used in inference.
-        Returns:
-            list[dict]:
-                each dict is the results for one image. The dict contains the following keys:
+    def forward(self, left, right):
 
-                * "panoptic_seg", "sem_seg": see documentation
-                    :doc:`/tutorials/models` for the standard output format
-                * "instances": available if ``predict_instances is True``. see documentation
-                    :doc:`/tutorials/models` for the standard output format
-        """
-        images = [x["image"].to(self.device) for x in batched_inputs]
-        images = [(x - self.pixel_mean) / self.pixel_std for x in images]
-        # To avoid error in ASPP layer when input has different size.
-        size_divisibility = (
-            self.size_divisibility
-            if self.size_divisibility > 0
-            else self.backbone_panoptic.size_divisibility
-        )
-        images = ImageList.from_tensors(images, size_divisibility)
+        refimg_fea = self.feature_extraction(left)
+        targetimg_fea = self.feature_extraction(right)
 
-        features_panoptic = self.backbone_panoptic(images.tensor)
+        # matching
+        cost = Variable(
+            torch.FloatTensor(refimg_fea.size()[0], refimg_fea.size()[1] * 2, self.maxdisp // 4, refimg_fea.size()[2],
+                              refimg_fea.size()[3]).zero_()).cuda()
 
-        losses = {}
-        if "sem_seg" in batched_inputs[0]:
-            targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
-            targets = ImageList.from_tensors(
-                targets, size_divisibility, self.sem_seg_head.ignore_value
-            ).tensor
-            if "sem_seg_weights" in batched_inputs[0]:
-                # The default D2 DatasetMapper may not contain "sem_seg_weights"
-                # Avoid error in testing when default DatasetMapper is used.
-                weights = [x["sem_seg_weights"].to(self.device) for x in batched_inputs]
-                weights = ImageList.from_tensors(weights, size_divisibility).tensor
+        for i in range(self.maxdisp // 4):
+            if i > 0:
+                cost[:, :refimg_fea.size()[1], i, :, i:] = refimg_fea[:, :, :, i:]
+                cost[:, refimg_fea.size()[1]:, i, :, i:] = targetimg_fea[:, :, :, :-i]
             else:
-                weights = None
-        else:
-            targets = None
-            weights = None
-        sem_seg_results, sem_seg_losses = self.sem_seg_head(features_panoptic, targets, weights)
-        losses.update(sem_seg_losses)
+                cost[:, :refimg_fea.size()[1], i, :, :] = refimg_fea
+                cost[:, refimg_fea.size()[1]:, i, :, :] = targetimg_fea
+        cost = cost.contiguous()
 
-        if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
-            center_targets = [x["center"].to(self.device) for x in batched_inputs]
-            center_targets = ImageList.from_tensors(
-                center_targets, size_divisibility
-            ).tensor.unsqueeze(1)
-            center_weights = [x["center_weights"].to(self.device) for x in batched_inputs]
-            center_weights = ImageList.from_tensors(center_weights, size_divisibility).tensor
+        cost0 = self.dres0(cost)
+        cost0 = self.dres1(cost0) + cost0
 
-            offset_targets = [x["offset"].to(self.device) for x in batched_inputs]
-            offset_targets = ImageList.from_tensors(offset_targets, size_divisibility).tensor
-            offset_weights = [x["offset_weights"].to(self.device) for x in batched_inputs]
-            offset_weights = ImageList.from_tensors(offset_weights, size_divisibility).tensor
-        else:
-            center_targets = None
-            center_weights = None
+        out1, pre1, post1 = self.dres2(cost0, None, None)
+        out1 = out1 + cost0
 
-            offset_targets = None
-            offset_weights = None
-        center_results, offset_results, center_losses, offset_losses = self.ins_embed_head(
-            features_panoptic, center_targets, center_weights, offset_targets, offset_weights
-        )
-        losses.update(center_losses)
-        losses.update(offset_losses)
+        out2, pre2, post2 = self.dres3(out1, pre1, post1)
+        out2 = out2 + cost0
+
+        out3, pre3, post3 = self.dres4(out2, pre1, post2)
+        out3 = out3 + cost0
+
+        cost1 = self.classif1(out1)
+        cost2 = self.classif2(out2) + cost1
+        cost3 = self.classif3(out3) + cost2
 
         if self.training:
-            return losses
+            cost1 = F.upsample(cost1, [self.maxdisp, left.size()[2], left.size()[3]], mode='trilinear')
+            cost2 = F.upsample(cost2, [self.maxdisp, left.size()[2], left.size()[3]], mode='trilinear')
 
-        if self.benchmark_network_speed:
-            return []
+            cost1 = torch.squeeze(cost1, 1)
+            pred1 = F.softmax(cost1, dim=1)
+            pred1 = disparityregression(self.maxdisp)(pred1)
 
-        processed_results = []
-        for sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
-            sem_seg_results, center_results, offset_results, batched_inputs, images.image_sizes
-        ):
-            height = input_per_image.get("height")
-            width = input_per_image.get("width")
-            r = sem_seg_postprocess(sem_seg_result, image_size, height, width)
-            c = sem_seg_postprocess(center_result, image_size, height, width)
-            o = sem_seg_postprocess(offset_result, image_size, height, width)
-            # Post-processing to get panoptic segmentation.
-            panoptic_image, _ = get_panoptic_segmentation(
-                r.argmax(dim=0, keepdim=True),
-                c,
-                o,
-                thing_ids=self.meta.thing_dataset_id_to_contiguous_id.values(),
-                label_divisor=self.meta.label_divisor,
-                stuff_area=self.stuff_area,
-                void_label=-1,
-                threshold=self.threshold,
-                nms_kernel=self.nms_kernel,
-                top_k=self.top_k,
-            )
-            # For semantic segmentation evaluation.
-            processed_results.append({"sem_seg": r})
-            panoptic_image = panoptic_image.squeeze(0)
-            semantic_prob = F.softmax(r, dim=0)
-            # For panoptic segmentation evaluation.
-            processed_results[-1]["panoptic_seg"] = (panoptic_image, None)
-            # For instance segmentation evaluation.
-            if self.predict_instances:
-                instances = []
-                panoptic_image_cpu = panoptic_image.cpu().numpy()
-                for panoptic_label in np.unique(panoptic_image_cpu):
-                    if panoptic_label == -1:
-                        continue
-                    pred_class = panoptic_label // self.meta.label_divisor
-                    isthing = pred_class in list(
-                        self.meta.thing_dataset_id_to_contiguous_id.values()
-                    )
-                    # Get instance segmentation results.
-                    if isthing:
-                        instance = Instances((height, width))
-                        # Evaluation code takes continuous id starting from 0
-                        instance.pred_classes = torch.tensor(
-                            [pred_class], device=panoptic_image.device
-                        )
-                        mask = panoptic_image == panoptic_label
-                        instance.pred_masks = mask.unsqueeze(0)
-                        # Average semantic probability
-                        sem_scores = semantic_prob[pred_class, ...]
-                        sem_scores = torch.mean(sem_scores[mask])
-                        # Center point probability
-                        mask_indices = torch.nonzero(mask).float()
-                        center_y, center_x = (
-                            torch.mean(mask_indices[:, 0]),
-                            torch.mean(mask_indices[:, 1]),
-                        )
-                        center_scores = c[0, int(center_y.item()), int(center_x.item())]
-                        # Confidence score is semantic prob * center prob.
-                        instance.scores = torch.tensor(
-                            [sem_scores * center_scores], device=panoptic_image.device
-                        )
-                        # Get bounding boxes
-                        instance.pred_boxes = BitMasks(instance.pred_masks).get_bounding_boxes()
-                        instances.append(instance)
-                if len(instances) > 0:
-                    processed_results[-1]["instances"] = Instances.cat(instances)
+            cost2 = torch.squeeze(cost2, 1)
+            pred2 = F.softmax(cost2, dim=1)
+            pred2 = disparityregression(self.maxdisp)(pred2)
 
-        return processed_results
+        cost3 = F.upsample(cost3, [self.maxdisp, left.size()[2], left.size()[3]], mode='trilinear')
+        cost3 = torch.squeeze(cost3, 1)
+        pred3 = F.softmax(cost3, dim=1)
+        # For your information: This formulation 'softmax(c)' learned "similarity"
+        # while 'softmax(-c)' learned 'matching cost' as mentioned in the paper.
+        # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
+        pred3 = disparityregression(self.maxdisp)(pred3)
+
+        if self.training:
+            return pred1, pred2, pred3
+        else:
+            return pred3
