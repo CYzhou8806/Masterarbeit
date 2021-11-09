@@ -12,6 +12,8 @@ import math
 from models import *
 import cv2
 from PIL import Image
+from tqdm import tqdm
+
 
 # 2012 data /media/jiaren/ImageNet/data_scene_flow_2012/testing/
 
@@ -147,7 +149,7 @@ def test_all_images(inputs):
                                           transforms.Normalize(**normal_mean_var)])
 
     start_time = time.time()
-    for [leftimg, rightimg] in inputs:
+    for [leftimg, rightimg] in tqdm(inputs):
         imgL_o = Image.open(leftimg).convert('RGB')
         imgR_o = Image.open(rightimg).convert('RGB')
         imgL = infer_transform(imgL_o)
@@ -180,7 +182,7 @@ def test_all_images(inputs):
 
         img = (img * 256).astype('uint16')
         img = Image.fromarray(img)
-        save_path = os.path.join('./cashe/kitti_result', img)
+        save_path = os.path.join('./cashe/kitti_result', leftimg.split('/')[-1])
         img.save(save_path)
 
 
