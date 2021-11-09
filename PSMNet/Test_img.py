@@ -13,7 +13,6 @@ from models import *
 import cv2
 from PIL import Image
 
-
 # 2012 data /media/jiaren/ImageNet/data_scene_flow_2012/testing/
 
 parser = argparse.ArgumentParser(description='PSMNet')
@@ -108,6 +107,7 @@ def main():
 
     start_time = time.time()
     pred_disp = test(imgL, imgR)
+
     print('time = %.2f' % (time.time() - start_time))
 
     if top_pad != 0 and right_pad != 0:
@@ -124,5 +124,67 @@ def main():
     img.save('./cashe/Test_disparity.png')
 
 
+def load_images(root):
+    root_L = os.path.join(root, "image_2")
+    assert os.path.exists(root_L)
+
+    input_imgs = []
+    for root, dirs, files in os.walk(root_L):
+        for file in files:
+            fiel_name = os.path.splitext(file)[0]
+            if fiel_name.split('_')[1] == '10':
+                full_path_L = os.path.join(root, file)
+                root_R = root[:-1] + '3'
+                full_path_R = os.path.join(root_R, file)
+                input_imgs.append([full_path_L, full_path_R])
+    return input_imgs
+
+
+def test_all_images(inputs):
+    normal_mean_var = {'mean': [0.485, 0.456, 0.406],
+                       'std': [0.229, 0.224, 0.225]}
+    infer_transform = transforms.Compose([transforms.ToTensor(),
+                                          transforms.Normalize(**normal_mean_var)])
+
+    start_time = time.time()
+    for [leftimg, rightimg] in inputs:
+        imgL_o = Image.open(leftimg).convert('RGB')
+        imgR_o = Image.open(rightimg).convert('RGB')
+        imgL = infer_transform(imgL_o)
+        imgR = infer_transform(imgR_o)
+        # pad to width and hight to 16 times
+        if imgL.shape[1] % 16 != 0:
+            times = imgL.shape[1] // 16
+            top_pad = (times + 1) * 16 - imgL.shape[1]
+        else:
+            top_pad = 0
+        if imgL.shape[2] % 16 != 0:
+            times = imgL.shape[2] // 16
+            right_pad = (times + 1) * 16 - imgL.shape[2]
+        else:
+            right_pad = 0
+        imgL = F.pad(imgL, (0, right_pad, top_pad, 0)).unsqueeze(0)
+        imgR = F.pad(imgR, (0, right_pad, top_pad, 0)).unsqueeze(0)
+
+        pred_disp = test(imgL, imgR)
+        print('time = %.2f' % (time.time() - start_time))
+
+        if top_pad != 0 and right_pad != 0:
+            img = pred_disp[top_pad:, :-right_pad]
+        elif top_pad == 0 and right_pad != 0:
+            img = pred_disp[:, :-right_pad]
+        elif top_pad != 0 and right_pad == 0:
+            img = pred_disp[top_pad:, :]
+        else:
+            img = pred_disp
+
+        img = (img * 256).astype('uint16')
+        img = Image.fromarray(img)
+        save_path = os.path.join('./cashe/kitti_result', img)
+        img.save(save_path)
+
+
 if __name__ == '__main__':
-    main()
+    datasets_root = '/home/eistrauben/github/Masterarbeit/datasets/data_scene_flow/training'
+    imgs = load_images(datasets_root)
+    test_all_images(imgs)
