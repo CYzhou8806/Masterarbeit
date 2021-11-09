@@ -623,7 +623,9 @@ _C.VIS_PERIOD = 0
 _C.GLOBAL = CN()
 _C.GLOBAL.HACK = 1.0
 
+'''
 # Depth
 _C.DEPTH.MAXDISP = 192
 _C.DEPTH.SEED = 1
 _C.DEPTH.NOCUDA = False     # TODO: replace it with better design
+'''

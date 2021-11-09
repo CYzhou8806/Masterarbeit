@@ -27,13 +27,13 @@ def get_parser():
     parser.add_argument("--video-input", help="Path to video file.")
     parser.add_argument(
         "--input",
-        default=["/home/eistrauben/桌面/share/000048_10_orig.png"],
+        default=["/home/eistrauben/github/Masterarbeit/datasets/data_scene_flow/training/image_2/000020_10.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
     parser.add_argument(
         "--output",
-        default="/home/eistrauben/桌面/share/result_panoptic.jpg",
+        default="/home/eistrauben/桌面/share/000020_10_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
