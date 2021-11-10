@@ -5,6 +5,10 @@ import tqdm
 import time
 import cv2
 
+import os, sys
+
+sys.path.append(os.getcwd())
+
 from train_net import setup
 from detectron2.data.detection_utils import read_image
 from detectron2.checkpoint import DetectionCheckpointer
@@ -27,13 +31,13 @@ def get_parser():
     parser.add_argument("--video-input", help="Path to video file.")
     parser.add_argument(
         "--input",
-        default=["/home/eistrauben/github/Masterarbeit/datasets/data_scene_flow/training/image_2/000020_10.png"],
+        default=["/bigwork/nhgnycao/datasets/000023_10.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
     parser.add_argument(
         "--output",
-        default="/home/eistrauben/桌面/share/000020_10_seg.png",
+        default="/bigwork/nhgnycao/datasets/000023_10_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -54,7 +58,7 @@ def main(args):
     logger.info("Arguments: " + str(args))
 
     cfg = setup(args)  # 配置设置
-    demo = VisualizationDemo(cfg)   # $$$ 数据集的处理仍然不清楚
+    demo = VisualizationDemo(cfg)  # $$$ 数据集的处理仍然不清楚
 
     if args.input:
         if len(args.input) == 1:

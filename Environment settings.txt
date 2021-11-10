@@ -1,10 +1,6 @@
 gcc -v
 =9.3.0
 
-
-
-
-
 conda create -n detectron2 python=3.7
 conda activate detectron2
 conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
@@ -46,7 +42,9 @@ pip install -U 'git+https://github.com/facebookresearch/fvcore'
 pip install Cython
 pip install pycocotools
 pip install Pillow
-sudo apt install ninja-build
+conda install -c conda-forge ninja
+pip install git+https://github.com/cocodataset/panopticapi.git
+
 
 git clone https://github.com/facebookresearch/detectron2.git
 cd detectron2
@@ -56,6 +54,10 @@ python -m pip install -e detectron2
 ## test detectron2 #####
 cd demo
 python demo.py --config-file ../configs/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml --input input1.jpg   --output ./result.jpg --opts MODEL.WEIGHTS detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl
+
+
+### rebuild###
+python setup.py build develop
 
 
 
@@ -73,7 +75,7 @@ rm -rf pycocotools-2.0-py3.7.egg-info
 #### 安装杂项
 pip install opencv-python
 conda install -c conda-forge tqdm
-
+module load GCC/8.3.0
 
 
 
