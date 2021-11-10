@@ -31,6 +31,14 @@ sudo chmod a+r /usr/local/cuda-11.3/lib64/libcudnn*
 cat /usr/local/cuda-11.3/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
 
 
+##LUIS
+cp cuda/include/cudnn* /bigwork/nhgnycao/NVIDIA/CUDA/cuda-11.3.1/include/
+chmod a+r /bigwork/nhgnycao/NVIDIA/CUDA/cuda-11.3.1/include/cudnn*
+cp cuda/lib64/libcudnn* /bigwork/nhgnycao/NVIDIA/CUDA/cuda-11.3.1/lib64/
+chmod a+r /bigwork/nhgnycao/NVIDIA/CUDA/cuda-11.3.1/lib64/libcudnn*
+cat /bigwork/nhgnycao/NVIDIA/CUDA/cuda-11.3.1/include/cudnn_version.h | grep CUDNN_MAJOR -A 2
+
+
 
 ######### detectron2 ##########
 python -m pip install --upgrade pip
@@ -62,11 +70,23 @@ rm -rf pycocotools-2.0-py3.7.egg-info
 
 
 
+#### 安装杂项
+pip install opencv-python
+conda install -c conda-forge tqdm
 
 
 
 
 
+
+
+
+
+
+
+#################学校
+module load Miniconda3
+conda activate psm
 
 
 

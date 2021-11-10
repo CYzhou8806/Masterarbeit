@@ -14,7 +14,6 @@ import cv2
 from PIL import Image
 from tqdm import tqdm
 
-
 # 2012 data /media/jiaren/ImageNet/data_scene_flow_2012/testing/
 
 parser = argparse.ArgumentParser(description='PSMNet')
@@ -24,12 +23,19 @@ parser.add_argument('--datapath', default='/media/jiaren/ImageNet/data_scene_flo
                     help='select model')
 parser.add_argument('--loadmodel', default='./weights/pretrained_model_KITTI2015.tar',
                     help='loading model')
+
+# parser.add_argument('--leftimg',default='/home/eistrauben/桌面/Classroom1-perfect/im0.png',help='load model')
+# parser.add_argument('--rightimg',default='/home/eistrauben/桌面/Classroom1-perfect/im1.png',help='load model')
+
+
 parser.add_argument('--leftimg',
-                    default='/home/eistrauben/桌面/Classroom1-perfect/im0.png',
+                    default='/bigwork/nhgnycao/datasets/classroom/im0.png',
                     help='load model')
+
 parser.add_argument('--rightimg',
-                    default='/home/eistrauben/桌面/Classroom1-perfect/im1.png',
+                    default='/bigwork/nhgnycao/datasets/classroom/im1.png',
                     help='load model')
+
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
 parser.add_argument('--maxdisp', type=int, default=192,
@@ -71,6 +77,7 @@ def test(imgL, imgR):
         imgR = imgR.cuda()
 
     with torch.no_grad():
+        # disp = nn.parallel.data_parallel(model(imgL, imgR), device_ids=[0, 1])
         disp = model(imgL, imgR)
 
     disp = torch.squeeze(disp)
@@ -123,7 +130,7 @@ def main():
 
     img = (img * 256).astype('uint16')
     img = Image.fromarray(img)
-    img.save('/home/eistrauben/桌面/Classroom1-perfect/result_dis.png')
+    img.save('./cashe/result_dis.png')
 
 
 def load_images(root):
