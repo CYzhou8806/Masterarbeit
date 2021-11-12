@@ -1,6 +1,8 @@
 import argparse
 import glob
 import os
+import shutil
+
 import tqdm
 import time
 import cv2
@@ -38,6 +40,39 @@ def get_parser():
     parser.add_argument(
         "--output",
         default="/bigwork/nhgnycao/datasets/000023_10_seg.png",
+        help="A file or directory to save output visualizations. "
+             "If not given, will show output in an OpenCV window.",
+    )
+
+    parser.add_argument(
+        "--opts",
+        help="Modify config options using the command-line 'KEY VALUE' pairs",
+        default=['MODEL.WEIGHTS', 'model/model_final_23d03a.pkl'],
+        nargs=argparse.REMAINDER,
+    )
+    return parser
+
+
+def get_parser_diy(input_diy, output_diy):
+    parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
+    parser.add_argument(
+        "--config-file",
+        default="./configs/Cityscapes-PanopticSegmentation/demo_panoptic_deeplab.yaml",
+        metavar="FILE",
+        help="path to config file",
+    )
+    parser.add_argument("--webcam", action="store_true", help="Take inputs from webcam.")
+    parser.add_argument("--video-input", help="Path to video file.")
+    parser.add_argument(
+        "--input",
+        default=[input_diy],
+        help="A list of space separated input images; "
+             "or a single glob pattern such as 'directory/*.jpg'",
+    )
+
+    parser.add_argument(
+        "--output",
+        default=output_diy,
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -105,8 +140,33 @@ def main(args):
     '''
 
 
-if __name__ == "__main__":
+def demo_single_input():
     args = get_parser().parse_args()  # 用于预设/捕获命令行配置
     # args = default_argument_parser().parse_args()  # 用于预设/捕获命令行配置, 和上面自定义的get_parser没啥区别
-
     main(args)
+
+
+def demo_series_input(temple_result_root, source_input_root, output_root):
+    if os.path.exists(output_root):
+        shutil.rmtree(output_root)
+    os.makedirs(output_root)
+
+    # get all inputs from depth result
+    for root, dirs, files in os.walk(temple_result_root):
+        for file in files:
+            input_diy = os.path.join(source_input_root, file)
+            output_diy_name = os.path.splitext(file)[0] + '_seg' + '.png'
+            output_diy = os.path.join(output_root, output_diy_name)
+            args = get_parser_diy(input_diy, output_diy).parse_args()
+            main(args)
+            torch.cuda.empty_cache()
+
+
+if __name__ == "__main__":
+    # demo_single_input()
+
+    depth_result_root = "/bigwork/nhgnycao/Masterarbeit/datasets/data_scene_flow/kitti_worse_20"
+    series_input_root = "/bigwork/nhgnycao/Masterarbeit/datasets/data_scene_flow/training/image_2"
+    output_dir = "/bigwork/nhgnycao/share/kitti2015_worth20_segments"
+
+    demo_series_input(depth_result_root, series_input_root, output_dir)
