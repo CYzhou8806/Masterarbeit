@@ -34,7 +34,7 @@ def get_parser():
     parser.add_argument("--video-input", help="Path to video file.")
     parser.add_argument(
         "--input",
-        default=[r"C:\Users\cyzho\Desktop\data_scene_flow\training\image_2\000004_10.png"],
+        default=["/home/eistrauben/桌面/data_scene_flow/training/image_2/000004_10.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -42,7 +42,7 @@ def get_parser():
 
     parser.add_argument(
         "--output",
-        default=r"C:\Users\cyzho\Desktop\000004_10_seg.png",
+        default="/home/eistrauben/桌面/000004_10_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
