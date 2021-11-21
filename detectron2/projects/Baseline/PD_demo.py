@@ -164,10 +164,10 @@ def demo_series_input(temple_result_root, source_input_root, output_root):
 
 
 if __name__ == "__main__":
-    # demo_single_input()
+    demo_single_input()
 
     depth_result_root = "/bigwork/nhgnycao/Masterarbeit/datasets/data_scene_flow/kitti_worse_20"
     series_input_root = "/bigwork/nhgnycao/Masterarbeit/datasets/data_scene_flow/training/image_2"
     output_dir = "/bigwork/nhgnycao/share/kitti2015_worth20_segments"
 
-    demo_series_input(depth_result_root, series_input_root, output_dir)
+    # demo_series_input(depth_result_root, series_input_root, output_dir)

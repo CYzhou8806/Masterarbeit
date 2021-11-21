@@ -44,6 +44,8 @@ pip install pycocotools
 pip install Pillow
 conda install -c conda-forge ninja
 pip install git+https://github.com/cocodataset/panopticapi.git
+pip install opencv-python
+conda install -c conda-forge tqdm
 
 
 git clone https://github.com/facebookresearch/detectron2.git
@@ -73,8 +75,6 @@ rm -rf pycocotools-2.0-py3.7.egg-info
 
 
 #### 安装杂项
-pip install opencv-python
-conda install -c conda-forge tqdm
 module load GCC/8.3.0
 
 

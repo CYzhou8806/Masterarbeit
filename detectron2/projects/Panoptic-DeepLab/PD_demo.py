@@ -34,13 +34,13 @@ def get_parser():
     parser.add_argument("--video-input", help="Path to video file.")
     parser.add_argument(
         "--input",
-        default=["/bigwork/nhgnycao/datasets/000023_10.png"],
+        default=[r"C:\Users\cyzho\Desktop\data_scene_flow\training\image_2\000004_10.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
     parser.add_argument(
         "--output",
-        default="/bigwork/nhgnycao/datasets/000023_10_seg.png",
+        default=r"C:\Users\cyzho\Desktop\000004_10_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -164,10 +164,10 @@ def demo_series_input(temple_result_root, source_input_root, output_root):
 
 
 if __name__ == "__main__":
-    # demo_single_input()
+    demo_single_input()
 
     depth_result_root = "/bigwork/nhgnycao/Masterarbeit/datasets/data_scene_flow/kitti_worse_20"
     series_input_root = "/bigwork/nhgnycao/Masterarbeit/datasets/data_scene_flow/training/image_2"
     output_dir = "/bigwork/nhgnycao/share/kitti2015_worth20_segments"
 
-    demo_series_input(depth_result_root, series_input_root, output_dir)
+    # demo_series_input(depth_result_root, series_input_root, output_dir)

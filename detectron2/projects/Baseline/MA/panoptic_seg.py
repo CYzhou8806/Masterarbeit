@@ -25,7 +25,6 @@ from .post_processing import get_panoptic_segmentation
 
 __all__ = ["PanopticDeepLab", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch"]
 
-
 INS_EMBED_BRANCHES_REGISTRY = Registry("INS_EMBED_BRANCHES")
 INS_EMBED_BRANCHES_REGISTRY.__doc__ = """
 Registry for instance embedding branches, which make instance embedding
@@ -54,8 +53,8 @@ class PanopticDeepLab(nn.Module):
         self.predict_instances = cfg.MODEL.PANOPTIC_DEEPLAB.PREDICT_INSTANCES
         self.use_depthwise_separable_conv = cfg.MODEL.PANOPTIC_DEEPLAB.USE_DEPTHWISE_SEPARABLE_CONV
         assert (
-            cfg.MODEL.SEM_SEG_HEAD.USE_DEPTHWISE_SEPARABLE_CONV
-            == cfg.MODEL.PANOPTIC_DEEPLAB.USE_DEPTHWISE_SEPARABLE_CONV
+                cfg.MODEL.SEM_SEG_HEAD.USE_DEPTHWISE_SEPARABLE_CONV
+                == cfg.MODEL.PANOPTIC_DEEPLAB.USE_DEPTHWISE_SEPARABLE_CONV
         )
         self.size_divisibility = cfg.MODEL.PANOPTIC_DEEPLAB.SIZE_DIVISIBILITY
         self.benchmark_network_speed = cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED
@@ -150,7 +149,7 @@ class PanopticDeepLab(nn.Module):
 
         processed_results = []
         for sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
-            sem_seg_results, center_results, offset_results, batched_inputs, images.image_sizes
+                sem_seg_results, center_results, offset_results, batched_inputs, images.image_sizes
         ):
             height = input_per_image.get("height")
             width = input_per_image.get("width")
@@ -227,18 +226,18 @@ class PanopticDeepLabSemSegHead(DeepLabV3PlusHead):
 
     @configurable
     def __init__(
-        self,
-        input_shape: Dict[str, ShapeSpec],
-        *,
-        decoder_channels: List[int],
-        norm: Union[str, Callable],
-        head_channels: int,
-        loss_weight: float,
-        loss_type: str,
-        loss_top_k: float,
-        ignore_value: int,
-        num_classes: int,
-        **kwargs,
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            decoder_channels: List[int],
+            norm: Union[str, Callable],
+            head_channels: int,
+            loss_weight: float,
+            loss_type: str,
+            loss_top_k: float,
+            ignore_value: int,
+            num_classes: int,
+            **kwargs,
     ):
         """
         NOTE: this interface is experimental.
@@ -369,15 +368,15 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
 
     @configurable
     def __init__(
-        self,
-        input_shape: Dict[str, ShapeSpec],
-        *,
-        decoder_channels: List[int],
-        norm: Union[str, Callable],
-        head_channels: int,
-        center_loss_weight: float,
-        offset_loss_weight: float,
-        **kwargs,
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            decoder_channels: List[int],
+            norm: Union[str, Callable],
+            head_channels: int,
+            center_loss_weight: float,
+            offset_loss_weight: float,
+            **kwargs,
     ):
         """
         NOTE: this interface is experimental.
@@ -480,7 +479,7 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
         else:
             train_size = None
         decoder_channels = [cfg.MODEL.INS_EMBED_HEAD.CONVS_DIM] * (
-            len(cfg.MODEL.INS_EMBED_HEAD.IN_FEATURES) - 1
+                len(cfg.MODEL.INS_EMBED_HEAD.IN_FEATURES) - 1
         ) + [cfg.MODEL.INS_EMBED_HEAD.ASPP_CHANNELS]
         ret = dict(
             input_shape={
@@ -501,12 +500,12 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
         return ret
 
     def forward(
-        self,
-        features,
-        center_targets=None,
-        center_weights=None,
-        offset_targets=None,
-        offset_weights=None,
+            self,
+            features,
+            center_targets=None,
+            center_weights=None,
+            offset_targets=None,
+            offset_weights=None,
     ):
         """
         Returns:
@@ -526,10 +525,10 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
                 center, scale_factor=self.common_stride, mode="bilinear", align_corners=False
             )
             offset = (
-                F.interpolate(
-                    offset, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-                )
-                * self.common_stride
+                    F.interpolate(
+                        offset, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+                    )
+                    * self.common_stride
             )
             return center, offset, {}, {}
 
@@ -558,10 +557,10 @@ class PanopticDeepLabInsEmbedHead(DeepLabV3PlusHead):
 
     def offset_losses(self, predictions, targets, weights):
         predictions = (
-            F.interpolate(
-                predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-            )
-            * self.common_stride
+                F.interpolate(
+                    predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+                )
+                * self.common_stride
         )
         loss = self.offset_loss(predictions, targets) * weights
         if weights.sum() > 0:
