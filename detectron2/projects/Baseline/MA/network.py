@@ -22,7 +22,10 @@ from detectron2.modeling import (
 )
 from detectron2.utils.registry import Registry
 from detectron2.structures import BitMasks, ImageList, Instances
-
+from detectron2.projects.deeplab import DeepLabV3PlusHead
+from detectron2.projects.deeplab.loss import DeepLabCE
+from detectron2.config import configurable
+from detectron2.layers import Conv2d, DepthwiseSeparableConv2d, ShapeSpec, get_norm
 
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch"]
 
@@ -43,10 +46,8 @@ class JointEstimation(nn.Module):
         super().__init__()
         self.backbone = build_backbone(cfg)  # the shared encoder (without ASPP)
 
-
         self.sem_seg_head = build_sem_seg_head(cfg, self.backbone.output_shape())
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
-
 
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
         self.register_buffer("pixel_std", torch.tensor(cfg.MODEL.PIXEL_STD).view(-1, 1, 1), False)
@@ -222,3 +223,155 @@ class JointEstimation(nn.Module):
                     processed_results[-1]["instances"] = Instances.cat(instances)
 
         return processed_results
+
+
+@SEM_SEG_HEADS_REGISTRY.register()
+class JointEstimationSemSegHead(DeepLabV3PlusHead):
+    """
+    A semantic segmentation head of joint estimation architectures`.
+    """
+
+    @configurable
+    def __init__(
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            decoder_channels: List[int],
+            norm: Union[str, Callable],
+            head_channels: int,
+            loss_weight: float,
+            loss_type: str,
+            loss_top_k: float,
+            ignore_value: int,
+            num_classes: int,
+            **kwargs,
+    ):
+        """
+        NOTE: this interface is experimental.
+
+        Args:
+            input_shape (ShapeSpec): shape of the input feature
+            decoder_channels (list[int]): a list of output channels of each
+                decoder stage. It should have the same length as "input_shape"
+                (each element in "input_shape" corresponds to one decoder stage).
+            norm (str or callable): normalization for all conv layers.
+            head_channels (int): the output channels of extra convolutions
+                between decoder and predictor.
+            loss_weight (float): loss weight.
+            loss_top_k: (float): setting the top k% hardest pixels for
+                "hard_pixel_mining" loss.
+            loss_type, ignore_value, num_classes: the same as the base class.
+        """
+        super().__init__(
+            input_shape,
+            decoder_channels=decoder_channels,
+            norm=norm,
+            ignore_value=ignore_value,
+            **kwargs,
+        )
+        assert self.decoder_only
+
+        self.loss_weight = loss_weight
+        use_bias = norm == ""
+        # `head` is additional transform before predictor
+        if self.use_depthwise_separable_conv:
+            # We use a single 5x5 DepthwiseSeparableConv2d to replace
+            # 2 3x3 Conv2d since they have the same receptive field.
+            self.head = DepthwiseSeparableConv2d(
+                decoder_channels[0],
+                head_channels,
+                kernel_size=5,
+                padding=2,
+                norm1=norm,
+                activation1=F.relu,
+                norm2=norm,
+                activation2=F.relu,
+            )
+        else:
+            self.head = nn.Sequential(
+                Conv2d(
+                    decoder_channels[0],
+                    decoder_channels[0],
+                    kernel_size=3,
+                    padding=1,
+                    bias=use_bias,
+                    norm=get_norm(norm, decoder_channels[0]),
+                    activation=F.relu,
+                ),
+                Conv2d(
+                    decoder_channels[0],
+                    head_channels,
+                    kernel_size=3,
+                    padding=1,
+                    bias=use_bias,
+                    norm=get_norm(norm, head_channels),
+                    activation=F.relu,
+                ),
+            )
+            weight_init.c2_xavier_fill(self.head[0])
+            weight_init.c2_xavier_fill(self.head[1])
+        self.predictor = Conv2d(head_channels, num_classes, kernel_size=1)
+        nn.init.normal_(self.predictor.weight, 0, 0.001)
+        nn.init.constant_(self.predictor.bias, 0)
+
+        if loss_type == "cross_entropy":
+            self.loss = nn.CrossEntropyLoss(reduction="mean", ignore_index=ignore_value)
+        elif loss_type == "hard_pixel_mining":
+            self.loss = DeepLabCE(ignore_label=ignore_value, top_k_percent_pixels=loss_top_k)
+        else:
+            raise ValueError("Unexpected loss type: %s" % loss_type)
+
+    @classmethod
+    def from_config(cls, cfg, input_shape):
+        ret = super().from_config(cfg, input_shape)
+        ret["head_channels"] = cfg.MODEL.SEM_SEG_HEAD.HEAD_CHANNELS
+        ret["loss_top_k"] = cfg.MODEL.SEM_SEG_HEAD.LOSS_TOP_K
+        return ret
+
+    def forward(self, features, targets=None, weights=None):
+        """
+        Returns:
+            In training, returns (None, dict of losses)
+            In inference, returns (CxHxW logits, {})
+        """
+        y = self.layers(features)
+        if self.training:
+            return None, self.losses(y, targets, weights)
+        else:
+            y = F.interpolate(
+                y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+            )
+            return y, {}
+
+    def layers(self, features):
+        assert self.decoder_only
+
+        # Reverse feature maps into top-down order (from low to high resolution)
+        for f in self.in_features[::-1]:
+            x = features[f]  # "features" is dictionary
+            proj_x = self.decoder[f]["project_conv"](x)
+            if self.decoder[f]["fuse_conv"] is None:
+                # This is aspp module
+                y = proj_x
+            else:
+                # Upsample y
+                y = F.interpolate(y, size=proj_x.size()[2:], mode="bilinear", align_corners=False)
+                y = torch.cat([proj_x, y], dim=1)
+                y = self.decoder[f]["fuse_conv"](y)
+        if not self.decoder_only:
+            y = self.predictor(y)
+        return y
+
+
+        y = super().layers(features)
+        y = self.head(y)
+        y = self.predictor(y)
+        return y
+
+    def losses(self, predictions, targets, weights=None):
+        predictions = F.interpolate(
+            predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+        )
+        loss = self.loss(predictions, targets, weights)
+        losses = {"loss_sem_seg": loss * self.loss_weight}
+        return losses

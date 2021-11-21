@@ -77,7 +77,7 @@ class DeepLabV3PlusHead(nn.Module):
         self.common_stride    = common_stride  # output stride
         self.loss_weight      = loss_weight
         self.loss_type        = loss_type
-        self.decoder_only     = num_classes is None
+        self.decoder_only     = num_classes is None     # TODO: to find out the meaning
         self.use_depthwise_separable_conv = use_depthwise_separable_conv
         # fmt: on
 
@@ -237,7 +237,7 @@ class DeepLabV3PlusHead(nn.Module):
     def layers(self, features):
         # Reverse feature maps into top-down order (from low to high resolution)
         for f in self.in_features[::-1]:
-            x = features[f]
+            x = features[f]     # "features" is dictionary
             proj_x = self.decoder[f]["project_conv"](x)
             if self.decoder[f]["fuse_conv"] is None:
                 # This is aspp module
