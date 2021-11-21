@@ -38,13 +38,15 @@ def get_parser():
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
+    # default=[r"C:\Users\cyzho\Desktop\data_scene_flow\training\image_2\000004_10.png"],
+
     parser.add_argument(
         "--output",
         default=r"C:\Users\cyzho\Desktop\000004_10_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
-
+    # default=r"C:\Users\cyzho\Desktop\000004_10_seg.png",
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
