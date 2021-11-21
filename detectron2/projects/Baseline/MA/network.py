@@ -334,20 +334,20 @@ class JointEstimationSemSegHead(DeepLabV3PlusHead):
             In training, returns (None, dict of losses)
             In inference, returns (CxHxW logits, {})
         """
-        y = self.layers(features)
+        y, out_features = self.layers(features)
         if self.training:
-            return None, self.losses(y, targets, weights)
+            return None, self.losses(y, targets, weights), out_features
         else:
             y = F.interpolate(
                 y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
             )
-            return y, {}
+            return y, {}, out_features
 
     def layers(self, features):
         assert self.decoder_only
-
+        out_features = {}
         # Reverse feature maps into top-down order (from low to high resolution)
-        for f in self.in_features[::-1]:
+        for i, f in enumerate(self.in_features[::-1]):
             x = features[f]  # "features" is dictionary
             proj_x = self.decoder[f]["project_conv"](x)
             if self.decoder[f]["fuse_conv"] is None:
@@ -358,15 +358,21 @@ class JointEstimationSemSegHead(DeepLabV3PlusHead):
                 y = F.interpolate(y, size=proj_x.size()[2:], mode="bilinear", align_corners=False)
                 y = torch.cat([proj_x, y], dim=1)
                 y = self.decoder[f]["fuse_conv"](y)
-        if not self.decoder_only:
-            y = self.predictor(y)
-        return y
 
+            # save outputs
+            if i == 1:
+                out_features['1/8'] = y
+            elif i == 2:
+                out_features['1/4'] = y
+            elif i == 0:
+                out_features['1/16'] = y
+            else:
+                raise ValueError("undefined output of SemSeg Branch")
 
-        y = super().layers(features)
+        y = out_features['1/4']
         y = self.head(y)
         y = self.predictor(y)
-        return y
+        return y, out_features
 
     def losses(self, predictions, targets, weights=None):
         predictions = F.interpolate(
