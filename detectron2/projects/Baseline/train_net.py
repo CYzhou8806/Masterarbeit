@@ -23,7 +23,7 @@ from detectron2.evaluation import (
     DatasetEvaluators,
 )
 from detectron2.projects.deeplab import build_lr_scheduler
-from detectron2.projects.panoptic_deeplab import (
+from detectron2.projects.MA import (
     PanopticDeeplabDatasetMapper,
     add_panoptic_deeplab_config,
 )

@@ -16,3 +16,7 @@ from .panoptic_seg import (
     PanopticDeepLabSemSegHead,
     PanopticDeepLabInsEmbedHead,
 )
+from .network import (
+    JointEstimation,
+    JointEstimationSemSegHead,
+)

@@ -14,18 +14,22 @@ import torch
 from torch import nn
 from torch.nn import functional as F
 
+from detectron2.config import configurable
+from detectron2.data import MetadataCatalog
+from detectron2.layers import Conv2d, DepthwiseSeparableConv2d, ShapeSpec, get_norm
 from detectron2.modeling import (
     META_ARCH_REGISTRY,
     SEM_SEG_HEADS_REGISTRY,
     build_backbone,
     build_sem_seg_head,
 )
-from detectron2.utils.registry import Registry
-from detectron2.structures import BitMasks, ImageList, Instances
+from detectron2.modeling.postprocessing import sem_seg_postprocess
 from detectron2.projects.deeplab import DeepLabV3PlusHead
 from detectron2.projects.deeplab.loss import DeepLabCE
-from detectron2.config import configurable
-from detectron2.layers import Conv2d, DepthwiseSeparableConv2d, ShapeSpec, get_norm
+from detectron2.structures import BitMasks, ImageList, Instances
+from detectron2.utils.registry import Registry
+
+from .post_processing import get_panoptic_segmentation
 
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch"]
 
@@ -381,3 +385,11 @@ class JointEstimationSemSegHead(DeepLabV3PlusHead):
         loss = self.loss(predictions, targets, weights)
         losses = {"loss_sem_seg": loss * self.loss_weight}
         return losses
+
+
+def build_ins_embed_branch(cfg, input_shape):
+    """
+    Build a instance embedding branch from `cfg.MODEL.INS_EMBED_HEAD.NAME`.
+    """
+    name = cfg.MODEL.INS_EMBED_HEAD.NAME
+    return INS_EMBED_BRANCHES_REGISTRY.get(name)(cfg, input_shape)

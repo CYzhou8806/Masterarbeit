@@ -43,7 +43,7 @@ class PanopticDeepLab(nn.Module):
         self.backbone = build_backbone(cfg)
         # print(self.backbone.output_shape())
         self.sem_seg_head = build_sem_seg_head(cfg, self.backbone.output_shape())
-        print(self.sem_seg_head)
+        # print(self.sem_seg_head)
         # print(self.sem_seg_head.output_shape())
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
 

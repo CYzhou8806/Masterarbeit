@@ -9,8 +9,9 @@ from pathlib import Path
 _PROJECTS = {
     "point_rend": "PointRend",
     "deeplab": "DeepLab",
-    "panoptic_deeplab": "Panoptic-DeepLab",
+    
     "psm_net": "Baseline",
+    "MA": "Baseline",
 }
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent / "projects"
 

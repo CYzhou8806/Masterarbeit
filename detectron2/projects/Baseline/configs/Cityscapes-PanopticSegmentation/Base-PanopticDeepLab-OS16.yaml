@@ -1,12 +1,12 @@
 MODEL:
-  META_ARCHITECTURE: "PanopticDeepLab"
+  META_ARCHITECTURE: "JointEstimation"
   BACKBONE:
     FREEZE_AT: 0
   RESNETS:
     OUT_FEATURES: ["res2", "res3", "res5"]
     RES5_DILATION: 2
   SEM_SEG_HEAD:
-    NAME: "PanopticDeepLabSemSegHead"
+    NAME: "JointEstimationSemSegHead"
     IN_FEATURES: ["res2", "res3", "res5"]
     PROJECT_FEATURES: ["res2", "res3"]
     PROJECT_CHANNELS: [32, 64]
