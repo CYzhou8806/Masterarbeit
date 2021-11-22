@@ -31,7 +31,7 @@ from detectron2.utils.registry import Registry
 
 from .post_processing import get_panoptic_segmentation
 
-__all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch"]
+__all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch","build_dis_embed_head"]
 
 INS_EMBED_BRANCHES_REGISTRY = Registry("INS_EMBED_BRANCHES")
 INS_EMBED_BRANCHES_REGISTRY.__doc__ = """
@@ -135,6 +135,7 @@ class JointEstimation(nn.Module):
             targets = None
             weights = None
         sem_seg_results, sem_seg_losses, sem_seg_features = self.sem_seg_head(features, targets, weights)
+        # print(sem_seg_features)
         losses.update(sem_seg_losses)
 
         # instance branch
@@ -647,7 +648,7 @@ def build_dis_embed_head(cfg, input_shape):
 
 
 @DIS_EMBED_BRANCHES_REGISTRY.register()
-class JointEstimationDisSegHead(DeepLabV3PlusHead):
+class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
     """
     A semantic segmentation head of joint estimation architectures`.
     """

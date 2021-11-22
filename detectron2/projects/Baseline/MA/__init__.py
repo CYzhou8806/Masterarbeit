@@ -7,7 +7,7 @@
 @Date    ：2021/11/21 8:43 
 """
 
-from .config import add_panoptic_deeplab_config
+from .config import add_joint_estimation_config
 from .dataset_mapper import PanopticDeeplabDatasetMapper
 from .panoptic_seg import (
     PanopticDeepLab,
@@ -19,4 +19,5 @@ from .panoptic_seg import (
 from .network import (
     JointEstimation,
     JointEstimationSemSegHead,
+    build_dis_embed_head,
 )

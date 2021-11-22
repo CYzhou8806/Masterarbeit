@@ -25,7 +25,7 @@ from detectron2.evaluation import (
 from detectron2.projects.deeplab import build_lr_scheduler
 from detectron2.projects.MA import (
     PanopticDeeplabDatasetMapper,
-    add_panoptic_deeplab_config,
+    add_joint_estimation_config,
 )
 from detectron2.solver import get_default_optimizer_params
 from detectron2.solver.build import maybe_add_gradient_clipping
@@ -147,7 +147,7 @@ def setup(args):
     Create configs and perform basic setups.
     """
     cfg = get_cfg()
-    add_panoptic_deeplab_config(cfg)
+    add_joint_estimation_config(cfg)
     cfg.merge_from_file(args.config_file)
     cfg.merge_from_list(args.opts)
     cfg.freeze()

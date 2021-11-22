@@ -29,12 +29,12 @@ parser.add_argument('--loadmodel', default='./weights/pretrained_model_KITTI2015
 
 
 parser.add_argument('--leftimg',
-                    default='/bigwork/nhgnycao/datasets/classroom/im0.png',
+                    default='/home/eistrauben/github/Masterarbeit/datasets/data_scene_flow/training/image_2/000048_10.png',
+                    help='load model')
+parser.add_argument('--rightimg',
+                    default='/home/eistrauben/github/Masterarbeit/datasets/data_scene_flow/training/image_3/000048_10.png',
                     help='load model')
 
-parser.add_argument('--rightimg',
-                    default='/bigwork/nhgnycao/datasets/classroom/im1.png',
-                    help='load model')
 
 parser.add_argument('--model', default='stackhourglass',
                     help='select model')
