@@ -21,7 +21,7 @@ MODEL:
     LOSS_TYPE: "hard_pixel_mining"
     NORM: "SyncBN"
   INS_EMBED_HEAD:
-    NAME: "PanopticDeepLabInsEmbedHead"
+    NAME: "JointEstimationInsEmbedHead"
     IN_FEATURES: ["res2", "res3", "res5"]
     PROJECT_FEATURES: ["res2", "res3"]
     PROJECT_CHANNELS: [32, 64]
