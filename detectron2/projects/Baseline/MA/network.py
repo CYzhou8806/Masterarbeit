@@ -53,6 +53,7 @@ class JointEstimation(nn.Module):
         self.sem_seg_head = build_sem_seg_head(cfg, self.backbone.output_shape())
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
 
+        # TODO: following meaning still not clear
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
         self.register_buffer("pixel_std", torch.tensor(cfg.MODEL.PIXEL_STD).view(-1, 1, 1), False)
         self.meta = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
@@ -106,7 +107,7 @@ class JointEstimation(nn.Module):
         )
         images = ImageList.from_tensors(images, size_divisibility)
 
-        features_L = self.backbone(images.tensor)
+        features = self.backbone(images.tensor)
         losses = {}
 
         # semantic branch
