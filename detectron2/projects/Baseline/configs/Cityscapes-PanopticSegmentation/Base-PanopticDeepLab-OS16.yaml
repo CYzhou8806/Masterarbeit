@@ -35,6 +35,7 @@ MODEL:
     NUM_CLASSES: 19
     LOSS_TYPE: "hard_pixel_mining"
     NORM: "SyncBN"
+    MAX_DISP: 192
   INS_EMBED_HEAD:
     NAME: "JointEstimationInsEmbedHead"
     IN_FEATURES: ["res2", "res3", "res5"]

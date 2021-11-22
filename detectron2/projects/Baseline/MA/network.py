@@ -58,7 +58,9 @@ class JointEstimation(nn.Module):
 
         self.sem_seg_head = build_sem_seg_head(cfg, self.backbone.output_shape())
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
-        self.dis_head = build_dis_embed_head(cfg, self.backbone.output_shape())
+        self.dis_backbone = build_dis_embed_head(cfg, self.backbone.output_shape())
+
+        self.max_disp = cfg.MODEL.INS_EMBED_HEAD.MAX_DISP
 
         # TODO: following meaning still not clear
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
@@ -160,6 +162,9 @@ class JointEstimation(nn.Module):
         )
         losses.update(center_losses)
         losses.update(offset_losses)
+
+        _, _, dis_features = self.dis_backbone(features)
+
 
         if self.training:
             return losses
@@ -758,7 +763,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         """
         y, out_features = self.layers(features)
         if self.training:
-            return None, self.losses(y, targets, weights), out_features
+            return None, {}, out_features   # TODO: to be adapted
         else:
             y = F.interpolate(
                 y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
@@ -792,8 +797,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 raise ValueError("undefined output of SemSeg Branch")
 
         y = out_features['1/4']
-        y = self.head(y)
-        y = self.predictor(y)
+
         return y, out_features
 
     def losses(self, predictions, targets, weights=None):
@@ -803,3 +807,19 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         loss = self.loss(predictions, targets, weights)
         losses = {"loss_sem_seg": loss * self.loss_weight}
         return losses
+
+
+def build_correlation_cost_volume(max_disp, left_feature, right_feature):
+    # max_disp = cfg.MODEL.INS_EMBED_HEAD.MAX_DISP
+    cost_volume = left_feature.new_zeros(left_feature.size()[0], max_disp,
+                                         left_feature.size()[2], left_feature.size()[3])  # (b, max_disp, h, w)
+    for i in range(max_disp):
+        if i > 0:
+            cost_volume[:, i, :, i:] = (left_feature[:, :, :, i:] *
+                                        right_feature[:, :, :, :-i]).mean(dim=1)
+        else:
+            cost_volume[:, i, :, :] = (left_feature * right_feature).mean(dim=1)
+    return cost_volume
+
+
+# def warping(disp, feature):
