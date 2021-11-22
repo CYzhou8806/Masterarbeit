@@ -58,7 +58,7 @@ class JointEstimation(nn.Module):
 
         self.sem_seg_head = build_sem_seg_head(cfg, self.backbone.output_shape())
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
-        self.dis_head = build_dis_head()
+        self.dis_head = build_dis_embed_head(cfg, self.backbone.output_shape())
 
         # TODO: following meaning still not clear
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
