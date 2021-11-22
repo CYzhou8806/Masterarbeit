@@ -39,6 +39,12 @@ Registry for instance embedding branches, which make instance embedding
 predictions from feature maps.
 """
 
+DIS_EMBED_BRANCHES_REGISTRY = Registry("DIS_EMBED_BRANCHES")
+DIS_EMBED_BRANCHES_REGISTRY.__doc__ = """
+Registry for disparity embedding branches, which make disparity embedding
+predictions from feature maps.
+"""
+
 
 @META_ARCH_REGISTRY.register()
 class JointEstimation(nn.Module):
@@ -52,6 +58,7 @@ class JointEstimation(nn.Module):
 
         self.sem_seg_head = build_sem_seg_head(cfg, self.backbone.output_shape())
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
+        self.dis_head = build_dis_head()
 
         # TODO: following meaning still not clear
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
@@ -108,6 +115,7 @@ class JointEstimation(nn.Module):
         images = ImageList.from_tensors(images, size_divisibility)
 
         features = self.backbone(images.tensor)
+
         losses = {}
 
         # semantic branch
@@ -627,4 +635,170 @@ class JointEstimationInsEmbedHead(DeepLabV3PlusHead):
         else:
             loss = loss.sum() * 0
         losses = {"loss_offset": loss * self.offset_loss_weight}
+        return losses
+
+
+def build_dis_embed_head(cfg, input_shape):
+    """
+    Build a disparity embedding branch from `cfg.MODEL.DIS_EMBED_HEAD.NAME`.
+    """
+    name = cfg.MODEL.DIS_EMBED_HEAD.NAME
+    return DIS_EMBED_BRANCHES_REGISTRY.get(name)(cfg, input_shape)
+
+
+@DIS_EMBED_BRANCHES_REGISTRY.register()
+class JointEstimationDisSegHead(DeepLabV3PlusHead):
+    """
+    A semantic segmentation head of joint estimation architectures`.
+    """
+
+    @configurable
+    def __init__(
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            decoder_channels: List[int],
+            norm: Union[str, Callable],
+            head_channels: int,
+            loss_weight: float,
+            loss_type: str,
+            loss_top_k: float,
+            ignore_value: int,
+            num_classes: int,
+            **kwargs,
+    ):
+        """
+        NOTE: this interface is experimental.
+
+        Args:
+            input_shape (ShapeSpec): shape of the input feature
+            decoder_channels (list[int]): a list of output channels of each
+                decoder stage. It should have the same length as "input_shape"
+                (each element in "input_shape" corresponds to one decoder stage).
+            norm (str or callable): normalization for all conv layers.
+            head_channels (int): the output channels of extra convolutions
+                between decoder and predictor.
+            loss_weight (float): loss weight.
+            loss_top_k: (float): setting the top k% hardest pixels for
+                "hard_pixel_mining" loss.
+            loss_type, ignore_value, num_classes: the same as the base class.
+        """
+        super().__init__(
+            input_shape,
+            decoder_channels=decoder_channels,
+            norm=norm,
+            ignore_value=ignore_value,
+            **kwargs,
+        )
+        assert self.decoder_only
+
+        self.loss_weight = loss_weight
+        use_bias = norm == ""
+        # `head` is additional transform before predictor
+        if self.use_depthwise_separable_conv:
+            # We use a single 5x5 DepthwiseSeparableConv2d to replace
+            # 2 3x3 Conv2d since they have the same receptive field.
+            self.head = DepthwiseSeparableConv2d(
+                decoder_channels[0],
+                head_channels,
+                kernel_size=5,
+                padding=2,
+                norm1=norm,
+                activation1=F.relu,
+                norm2=norm,
+                activation2=F.relu,
+            )
+        else:
+            self.head = nn.Sequential(
+                Conv2d(
+                    decoder_channels[0],
+                    decoder_channels[0],
+                    kernel_size=3,
+                    padding=1,
+                    bias=use_bias,
+                    norm=get_norm(norm, decoder_channels[0]),
+                    activation=F.relu,
+                ),
+                Conv2d(
+                    decoder_channels[0],
+                    head_channels,
+                    kernel_size=3,
+                    padding=1,
+                    bias=use_bias,
+                    norm=get_norm(norm, head_channels),
+                    activation=F.relu,
+                ),
+            )
+            weight_init.c2_xavier_fill(self.head[0])
+            weight_init.c2_xavier_fill(self.head[1])
+        self.predictor = Conv2d(head_channels, num_classes, kernel_size=1)
+        nn.init.normal_(self.predictor.weight, 0, 0.001)
+        nn.init.constant_(self.predictor.bias, 0)
+
+        if loss_type == "cross_entropy":
+            self.loss = nn.CrossEntropyLoss(reduction="mean", ignore_index=ignore_value)
+        elif loss_type == "hard_pixel_mining":
+            self.loss = DeepLabCE(ignore_label=ignore_value, top_k_percent_pixels=loss_top_k)
+        else:
+            raise ValueError("Unexpected loss type: %s" % loss_type)
+
+    @classmethod
+    def from_config(cls, cfg, input_shape):
+        ret = super().from_config(cfg, input_shape)
+        ret["head_channels"] = cfg.MODEL.SEM_SEG_HEAD.HEAD_CHANNELS
+        ret["loss_top_k"] = cfg.MODEL.SEM_SEG_HEAD.LOSS_TOP_K
+        return ret
+
+    def forward(self, features, targets=None, weights=None):
+        """
+        Returns:
+            In training, returns (None, dict of losses)
+            In inference, returns (CxHxW logits, {})
+        """
+        y, out_features = self.layers(features)
+        if self.training:
+            return None, self.losses(y, targets, weights), out_features
+        else:
+            y = F.interpolate(
+                y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+            )
+            return y, {}, out_features
+
+    def layers(self, features):
+        assert self.decoder_only
+        out_features = {}
+        # Reverse feature maps into top-down order (from low to high resolution)
+        for i, f in enumerate(self.in_features[::-1]):
+            x = features[f]  # "features" is dictionary
+            proj_x = self.decoder[f]["project_conv"](x)
+            if self.decoder[f]["fuse_conv"] is None:
+                # This is aspp module
+                y = proj_x
+            else:
+                # Upsample y
+                y = F.interpolate(y, size=proj_x.size()[2:], mode="bilinear", align_corners=False)
+                y = torch.cat([proj_x, y], dim=1)
+                y = self.decoder[f]["fuse_conv"](y)
+
+            # save outputs
+            if i == 1:
+                out_features['1/8'] = y
+            elif i == 2:
+                out_features['1/4'] = y
+            elif i == 0:
+                out_features['1/16'] = y
+            else:
+                raise ValueError("undefined output of SemSeg Branch")
+
+        y = out_features['1/4']
+        y = self.head(y)
+        y = self.predictor(y)
+        return y, out_features
+
+    def losses(self, predictions, targets, weights=None):
+        predictions = F.interpolate(
+            predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+        )
+        loss = self.loss(predictions, targets, weights)
+        losses = {"loss_sem_seg": loss * self.loss_weight}
         return losses
