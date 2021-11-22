@@ -106,17 +106,17 @@ class JointEstimation(nn.Module):
                     :doc:`/tutorials/models` for the standard output format
         """
         # TODO: adapt Binocular input
-        images = [x["image"].to(self.device) for x in batched_inputs]
-        images = [(x - self.pixel_mean) / self.pixel_std for x in images]
+        left_images = [x["image"].to(self.device) for x in batched_inputs]
+        left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
         # To avoid error in ASPP layer when input has different size.
         size_divisibility = (
             self.size_divisibility
             if self.size_divisibility > 0
             else self.backbone.size_divisibility
         )
-        images = ImageList.from_tensors(images, size_divisibility)
+        left_images = ImageList.from_tensors(left_images, size_divisibility)
 
-        features = self.backbone(images.tensor)
+        left_features = self.backbone(left_images.tensor)
 
         losses = {}
 
@@ -136,7 +136,7 @@ class JointEstimation(nn.Module):
         else:
             targets = None
             weights = None
-        sem_seg_results, sem_seg_losses, sem_seg_features = self.sem_seg_head(features, targets, weights)
+        sem_seg_results, sem_seg_losses, left_sem_seg_features = self.sem_seg_head(left_features, targets, weights)
         # print(sem_seg_features)
         losses.update(sem_seg_losses)
 
@@ -157,13 +157,25 @@ class JointEstimation(nn.Module):
             center_weights = None
             offset_targets = None
             offset_weights = None
-        center_results, offset_results, center_losses, offset_losses, ins_seg_features = self.ins_embed_head(
-            features, center_targets, center_weights, offset_targets, offset_weights
+        center_results, offset_results, center_losses, offset_losses, left_ins_seg_features = self.ins_embed_head(
+            left_features, center_targets, center_weights, offset_targets, offset_weights
         )
         losses.update(center_losses)
         losses.update(offset_losses)
 
-        _, _, dis_features = self.dis_backbone(features)
+        _, _, left_dis_features = self.dis_backbone(left_features)
+
+
+        right_features = self.backbone(right_images.tensor)
+        sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None)
+        center_results, offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
+            right_features, None, None, None, None
+        )
+        _, _, right_dis_features = self.dis_backbone(right_features)
+
+        # pyramid_featu #TODO: here to start
+        for scale in right_dis_features:
+
 
 
         if self.training:
@@ -174,7 +186,7 @@ class JointEstimation(nn.Module):
 
         processed_results = []
         for sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
-                sem_seg_results, center_results, offset_results, batched_inputs, images.image_sizes
+                sem_seg_results, center_results, offset_results, batched_inputs, left_images.image_sizes
         ):
             height = input_per_image.get("height")
             width = input_per_image.get("width")
