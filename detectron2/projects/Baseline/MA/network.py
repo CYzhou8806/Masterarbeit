@@ -184,18 +184,22 @@ class JointEstimation(nn.Module):
             # pyramid_features[key].append([left_dis_features[key], right_dis_features[key]])
 
         disparity = None
-        for scale in ['1/16', '1/8', '1/4']:
+        # for scale in ['1/16', '1/8', '1/4']:
+        for scale in ['1/16']:
             if not disparity:
                 seg_cost_volume = build_correlation_cost_volume(
                     self.max_disp, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
                 ins_cost_volume = build_correlation_cost_volume(
                     self.max_disp, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
+                print(seg_cost_volume)
                 '''
                 dis_cost_volume = build_correlation_cost_volume(
                     self.max_disp, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
                 cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
                 '''
                 cost_volume = seg_cost_volume * ins_cost_volume
+                print(cost_volume)
+                raise RuntimeError('excepted stop')
 
 
 
