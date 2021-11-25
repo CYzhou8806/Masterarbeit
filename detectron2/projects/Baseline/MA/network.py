@@ -36,7 +36,7 @@ from .post_processing import get_panoptic_segmentation
 from .submodule import convbn_3d, disparityregression
 
 
-__all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch","build_dis_embed_head"]
+__all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch", "build_dis_embed_head"]
 
 INS_EMBED_BRANCHES_REGISTRY = Registry("INS_EMBED_BRANCHES")
 INS_EMBED_BRANCHES_REGISTRY.__doc__ = """
