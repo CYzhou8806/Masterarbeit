@@ -6,8 +6,10 @@
 @Author  ：Yu Cao
 @Date    ：2021/11/21 10:30 
 """
-import math
 
+
+import torch.utils.data
+import math
 import numpy as np
 from typing import Callable, Dict, List, Union
 import fvcore.nn.weight_init as weight_init
@@ -31,6 +33,8 @@ from detectron2.structures import BitMasks, ImageList, Instances
 from detectron2.utils.registry import Registry
 
 from .post_processing import get_panoptic_segmentation
+from .submodule import convbn_3d
+
 
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch","build_dis_embed_head"]
 
@@ -175,6 +179,18 @@ class JointEstimation(nn.Module):
 
         #_, _, left_dis_features = self.dis_backbone(left_features)
         #_, _, right_dis_features = self.dis_backbone(right_features)
+
+
+        dres0 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True),
+                                   convbn_3d(32, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True))
+
+        dres1 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True),
+                                   convbn_3d(32, 32, 3, 1, 1))
+
+
 
         # dict{'1/4': [[left_seg, right_seg], [left_ins, right_ins], [left_dis, right_dis]], ...}
         pyramid_features = {}
@@ -866,5 +882,57 @@ def build_correlation_cost_volume(max_disp, left_feature, right_feature):
 
 
 # def warping(disp, feature):
+
+
+class hourglass(nn.Module):
+    def __init__(self, inplanes):
+        super(hourglass, self).__init__()
+
+        self.conv1 = nn.Sequential(convbn_3d(inplanes, inplanes * 2, kernel_size=3, stride=2, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        self.conv2 = convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1)
+
+        self.conv3 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=2, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        self.conv4 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        # note: the conv5 and conv6 is without relu
+        self.conv5 = nn.Sequential(
+            nn.ConvTranspose3d(inplanes * 2, inplanes * 2, kernel_size=3, padding=1, output_padding=1, stride=2,
+                               bias=False),
+            nn.BatchNorm3d(inplanes * 2))  # +conv2
+
+        self.conv6 = nn.Sequential(
+            nn.ConvTranspose3d(inplanes * 2, inplanes, kernel_size=3, padding=1, output_padding=1, stride=2,
+                               bias=False),
+            nn.BatchNorm3d(inplanes))  # +x
+
+    def forward(self, x, presqu, postsqu):
+        out = self.conv1(x)  # in:1/4 out:1/8
+        pre = self.conv2(out)  # in:1/8 out:1/8
+        if postsqu is not None:
+            pre = F.relu(pre + postsqu, inplace=True)   # the red connection in the figure of paper
+        else:
+            pre = F.relu(pre, inplace=True)
+
+        out = self.conv3(pre)  # in:1/8 out:1/16
+        out = self.conv4(out)  # in:1/16 out:1/16
+
+        if presqu is not None:
+            # the green connection
+            # if this is not the first hourglass, take the output of pre-conv5 to make the fusion
+            # a little different from what is written in the paper?!?!??!
+            post = F.relu(self.conv5(out) + presqu, inplace=True)  # in:1/16 out:1/8
+        else:
+            post = F.relu(self.conv5(out) + pre, inplace=True)
+
+        out = self.conv6(post)  # in:1/8 out:1/4
+
+        return out, pre, post
+
+
 
 
