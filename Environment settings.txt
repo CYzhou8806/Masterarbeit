@@ -87,8 +87,10 @@ module load GCC/8.3.0
 
 
 #################学校
+source ~/.bashrc
 module load Miniconda3
-conda activate psm
+conda activate detectron2
+module load GCC/8.3.0
 
 
 

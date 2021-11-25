@@ -929,12 +929,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
                 ins_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
-                '''
+
                 print(seg_cost_volume)
                 cost_volume = seg_cost_volume * ins_cost_volume
                 print(cost_volume)
                 raise RuntimeError('excepted stop')
-                '''
+
                 dis_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
             else:   # TODO: add wrap
