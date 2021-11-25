@@ -6,6 +6,7 @@
 @Author  ：Yu Cao
 @Date    ：2021/11/21 10:30 
 """
+import math
 
 import numpy as np
 from typing import Callable, Dict, List, Union
@@ -185,16 +186,18 @@ class JointEstimation(nn.Module):
 
         disparity = None
         # for scale in ['1/16', '1/8', '1/4']:
-        for scale in ['1/16']:
+        zoom = [16, 8, 4]
+        for i, scale in enumerate(['1/16']):
+            max_dis = self.max_disp // zoom[i]
             if not disparity:
                 seg_cost_volume = build_correlation_cost_volume(
-                    self.max_disp, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
+                    max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
                 ins_cost_volume = build_correlation_cost_volume(
-                    self.max_disp, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
+                    max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
                 print(seg_cost_volume)
                 '''
                 dis_cost_volume = build_correlation_cost_volume(
-                    self.max_disp, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
+                    max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
                 cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
                 '''
                 cost_volume = seg_cost_volume * ins_cost_volume
