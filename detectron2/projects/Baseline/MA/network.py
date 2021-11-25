@@ -172,8 +172,32 @@ class JointEstimation(nn.Module):
         right_center_results, right_offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
             right_features, _, _, _, _)
 
-        _, _, left_dis_features = self.dis_backbone(left_features)
-        _, _, right_dis_features = self.dis_backbone(right_features)
+        #_, _, left_dis_features = self.dis_backbone(left_features)
+        #_, _, right_dis_features = self.dis_backbone(right_features)
+
+        # dict{'1/4': [[left_seg, right_seg], [left_ins, right_ins], [left_dis, right_dis]], ...}
+        pyramid_features = {}
+        for key in left_sem_seg_features:
+            pyramid_features[key] = []
+            pyramid_features[key].append([left_sem_seg_features[key], right_sem_seg_features[key]])
+            pyramid_features[key].append([left_ins_seg_features[key], right_ins_seg_features[key]])
+            # pyramid_features[key].append([left_dis_features[key], right_dis_features[key]])
+
+        disparity = None
+        for scale in ['1/16', '1/8', '1/4']:
+            if not disparity:
+                seg_cost_volume = build_correlation_cost_volume(
+                    self.max_disp, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
+                ins_cost_volume = build_correlation_cost_volume(
+                    self.max_disp, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
+                '''
+                dis_cost_volume = build_correlation_cost_volume(
+                    self.max_disp, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
+                cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
+                '''
+                cost_volume = seg_cost_volume * ins_cost_volume
+
+
 
         '''
         # pyramid_featu #TODO: here to start
@@ -837,3 +861,5 @@ def build_correlation_cost_volume(max_disp, left_feature, right_feature):
 
 
 # def warping(disp, feature):
+
+
