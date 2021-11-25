@@ -24,7 +24,6 @@ from detectron2.evaluation import (
 )
 from detectron2.projects.deeplab import build_lr_scheduler
 from detectron2.projects.MA import (
-    PanopticDeeplabDatasetMapper,
     add_joint_estimation_config,
     register_all_cityscapes_joint,
     JointDeeplabDatasetMapper,

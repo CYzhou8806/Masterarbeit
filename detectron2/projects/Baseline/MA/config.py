@@ -60,6 +60,7 @@ def add_joint_estimation_config(cfg):
     cfg.MODEL.DIS_EMBED_HEAD.LOSS_WEIGHT = 1.0
     cfg.MODEL.DIS_EMBED_HEAD.IGNORE_VALUE = 255
     cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE = "hard_pixel_mining"
+    cfg.MODEL.DIS_EMBED_HEAD.MAX_DISP = 192
 
 
     # Panoptic-DeepLab post-processing setting.
