@@ -6,7 +6,7 @@
 @Author  ：Yu Cao
 @Date    ：2021/11/21 10:30 
 """
-
+import copy
 
 import torch.utils.data
 import math
@@ -33,7 +33,7 @@ from detectron2.structures import BitMasks, ImageList, Instances
 from detectron2.utils.registry import Registry
 
 from .post_processing import get_panoptic_segmentation
-from .submodule import convbn_3d
+from .submodule import convbn_3d, disparityregression
 
 
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch","build_dis_embed_head"]
@@ -63,7 +63,7 @@ class JointEstimation(nn.Module):
 
         self.sem_seg_head = build_sem_seg_head(cfg, self.backbone.output_shape())
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
-        self.dis_backbone = build_dis_embed_head(cfg, self.backbone.output_shape())
+        self.dis_embed_head = build_dis_embed_head(cfg, self.backbone.output_shape())
 
         self.max_disp = cfg.MODEL.INS_EMBED_HEAD.MAX_DISP
 
@@ -177,21 +177,11 @@ class JointEstimation(nn.Module):
         right_center_results, right_offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
             right_features, _, _, _, _)
 
-        #_, _, left_dis_features = self.dis_backbone(left_features)
-        #_, _, right_dis_features = self.dis_backbone(right_features)
-
-
-        dres0 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
-                                   nn.ReLU(inplace=True),
-                                   convbn_3d(32, 32, 3, 1, 1),
-                                   nn.ReLU(inplace=True))
-
-        dres1 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
-                                   nn.ReLU(inplace=True),
-                                   convbn_3d(32, 32, 3, 1, 1))
-
-
-
+        '''
+        _, _, left_dis_features = self.dis_backbone(left_features)
+        _, _, right_dis_features = self.dis_backbone(right_features)
+        '''
+        # TODO: convert 256 -> 64
         # dict{'1/4': [[left_seg, right_seg], [left_ins, right_ins], [left_dis, right_dis]], ...}
         pyramid_features = {}
         for key in left_sem_seg_features:
@@ -199,7 +189,9 @@ class JointEstimation(nn.Module):
             pyramid_features[key].append([left_sem_seg_features[key], right_sem_seg_features[key]])
             pyramid_features[key].append([left_ins_seg_features[key], right_ins_seg_features[key]])
             # pyramid_features[key].append([left_dis_features[key], right_dis_features[key]])
+        self.dis_embed_head(left_features, right_features, pyramid_features)
 
+        '''
         disparity = None
         # for scale in ['1/16', '1/8', '1/4']:
         zoom = [16, 8, 4]
@@ -211,22 +203,20 @@ class JointEstimation(nn.Module):
                 ins_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
                 print(seg_cost_volume)
-                '''
+                
                 dis_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
                 cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
-                '''
+                
                 cost_volume = seg_cost_volume * ins_cost_volume
                 print(cost_volume)
                 raise RuntimeError('excepted stop')
 
-
-
+        '''
         '''
         # pyramid_featu #TODO: here to start
         for scale in right_dis_features:
         '''
-
         if self.training:
             return losses
 
@@ -732,6 +722,392 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             loss_top_k: float,
             ignore_value: int,
             num_classes: int,
+            img_size = None,
+            **kwargs,
+    ):
+        """
+        NOTE: this interface is experimental.
+
+        Args:
+            input_shape (ShapeSpec): shape of the input feature
+            decoder_channels (list[int]): a list of output channels of each
+                decoder stage. It should have the same length as "input_shape"
+                (each element in "input_shape" corresponds to one decoder stage).
+            norm (str or callable): normalization for all conv layers.
+            head_channels (int): the output channels of extra convolutions
+                between decoder and predictor.
+            loss_weight (float): loss weight.
+            loss_top_k: (float): setting the top k% hardest pixels for
+                "hard_pixel_mining" loss.
+            loss_type, ignore_value, num_classes: the same as the base class.
+        """
+        super().__init__(
+            input_shape,
+            decoder_channels=decoder_channels,
+            norm=norm,
+            ignore_value=ignore_value,
+            **kwargs,
+        )
+        assert self.decoder_only
+
+        self.loss_weight = loss_weight
+        use_bias = norm == ""
+        # `head` is additional transform before predictor
+        if self.use_depthwise_separable_conv:
+            # We use a single 5x5 DepthwiseSeparableConv2d to replace
+            # 2 3x3 Conv2d since they have the same receptive field.
+            self.head = DepthwiseSeparableConv2d(
+                decoder_channels[0],
+                head_channels,
+                kernel_size=5,
+                padding=2,
+                norm1=norm,
+                activation1=F.relu,
+                norm2=norm,
+                activation2=F.relu,
+            )
+        else:
+            self.head = nn.Sequential(
+                Conv2d(
+                    decoder_channels[0],
+                    decoder_channels[0],
+                    kernel_size=3,
+                    padding=1,
+                    bias=use_bias,
+                    norm=get_norm(norm, decoder_channels[0]),
+                    activation=F.relu,
+                ),
+                Conv2d(
+                    decoder_channels[0],
+                    head_channels,
+                    kernel_size=3,
+                    padding=1,
+                    bias=use_bias,
+                    norm=get_norm(norm, head_channels),
+                    activation=F.relu,
+                ),
+            )
+            weight_init.c2_xavier_fill(self.head[0])
+            weight_init.c2_xavier_fill(self.head[1])
+        self.predictor = Conv2d(head_channels, num_classes, kernel_size=1)
+        nn.init.normal_(self.predictor.weight, 0, 0.001)
+        nn.init.constant_(self.predictor.bias, 0)
+
+        if loss_type == "cross_entropy":
+            self.loss = nn.CrossEntropyLoss(reduction="mean", ignore_index=ignore_value)
+        elif loss_type == "hard_pixel_mining":
+            self.loss = DeepLabCE(ignore_label=ignore_value, top_k_percent_pixels=loss_top_k)
+        else:
+            raise ValueError("Unexpected loss type: %s" % loss_type)
+
+        if img_size is None:
+            self.img_size = [1024, 2048]  # h, w
+
+        self.dres0 = {}
+        self.dres1 = {}
+        self.dres2 = {}
+        self.dres3 = {}
+        self.dres4 = {}
+        self.classif1 = {}
+        self.classif2 = {}
+        self.classif3 = {}
+        for scale in ['1/16', '1/8', '1/4']:
+            self.dres0[scale] = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
+                                        nn.ReLU(inplace=True),
+                                        convbn_3d(32, 32, 3, 1, 1),
+                                        nn.ReLU(inplace=True))
+
+            self.dres1[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                        nn.ReLU(inplace=True),
+                                        convbn_3d(32, 32, 3, 1, 1))
+            self.dres2[scale] = hourglass(32)
+            self.dres3[scale] = hourglass(32)
+            self.dres4[scale] = hourglass(32)
+            self.classif1[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                           nn.ReLU(inplace=True),
+                                           nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+            self.classif2[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                           nn.ReLU(inplace=True),
+                                           nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+            self.classif3[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                           nn.ReLU(inplace=True),
+                                           nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+
+        '''
+        # 1/16
+        self.dres00 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True),
+                                   convbn_3d(32, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True))
+
+        self.dres01 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True),
+                                   convbn_3d(32, 32, 3, 1, 1))
+        self.dres02 = hourglass(32)
+        self.dres03 = hourglass(32)
+        self.dres04 = hourglass(32)
+        self.classif01 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+        self.classif02 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+        self.classif03 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+
+        # 1/8
+        self.dres10 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True),
+                                   convbn_3d(32, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True))
+
+        self.dres11 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                   nn.ReLU(inplace=True),
+                                   convbn_3d(32, 32, 3, 1, 1))
+        self.dres12 = hourglass(32)
+        self.dres13 = hourglass(32)
+        self.dres14 = hourglass(32)
+        self.classif11 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+        self.classif12 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+        self.classif13 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+
+        # 1/4
+        self.dres20 = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
+                                    nn.ReLU(inplace=True),
+                                    convbn_3d(32, 32, 3, 1, 1),
+                                    nn.ReLU(inplace=True))
+
+        self.dres21 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                    nn.ReLU(inplace=True),
+                                    convbn_3d(32, 32, 3, 1, 1))
+        self.dres22 = hourglass(32)
+        self.dres23 = hourglass(32)
+        self.dres24 = hourglass(32)
+        self.classif21 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                       nn.ReLU(inplace=True),
+                                       nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+        self.classif22 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                       nn.ReLU(inplace=True),
+                                       nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+        self.classif23 = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                       nn.ReLU(inplace=True),
+                                       nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+        '''
+
+    @classmethod
+    def from_config(cls, cfg, input_shape):
+        ret = super().from_config(cfg, input_shape)
+        ret["head_channels"] = cfg.MODEL.SEM_SEG_HEAD.HEAD_CHANNELS
+        ret["loss_top_k"] = cfg.MODEL.SEM_SEG_HEAD.LOSS_TOP_K
+        return ret
+
+    def forward(self, features, right_features, pyramid_features, targets=None, weights=None):
+        """
+        Returns:
+            In training, returns (None, dict of losses)
+            In inference, returns (CxHxW logits, {})
+        """
+        y, out_features = self.layers(features)
+        right_y, right_out_features = self.layers(right_features)
+
+        for key in out_features:
+            pyramid_features[key].append([out_features[key], right_out_features[key]])
+
+        disparity = []
+        zoom = [16, 8, 4]
+        for i, scale in enumerate(['1/16', '1/8', '1/4']):
+            max_dis = self.max_disp // zoom[i]
+            if not len(disparity):
+                seg_cost_volume = build_correlation_cost_volume(
+                    max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
+                ins_cost_volume = build_correlation_cost_volume(
+                    max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
+                '''
+                print(seg_cost_volume)
+                cost_volume = seg_cost_volume * ins_cost_volume
+                print(cost_volume)
+                raise RuntimeError('excepted stop')
+                '''
+                dis_cost_volume = build_correlation_cost_volume(
+                    max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
+            else:   # TODO: add wrap
+                dis = disparity[-1]
+                seg_cost_volume = build_correlation_cost_volume(
+                    max_dis,
+                    warping(dis, pyramid_features[scale][0][0]),
+                    warping(dis, pyramid_features[scale][0][1]))
+                ins_cost_volume = build_correlation_cost_volume(
+                    max_dis,
+                    warping(dis, pyramid_features[scale][1][0]),
+                    warping(dis, pyramid_features[scale][1][1]))
+                # print(seg_cost_volume)
+                dis_cost_volume = build_correlation_cost_volume(
+                    max_dis,
+                    warping(dis, pyramid_features[scale][2][0]),
+                    warping(dis, pyramid_features[scale][2][1]))
+            cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
+
+            cost0 = self.dres0[scale](cost_volume)
+            cost0 = self.dres1[scale](cost0) + cost0
+            out1, pre1, post1 = self.dres2[scale](cost0, None, None)
+            out1 = out1 + cost0
+            out2, pre2, post2 = self.dres3[scale](out1, pre1, post1)
+            out2 = out2 + cost0
+            out3, pre3, post3 = self.dres4[scale](out2, pre1, post2)
+            out3 = out3 + cost0
+            cost1 = self.classif1[scale](out1)
+            cost2 = self.classif2[scale](out2) + cost1
+            cost3 = self.classif3[scale](out3) + cost2
+
+            cost3 = F.upsample(cost3, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
+            cost3 = torch.squeeze(cost3, 1)
+            pred3 = F.softmax(cost3, dim=1)
+            # For your information: This formulation 'softmax(c)' learned "similarity"
+            # while 'softmax(-c)' learned 'matching cost' as mentioned in the paper.
+            # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
+            pred3 = disparityregression(max_dis)(pred3)
+
+            if not len(disparity):
+                disparity.append(pred3)
+            else:
+                disparity.append(pred3+dis)
+
+        if self.training:
+            return self.losses(disparity, targets, weights)  # TODO: to be adapted
+        else:
+            return {}, disparity
+
+    def layers(self, features):
+        assert self.decoder_only
+        out_features = {}
+        # Reverse feature maps into top-down order (from low to high resolution)
+        for i, f in enumerate(self.in_features[::-1]):
+            x = features[f]  # "features" is dictionary
+            proj_x = self.decoder[f]["project_conv"](x)
+            if self.decoder[f]["fuse_conv"] is None:
+                # This is aspp module
+                y = proj_x
+            else:
+                # Upsample y
+                y = F.interpolate(y, size=proj_x.size()[2:], mode="bilinear", align_corners=False)
+                y = torch.cat([proj_x, y], dim=1)
+                y = self.decoder[f]["fuse_conv"](y)
+
+            # save outputs
+            if i == 1:
+                out_features['1/8'] = y
+            elif i == 2:
+                out_features['1/4'] = y
+            elif i == 0:
+                out_features['1/16'] = y
+            else:
+                raise ValueError("undefined output of SemSeg Branch")
+
+        y = out_features['1/4']
+
+        return y, out_features
+
+    def losses(self, predictions, targets, weights=None):
+        predictions = F.interpolate(
+            predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
+        )
+        loss = self.loss(predictions, targets, weights)
+        losses = {"loss_sem_seg": loss * self.loss_weight}
+        return losses
+
+
+def build_correlation_cost_volume(max_disp, left_feature, right_feature):
+    cost_volume = left_feature.new_zeros(left_feature.size()[0], max_disp,
+                                         left_feature.size()[2], left_feature.size()[3])  # (b, max_disp, h, w)
+    for i in range(max_disp):
+        if i > 0:
+            cost_volume[:, i, :, i:] = (left_feature[:, :, :, i:] * right_feature[:, :, :, :-i]).mean(dim=1)
+        else:
+            cost_volume[:, i, :, :] = (left_feature * right_feature).mean(dim=1)
+    return cost_volume
+
+
+def warping(disp, feature):     # TODO: to add operations
+    warped = copy.deepcopy(feature)
+    return warped
+
+
+class hourglass(nn.Module):
+    def __init__(self, inplanes):
+        super(hourglass, self).__init__()
+
+        self.conv1 = nn.Sequential(convbn_3d(inplanes, inplanes * 2, kernel_size=3, stride=2, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        self.conv2 = convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1)
+
+        self.conv3 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=2, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        self.conv4 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1),
+                                   nn.ReLU(inplace=True))
+
+        # note: the conv5 and conv6 is without relu
+        self.conv5 = nn.Sequential(
+            nn.ConvTranspose3d(inplanes * 2, inplanes * 2, kernel_size=3, padding=1, output_padding=1, stride=2,
+                               bias=False),
+            nn.BatchNorm3d(inplanes * 2))  # +conv2
+
+        self.conv6 = nn.Sequential(
+            nn.ConvTranspose3d(inplanes * 2, inplanes, kernel_size=3, padding=1, output_padding=1, stride=2,
+                               bias=False),
+            nn.BatchNorm3d(inplanes))  # +x
+
+    def forward(self, x, presqu, postsqu):
+        out = self.conv1(x)  # in:1/4 out:1/8
+        pre = self.conv2(out)  # in:1/8 out:1/8
+        if postsqu is not None:
+            pre = F.relu(pre + postsqu, inplace=True)   # the red connection in the figure of paper
+        else:
+            pre = F.relu(pre, inplace=True)
+
+        out = self.conv3(pre)  # in:1/8 out:1/16
+        out = self.conv4(out)  # in:1/16 out:1/16
+
+        if presqu is not None:
+            # the green connection
+            # if this is not the first hourglass, take the output of pre-conv5 to make the fusion
+            # a little different from what is written in the paper?!?!??!
+            post = F.relu(self.conv5(out) + presqu, inplace=True)  # in:1/16 out:1/8
+        else:
+            post = F.relu(self.conv5(out) + pre, inplace=True)
+
+        out = self.conv6(post)  # in:1/8 out:1/4
+
+        return out, pre, post
+
+
+@DIS_EMBED_BRANCHES_REGISTRY.register()
+class JointEstimationDisEmbed(DeepLabV3PlusHead):
+    """
+    A semantic segmentation head of joint estimation architectures`.
+    """
+
+    @configurable
+    def __init__(
+            self,
+            input_shape: Dict[str, ShapeSpec],
+            *,
+            decoder_channels: List[int],
+            norm: Union[str, Callable],
+            head_channels: int,
+            loss_weight: float,
+            loss_type: str,
+            loss_top_k: float,
+            ignore_value: int,
+            num_classes: int,
             **kwargs,
     ):
         """
@@ -868,71 +1244,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         loss = self.loss(predictions, targets, weights)
         losses = {"loss_sem_seg": loss * self.loss_weight}
         return losses
-
-
-def build_correlation_cost_volume(max_disp, left_feature, right_feature):
-    cost_volume = left_feature.new_zeros(left_feature.size()[0], max_disp,
-                                         left_feature.size()[2], left_feature.size()[3])  # (b, max_disp, h, w)
-    for i in range(max_disp):
-        if i > 0:
-            cost_volume[:, i, :, i:] = (left_feature[:, :, :, i:] * right_feature[:, :, :, :-i]).mean(dim=1)
-        else:
-            cost_volume[:, i, :, :] = (left_feature * right_feature).mean(dim=1)
-    return cost_volume
-
-
-# def warping(disp, feature):
-
-
-class hourglass(nn.Module):
-    def __init__(self, inplanes):
-        super(hourglass, self).__init__()
-
-        self.conv1 = nn.Sequential(convbn_3d(inplanes, inplanes * 2, kernel_size=3, stride=2, pad=1),
-                                   nn.ReLU(inplace=True))
-
-        self.conv2 = convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1)
-
-        self.conv3 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=2, pad=1),
-                                   nn.ReLU(inplace=True))
-
-        self.conv4 = nn.Sequential(convbn_3d(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1),
-                                   nn.ReLU(inplace=True))
-
-        # note: the conv5 and conv6 is without relu
-        self.conv5 = nn.Sequential(
-            nn.ConvTranspose3d(inplanes * 2, inplanes * 2, kernel_size=3, padding=1, output_padding=1, stride=2,
-                               bias=False),
-            nn.BatchNorm3d(inplanes * 2))  # +conv2
-
-        self.conv6 = nn.Sequential(
-            nn.ConvTranspose3d(inplanes * 2, inplanes, kernel_size=3, padding=1, output_padding=1, stride=2,
-                               bias=False),
-            nn.BatchNorm3d(inplanes))  # +x
-
-    def forward(self, x, presqu, postsqu):
-        out = self.conv1(x)  # in:1/4 out:1/8
-        pre = self.conv2(out)  # in:1/8 out:1/8
-        if postsqu is not None:
-            pre = F.relu(pre + postsqu, inplace=True)   # the red connection in the figure of paper
-        else:
-            pre = F.relu(pre, inplace=True)
-
-        out = self.conv3(pre)  # in:1/8 out:1/16
-        out = self.conv4(out)  # in:1/16 out:1/16
-
-        if presqu is not None:
-            # the green connection
-            # if this is not the first hourglass, take the output of pre-conv5 to make the fusion
-            # a little different from what is written in the paper?!?!??!
-            post = F.relu(self.conv5(out) + presqu, inplace=True)  # in:1/16 out:1/8
-        else:
-            post = F.relu(self.conv5(out) + pre, inplace=True)
-
-        out = self.conv6(post)  # in:1/8 out:1/4
-
-        return out, pre, post
-
 
 
 
