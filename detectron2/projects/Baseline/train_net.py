@@ -31,6 +31,10 @@ from detectron2.projects.MA import (
 from detectron2.solver import get_default_optimizer_params
 from detectron2.solver.build import maybe_add_gradient_clipping
 
+# TODO: the meaning is not clear
+import torch.distributed as dist
+dist.init_process_group('gloo', init_method='file:///tmp/somefile', rank=0, world_size=1)
+
 
 def build_sem_seg_train_aug(cfg):
     augs = [
