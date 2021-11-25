@@ -105,18 +105,25 @@ class JointEstimation(nn.Module):
                 * "instances": available if ``predict_instances is True``. see documentation
                     :doc:`/tutorials/models` for the standard output format
         """
-        # TODO: adapt Binocular input
-        left_images = [x["image"].to(self.device) for x in batched_inputs]
-        left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
+
         # To avoid error in ASPP layer when input has different size.
         size_divisibility = (
             self.size_divisibility
             if self.size_divisibility > 0
             else self.backbone.size_divisibility
         )
-        left_images = ImageList.from_tensors(left_images, size_divisibility)
 
+        # load left images
+        left_images = [x["image"].to(self.device) for x in batched_inputs]
+        left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
+        left_images = ImageList.from_tensors(left_images, size_divisibility)
         left_features = self.backbone(left_images.tensor)
+
+        # load right images
+        right_images = [x["image"].to(self.device) for x in batched_inputs]
+        right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+        right_images = ImageList.from_tensors(right_images, size_divisibility)
+        right_features = self.backbone(right_images.tensor)
 
         losses = {}
 
@@ -137,8 +144,8 @@ class JointEstimation(nn.Module):
             targets = None
             weights = None
         sem_seg_results, sem_seg_losses, left_sem_seg_features = self.sem_seg_head(left_features, targets, weights)
-        # print(sem_seg_features)
         losses.update(sem_seg_losses)
+        right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None)
 
         # instance branch
         if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
@@ -162,18 +169,13 @@ class JointEstimation(nn.Module):
         )
         losses.update(center_losses)
         losses.update(offset_losses)
+        right_center_results, right_offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
+            right_features, _, _, _, _)
 
         _, _, left_dis_features = self.dis_backbone(left_features)
-
-        '''
-        right_features = self.backbone(right_images.tensor)
-        sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None)
-        
-        center_results, offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
-            right_features, None, None, None, None
-        )
         _, _, right_dis_features = self.dis_backbone(right_features)
 
+        '''
         # pyramid_featu #TODO: here to start
         for scale in right_dis_features:
         '''
