@@ -165,9 +165,10 @@ class JointEstimation(nn.Module):
 
         _, _, left_dis_features = self.dis_backbone(left_features)
 
-
+        '''
         right_features = self.backbone(right_images.tensor)
         sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None)
+        
         center_results, offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
             right_features, None, None, None, None
         )
@@ -175,8 +176,7 @@ class JointEstimation(nn.Module):
 
         # pyramid_featu #TODO: here to start
         for scale in right_dis_features:
-
-
+        '''
 
         if self.training:
             return losses

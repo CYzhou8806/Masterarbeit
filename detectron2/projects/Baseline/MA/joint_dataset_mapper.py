@@ -1,4 +1,12 @@
-# Copyright (c) Facebook, Inc. and its affiliates.
+#!/usr/bin/env python
+# -*-coding:utf-8 -*-
+"""
+@Project ：Masterarbeit
+@File    ：joint_dataset_mapper.py
+@Author  ：Yu Cao
+@Date    ：2021/11/25 10:05 
+"""
+
 import copy
 import logging
 import numpy as np
@@ -13,10 +21,10 @@ from detectron2.data import transforms as T
 
 from .target_generator import PanopticDeepLabTargetGenerator
 
-__all__ = ["PanopticDeeplabDatasetMapper"]
+__all__ = ["JointDeeplabDatasetMapper"]
 
 
-class PanopticDeeplabDatasetMapper:
+class JointDeeplabDatasetMapper:
     """
     The callable currently does the following:
 
@@ -27,11 +35,11 @@ class PanopticDeeplabDatasetMapper:
 
     @configurable
     def __init__(
-        self,
-        *,
-        augmentations: List[Union[T.Augmentation, T.Transform]],
-        image_format: str,
-        panoptic_target_generator: Callable,
+            self,
+            *,
+            augmentations: List[Union[T.Augmentation, T.Transform]],
+            image_format: str,
+            panoptic_target_generator: Callable,
     ):
         """
         NOTE: this interface is experimental.
@@ -43,13 +51,14 @@ class PanopticDeeplabDatasetMapper:
                 "segments_info" to generate training targets for the model.
         """
         # fmt: off
-        self.augmentations          = T.AugmentationList(augmentations)
-        self.image_format           = image_format
+        self.augmentations = T.AugmentationList(augmentations)
+        self.image_format = image_format
         # fmt: on
         logger = logging.getLogger(__name__)
         logger.info("Augmentations used in training: " + str(augmentations))
 
         self.panoptic_target_generator = panoptic_target_generator
+        self.disparity_target_generator = disparity_target_generator
 
     @classmethod
     def from_config(cls, cfg):
@@ -99,18 +108,38 @@ class PanopticDeeplabDatasetMapper:
         # Panoptic label is encoded in RGB image.
         pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB")
 
+        right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
+        dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")  # TODO: the read form
+
         # Reuses semantic transform for panoptic labels.
+        # TODO: add augmentations
+        '''
         aug_input = T.AugInput(image, sem_seg=pan_seg_gt)
         _ = self.augmentations(aug_input)
         image, pan_seg_gt = aug_input.image, aug_input.sem_seg
+        '''
 
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
         dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
+        dataset_dict["right_image"] = torch.as_tensor(np.ascontiguousarray(right_image.transpose(2, 0, 1)))
 
         # Generates training targets for Panoptic-DeepLab.
         targets = self.panoptic_target_generator(rgb2id(pan_seg_gt), dataset_dict["segments_info"])
         dataset_dict.update(targets)
 
+        # Generates training targets for disparity.
+        dis_target = self.disparity_target_generator(dis_gt)
+        dataset_dict.update(dis_target)
+
         return dataset_dict
+
+
+def disparity_target_generator(disparity_gt):
+    """
+     Generates training targets for disparity.
+     """
+    # TODO: add operations
+    return dict(dis_est=torch.as_tensor(np.ascontiguousarray(disparity_gt, dtype=np.float32)),
+                )

@@ -8,7 +8,6 @@
 """
 
 from .config import add_joint_estimation_config
-from .dataset_mapper import PanopticDeeplabDatasetMapper
 from .panoptic_seg import (
     PanopticDeepLab,
     INS_EMBED_BRANCHES_REGISTRY,
@@ -21,3 +20,6 @@ from .network import (
     JointEstimationSemSegHead,
     build_dis_embed_head,
 )
+
+from .cityscapes_jointestamation import register_all_cityscapes_joint
+from .joint_dataset_mapper import JointDeeplabDatasetMapper

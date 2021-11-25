@@ -26,6 +26,8 @@ from detectron2.projects.deeplab import build_lr_scheduler
 from detectron2.projects.MA import (
     PanopticDeeplabDatasetMapper,
     add_joint_estimation_config,
+    register_all_cityscapes_joint,
+    JointDeeplabDatasetMapper,
 )
 from detectron2.solver import get_default_optimizer_params
 from detectron2.solver.build import maybe_add_gradient_clipping
@@ -102,7 +104,9 @@ class Trainer(DefaultTrainer):
 
     @classmethod
     def build_train_loader(cls, cfg):
-        mapper = PanopticDeeplabDatasetMapper(cfg, augmentations=build_sem_seg_train_aug(cfg))
+        _root = os.getenv("DETECTRON2_DATASETS", "datasets")
+        register_all_cityscapes_joint(_root)
+        mapper = JointDeeplabDatasetMapper(cfg, augmentations=build_sem_seg_train_aug(cfg))
         return build_detection_train_loader(cfg, mapper=mapper)
 
     @classmethod

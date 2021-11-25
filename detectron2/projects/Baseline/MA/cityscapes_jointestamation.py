@@ -48,7 +48,7 @@ def get_cityscapes_panoptic_files(image_dir, gt_dir, json_info):
     return files
 
 
-def load_cityscapes_panoptic(image_dir, gt_dir, gt_json, meta):
+def load_cityscapes_joint(image_dir, gt_dir, gt_json, meta):
     """
     Args:
         image_dir (str): path to the raw dataset. e.g., "~/cityscapes/leftImg8bit/train".
@@ -88,6 +88,9 @@ def load_cityscapes_panoptic(image_dir, gt_dir, gt_json, meta):
             image_file.replace("leftImg8bit", "gtFine").split(".")[0] + "_labelTrainIds.png"
         )
         segments_info = [_convert_category_id(x, meta) for x in segments_info]
+
+        right_image_file = image_file.replace("leftImg8bit", "rightImg8bit")
+        disparity_file = image_file.replace("leftImg8bit", "disparity")
         ret.append(
             {
                 "file_name": image_file,
@@ -97,6 +100,9 @@ def load_cityscapes_panoptic(image_dir, gt_dir, gt_json, meta):
                 "sem_seg_file_name": sem_label_file,
                 "pan_seg_file_name": label_file,
                 "segments_info": segments_info,
+
+                "right_file_name": right_image_file,
+                "disparity_file_name": disparity_file,
             }
         )
     assert len(ret), f"No images found in {image_dir}!"
@@ -106,16 +112,22 @@ def load_cityscapes_panoptic(image_dir, gt_dir, gt_json, meta):
     assert PathManager.isfile(
         ret[0]["pan_seg_file_name"]
     ), "Please generate panoptic annotation with python cityscapesscripts/preparation/createPanopticImgs.py"  # noqa
+    assert PathManager.isfile(
+        ret[0]["right_file_name"]
+    ), "Please place the right images in the folder"  # noqa
+    assert PathManager.isfile(
+        ret[0]["disparity_file_name"]
+    ), "Please place the disparity groundturth in the folder"  # noqa
     return ret
 
 
 _RAW_CITYSCAPES_PANOPTIC_SPLITS = {
-    "cityscapes_fine_panoptic_train": (
+    "cityscapes_fine_joint_train": (
         "cityscapes/leftImg8bit/train",
         "cityscapes/gtFine/cityscapes_panoptic_train",
         "cityscapes/gtFine/cityscapes_panoptic_train.json",
     ),
-    "cityscapes_fine_panoptic_val": (
+    "cityscapes_fine_joint_val": (
         "cityscapes/leftImg8bit/val",
         "cityscapes/gtFine/cityscapes_panoptic_val",
         "cityscapes/gtFine/cityscapes_panoptic_val.json",
@@ -124,7 +136,7 @@ _RAW_CITYSCAPES_PANOPTIC_SPLITS = {
 }
 
 
-def register_all_cityscapes_panoptic(root):
+def register_all_cityscapes_joint(root):
     meta = {}
     # The following metadata maps contiguous id from [0, #thing categories +
     # #stuff categories) to their names and colors. We have to replica of the
@@ -173,7 +185,7 @@ def register_all_cityscapes_panoptic(root):
         gt_json = os.path.join(root, gt_json)
 
         DatasetCatalog.register(
-            key, lambda x=image_dir, y=gt_dir, z=gt_json: load_cityscapes_panoptic(x, y, z, meta)
+            key, lambda x=image_dir, y=gt_dir, z=gt_json: load_cityscapes_joint(x, y, z, meta)
         )
         MetadataCatalog.get(key).set(
             panoptic_root=gt_dir,

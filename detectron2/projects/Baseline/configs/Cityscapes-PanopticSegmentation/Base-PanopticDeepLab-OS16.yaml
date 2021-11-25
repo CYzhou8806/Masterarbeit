@@ -56,8 +56,8 @@ MODEL:
     NMS_KERNEL: 7
     TOP_K_INSTANCE: 200
 DATASETS:
-  TRAIN: ("cityscapes_fine_panoptic_train",)
-  TEST: ("cityscapes_fine_panoptic_val",)
+  TRAIN: ("cityscapes_fine_joint_train",)
+  TEST: ("cityscapes_fine_joint_val",)
 SOLVER:
   OPTIMIZER: "ADAM"
   BASE_LR: 0.001
