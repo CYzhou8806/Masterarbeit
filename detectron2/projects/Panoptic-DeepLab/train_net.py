@@ -104,7 +104,8 @@ class Trainer(DefaultTrainer):
 
     @classmethod
     def build_train_loader(cls, cfg):
-        register_all_cityscapes_joint()
+        _root = os.getenv("DETECTRON2_DATASETS", "datasets")
+        register_all_cityscapes_joint(_root)
         # mapper = PanopticDeeplabDatasetMapper(cfg, augmentations=build_sem_seg_train_aug(cfg))
         mapper = JointDeeplabDatasetMapper(cfg, augmentations=build_sem_seg_train_aug(cfg))
         return build_detection_train_loader(cfg, mapper=mapper)

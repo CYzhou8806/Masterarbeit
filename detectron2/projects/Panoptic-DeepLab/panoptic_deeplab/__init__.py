@@ -9,5 +9,5 @@ from .panoptic_seg import (
     PanopticDeepLabInsEmbedHead,
 )
 
-from cityscapes_jointestamation import register_all_cityscapes_joint
-from joint_dataset_mapper import JointDeeplabDatasetMapper
+from .cityscapes_jointestamation import register_all_cityscapes_joint
+from .joint_dataset_mapper import JointDeeplabDatasetMapper
