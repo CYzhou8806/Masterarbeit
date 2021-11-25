@@ -855,13 +855,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
 
 def build_correlation_cost_volume(max_disp, left_feature, right_feature):
-    # max_disp = cfg.MODEL.INS_EMBED_HEAD.MAX_DISP
     cost_volume = left_feature.new_zeros(left_feature.size()[0], max_disp,
                                          left_feature.size()[2], left_feature.size()[3])  # (b, max_disp, h, w)
     for i in range(max_disp):
         if i > 0:
-            cost_volume[:, i, :, i:] = (left_feature[:, :, :, i:] *
-                                        right_feature[:, :, :, :-i]).mean(dim=1)
+            cost_volume[:, i, :, i:] = (left_feature[:, :, :, i:] * right_feature[:, :, :, :-i]).mean(dim=1)
         else:
             cost_volume[:, i, :, :] = (left_feature * right_feature).mean(dim=1)
     return cost_volume
