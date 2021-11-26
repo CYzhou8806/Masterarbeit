@@ -812,7 +812,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.classif2 = {}
         self.classif3 = {}
         for scale in ['1/16', '1/8', '1/4']:
-            self.dres0[scale] = nn.Sequential(convbn_3d(64, 32, 3, 1, 1),
+            self.dres0[scale] = nn.Sequential(convbn_3d(256, 32, 3, 1, 1),
                                         nn.ReLU(inplace=True),
                                         convbn_3d(32, 32, 3, 1, 1),
                                         nn.ReLU(inplace=True))
