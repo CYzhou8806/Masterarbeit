@@ -939,6 +939,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 ins_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
 
+                print(type(pyramid_features[scale][0][0]))
                 print(seg_cost_volume)
                 cost_volume = seg_cost_volume * ins_cost_volume
                 print(cost_volume)
