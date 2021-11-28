@@ -719,7 +719,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             head_channels: int,
             loss_weight: float,  # the weight for the entire section
             loss_type: str,
-            loss_top_k: float,
             ignore_value: int,
             img_size=None,
             max_disp: int,
@@ -754,7 +753,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             ignore_value=ignore_value,
             **kwargs,
         )
-        assert self.decoder_only
 
         self.loss_weight = loss_weight
         self.hourglass_loss_weight = hourglass_loss_weight
@@ -762,6 +760,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.guided_loss_weight = guided_loss_weight
         self.max_disp = max_disp
         self.lamda = streshold_guided_loss
+        self.loss_type = loss_type
         use_bias = norm == ""
         # `head` is additional transform before predictor
         if self.use_depthwise_separable_conv:
@@ -801,14 +800,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             weight_init.c2_xavier_fill(self.head[0])
             weight_init.c2_xavier_fill(self.head[1])
 
-        self.loss_type = loss_type
-        if loss_type == "panoptic_guided":
-            self.loss = nn.CrossEntropyLoss(reduction="mean", ignore_index=ignore_value)
-        elif loss_type == "smoothL1_only":
-            self.loss = DeepLabCE(ignore_label=ignore_value, top_k_percent_pixels=loss_top_k)
-        else:
-            raise ValueError("Unexpected loss type: %s" % loss_type)
-
         if img_size is None:
             self.img_size = [1024, 2048]  # h, w
 
@@ -834,13 +825,16 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             self.dres4[scale] = hourglass(hourglass_inplanes)
             self.classif1[scale] = nn.Sequential(convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1),
                                                  nn.ReLU(inplace=True),
-                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                           bias=False))
             self.classif2[scale] = nn.Sequential(convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1),
                                                  nn.ReLU(inplace=True),
-                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                           bias=False))
             self.classif3[scale] = nn.Sequential(convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1),
                                                  nn.ReLU(inplace=True),
-                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                           bias=False))
 
         '''
         # 1/16
@@ -914,8 +908,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
     def from_config(cls, cfg, input_shape):
         ret = super().from_config(cfg, input_shape)
         ret["head_channels"] = cfg.MODEL.DIS_EMBED_HEAD.HEAD_CHANNELS
-        ret["loss_top_k"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TOP_K
-
         ret["max_disp"] = cfg.MODEL.DIS_EMBED_HEAD.MAX_DISP
         ret["hourglass_loss_weight"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_LOSS_WEIGHT
         ret["internal_loss_weight"] = cfg.MODEL.DIS_EMBED_HEAD.INTERNAL_LOSS_WEIGHT
@@ -1020,7 +1012,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             return {}, disparity
 
     def layers(self, features):
-        assert self.decoder_only
         out_features = {}
         # Reverse feature maps into top-down order (from low to high resolution)
         for i, f in enumerate(self.in_features[::-1]):
