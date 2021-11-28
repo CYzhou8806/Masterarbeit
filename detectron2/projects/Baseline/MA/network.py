@@ -150,7 +150,7 @@ class JointEstimation(nn.Module):
             weights = None
         sem_seg_results, sem_seg_losses, left_sem_seg_features = self.sem_seg_head(left_features, targets, weights)
         losses.update(sem_seg_losses)
-        right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None)
+        right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None, is_left=False)
 
         # instance branch
         if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
@@ -175,7 +175,7 @@ class JointEstimation(nn.Module):
         losses.update(center_losses)
         losses.update(offset_losses)
         right_center_results, right_offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
-            right_features, _, _, _, _)
+            right_features, None, None, None, None, is_left=False)
 
         '''
         _, _, left_dis_features = self.dis_backbone(left_features)
@@ -397,14 +397,14 @@ class JointEstimationSemSegHead(DeepLabV3PlusHead):
         ret["loss_top_k"] = cfg.MODEL.SEM_SEG_HEAD.LOSS_TOP_K
         return ret
 
-    def forward(self, features, targets=None, weights=None):
+    def forward(self, features, targets=None, weights=None, is_left=True):
         """
         Returns:
             In training, returns (None, dict of losses)
             In inference, returns (CxHxW logits, {})
         """
         y, out_features = self.layers(features)
-        if self.training:
+        if self.training and is_left:
             return None, self.losses(y, targets, weights), out_features
         else:
             y = F.interpolate(
@@ -606,6 +606,7 @@ class JointEstimationInsEmbedHead(DeepLabV3PlusHead):
             center_weights=None,
             offset_targets=None,
             offset_weights=None,
+            is_left=True
     ):
         """
         Returns:
@@ -613,7 +614,7 @@ class JointEstimationInsEmbedHead(DeepLabV3PlusHead):
             In inference, returns (CxHxW logits, {})
         """
         center, offset, out_features = self.layers(features)
-        if self.training:
+        if self.training and is_left:
             return (
                 None,
                 None,
