@@ -913,16 +913,16 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
     @classmethod
     def from_config(cls, cfg, input_shape):
         ret = super().from_config(cfg, input_shape)
-        ret["head_channels"] = cfg.MODEL.SEM_SEG_HEAD.HEAD_CHANNELS
-        ret["loss_top_k"] = cfg.MODEL.SEM_SEG_HEAD.LOSS_TOP_K
+        ret["head_channels"] = cfg.MODEL.DIS_EMBED_HEAD.HEAD_CHANNELS
+        ret["loss_top_k"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TOP_K
 
-        ret["max_disp"] = cfg.MODEL.SEM_SEG_HEAD.MAX_DISP
-        ret["hourglass_loss_weight"] = cfg.MODEL.SEM_SEG_HEAD.HOURGLASS_LOSS_WEIGHT
-        ret["internal_loss_weight"] = cfg.MODEL.SEM_SEG_HEAD.INTERNAL_LOSS_WEIGHT
-        ret["guided_loss_weight"] = cfg.MODEL.SEM_SEG_HEAD.GUIDED_LOSS_WEIGHT
-        ret["streshold_guided_loss"] = cfg.MODEL.SEM_SEG_HEAD.STRESHOLD_GUIDED_LOSS
-        ret["regression_inplanes"] = cfg.MODEL.SEM_SEG_HEAD.REGRESSION_INPLANES
-        ret["hourglass_inplanes"] = cfg.MODEL.SEM_SEG_HEAD.HOURGLASS_INPLANES
+        ret["max_disp"] = cfg.MODEL.DIS_EMBED_HEAD.MAX_DISP
+        ret["hourglass_loss_weight"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_LOSS_WEIGHT
+        ret["internal_loss_weight"] = cfg.MODEL.DIS_EMBED_HEAD.INTERNAL_LOSS_WEIGHT
+        ret["guided_loss_weight"] = cfg.MODEL.DIS_EMBED_HEAD.GUIDED_LOSS_WEIGHT
+        ret["streshold_guided_loss"] = cfg.MODEL.DIS_EMBED_HEAD.STRESHOLD_GUIDED_LOSS
+        ret["regression_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.REGRESSION_INPLANES
+        ret["hourglass_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_INPLANES
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
