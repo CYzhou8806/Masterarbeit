@@ -1,6 +1,6 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  WEIGHTS: "detectron2://DeepLab/R-52.pkl"
+  WEIGHTS: None
   PIXEL_MEAN: [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]
   BACKBONE:
@@ -17,4 +17,4 @@ SOLVER:
 INPUT:
   FORMAT: "RGB"
   CROP:
-    SIZE: (512, 1024)
+    SIZE: (1024, 2048)
