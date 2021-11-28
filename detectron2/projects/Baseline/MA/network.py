@@ -152,7 +152,7 @@ class JointEstimation(nn.Module):
         losses.update(sem_seg_losses)
         right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None, is_left=False)
 
-
+        '''
         # tmp
         print(left_sem_seg_features['1/16'].size())
         seg_cost_volume = build_correlation_cost_volume(192, left_sem_seg_features['1/16'], right_sem_seg_features['1/16'])
@@ -160,6 +160,7 @@ class JointEstimation(nn.Module):
         cost_volume = seg_cost_volume * seg_cost_volume
         print(cost_volume.size())
         raise RuntimeError('excepted stop')
+        '''
 
         # instance branch
         if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
@@ -948,13 +949,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
                 ins_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
-
-                print(type(pyramid_features[scale][0][0]))
-                print(seg_cost_volume)
-                cost_volume = seg_cost_volume * ins_cost_volume
-                print(cost_volume)
-                raise RuntimeError('excepted stop')
-
                 dis_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
             else:  # TODO: add wrap
