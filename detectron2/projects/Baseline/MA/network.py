@@ -7,6 +7,7 @@
 @Date    ：2021/11/21 10:30 
 """
 import copy
+import cv2 as cv
 
 import torch.utils.data
 import math
@@ -725,6 +726,9 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             hourglass_loss_weight: List[float],
             internal_loss_weight: List[float],
             guided_loss_weight: List[float],
+            streshold_guided_loss: float,
+            regression_inplanes: int,
+            hourglass_inplanes: int,
             **kwargs,
     ):
         """
@@ -757,6 +761,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.internal_loss_weight = internal_loss_weight
         self.guided_loss_weight = guided_loss_weight
         self.max_disp = max_disp
+        self.lamda = streshold_guided_loss
         use_bias = norm == ""
         # `head` is additional transform before predictor
         if self.use_depthwise_separable_conv:
@@ -816,26 +821,26 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.classif2 = {}
         self.classif3 = {}
         for scale in ['1/16', '1/8', '1/4']:
-            self.dres0[scale] = nn.Sequential(convbn_3d(256, 32, 3, 1, 1),
+            self.dres0[scale] = nn.Sequential(convbn_3d(regression_inplanes, hourglass_inplanes, 3, 1, 1),
                                               nn.ReLU(inplace=True),
-                                              convbn_3d(32, 32, 3, 1, 1),
+                                              convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1),
                                               nn.ReLU(inplace=True))
 
-            self.dres1[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+            self.dres1[scale] = nn.Sequential(convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1),
                                               nn.ReLU(inplace=True),
-                                              convbn_3d(32, 32, 3, 1, 1))
-            self.dres2[scale] = hourglass(32)
-            self.dres3[scale] = hourglass(32)
-            self.dres4[scale] = hourglass(32)
-            self.classif1[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                              convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1))
+            self.dres2[scale] = hourglass(hourglass_inplanes)
+            self.dres3[scale] = hourglass(hourglass_inplanes)
+            self.dres4[scale] = hourglass(hourglass_inplanes)
+            self.classif1[scale] = nn.Sequential(convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1),
                                                  nn.ReLU(inplace=True),
-                                                 nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
-            self.classif2[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1, bias=False))
+            self.classif2[scale] = nn.Sequential(convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1),
                                                  nn.ReLU(inplace=True),
-                                                 nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
-            self.classif3[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
+                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1, bias=False))
+            self.classif3[scale] = nn.Sequential(convbn_3d(hourglass_inplanes, hourglass_inplanes, 3, 1, 1),
                                                  nn.ReLU(inplace=True),
-                                                 nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                                 nn.Conv3d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1, bias=False))
 
         '''
         # 1/16
@@ -1041,7 +1046,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
         '''
-        mask = dis_targets < self.max_disp
+        mask = dis_targets < self.max_disp  # TODO: find out the effect of mask
         mask.detach_()
         loss = None
         if self.loss_type == "panoptic_guided":
@@ -1049,15 +1054,51 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             for i in range(len(predictions)):
                 smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
                             (self.hourglass_loss_weight[0] *
-                             F.smooth_l1_loss(predictions[i][mask], dis_targets[mask], size_average=True) +
+                             F.smooth_l1_loss(predictions[i][0][mask], dis_targets[mask], size_average=True) +
                              self.hourglass_loss_weight[1] *
-                             F.smooth_l1_loss(predictions[i][mask], dis_targets[mask], size_average=True) +
+                             F.smooth_l1_loss(predictions[i][1][mask], dis_targets[mask], size_average=True) +
                              self.hourglass_loss_weight[2] *
-                             F.smooth_l1_loss(predictions[i][mask], dis_targets[mask]))
+                             F.smooth_l1_loss(predictions[i][2][mask], dis_targets[mask]))
+
+            pan_2rd_gradiant = cv.Laplacian(pan_targets, cv.CV_32F)
+            pan_2rd_gradiant = cv.convertScaleAbs(pan_2rd_gradiant)
+
             bdry_loss = 0.0
             # TODO: implement the boundary loss
+            for i in range(len(predictions)):
+                dis_2rd_gradiant = cv.Laplacian(predictions[i][-1][mask], cv.CV_32F)
+                dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
+
+                print(dis_2rd_gradiant.size())
+                assert dis_2rd_gradiant.size() == pan_2rd_gradiant.size()
+                bdry_sum = 0.0
+                count = 0
+                # all pixel in the map
+                for j in range(dis_2rd_gradiant.size()[0]):
+                    for k in range(dis_2rd_gradiant.size()[1]):
+                        # TODO: add decision
+                        # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
+                        count = count + 1
+                        bdry_sum = bdry_sum + math.exp(-abs(dis_2rd_gradiant[j, k])) * abs(pan_2rd_gradiant[j, k])
+                bdry_loss = bdry_loss + self.internal_loss_weight[i] * bdry_sum / count
+
             sm_loss = 0.0
             # TODO: implement the smooth loss
+            for i in range(len(predictions)):
+                dis_2rd_gradiant = cv.Laplacian(predictions[i][-1][mask], cv.CV_32F)
+                dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
+
+                sm_sum = 0.0
+                count = 0
+                # all pixel in the map
+                for j in range(dis_2rd_gradiant.size()[0]):
+                    for k in range(dis_2rd_gradiant.size()[1]):
+                        # TODO: adapt decision
+                        if dis_2rd_gradiant[j, k] < self.lamda:
+                            count = count + 1
+                            sm_sum = sm_sum + math.exp(-abs(pan_2rd_gradiant[j, k])) * abs(dis_2rd_gradiant[j, k])
+                sm_loss = sm_loss + self.internal_loss_weight[i] * sm_sum / count
+
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
 
@@ -1065,11 +1106,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             for i in range(len(predictions)):
                 loss = loss + self.internal_loss_weight[i] * \
                        (self.hourglass_loss_weight[0] *
-                        F.smooth_l1_loss(predictions[i][mask], dis_targets[mask], size_average=True) +
+                        F.smooth_l1_loss(predictions[i][0][mask], dis_targets[mask], size_average=True) +
                         self.hourglass_loss_weight[1] *
-                        F.smooth_l1_loss(predictions[i][mask], dis_targets[mask], size_average=True) +
+                        F.smooth_l1_loss(predictions[i][1][mask], dis_targets[mask], size_average=True) +
                         self.hourglass_loss_weight[2] *
-                        F.smooth_l1_loss(predictions[i][mask], dis_targets[mask]))
+                        F.smooth_l1_loss(predictions[i][2][mask], dis_targets[mask]))
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
 

@@ -38,6 +38,9 @@ MODEL:
     HOURGLASS_LOSS_WEIGHT: [0.5, 0.7, 1.0]
     INTERNAL_LOSS_WEIGHT: [0.5, 0.7, 1.0]
     GUIDED_LOSS_WEIGHT: [0.5, 0.7, 1.0]
+    STRESHOLD_GUIDED_LOSS: 1.0    # to find the right value
+    REGRESSION_INPLANES: 256
+    HOURGLASS_INPLANES: 32
   INS_EMBED_HEAD:
     NAME: "JointEstimationInsEmbedHead"
     IN_FEATURES: ["res2", "res3", "res5"]

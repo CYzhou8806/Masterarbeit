@@ -64,6 +64,9 @@ def add_joint_estimation_config(cfg):
     cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_LOSS_WEIGHT = [0.5, 0.7, 1.0]
     cfg.MODEL.DIS_EMBED_HEAD.INTERNAL_LOSS_WEIGHT = [0.5, 0.7, 1.0]
     cfg.MODEL.DIS_EMBED_HEAD.GUIDED_LOSS_WEIGHT = [0.5, 0.7, 1.0]   # guided_smooth, guided_boundary, smooth_L1
+    cfg.MODEL.DIS_EMBED_HEAD.STRESHOLD_GUIDED_LOSS = 1.0
+    cfg.MODEL.DIS_EMBED_HEAD.REGRESSION_INPLANES = 256
+    cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_INPLANES = 32
     # Panoptic-DeepLab post-processing setting.
     cfg.MODEL.PANOPTIC_DEEPLAB = CN()
     # Stuff area limit, ignore stuff region below this number.
