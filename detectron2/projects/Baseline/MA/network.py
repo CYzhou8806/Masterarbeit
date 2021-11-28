@@ -154,7 +154,7 @@ class JointEstimation(nn.Module):
 
 
         # tmp
-        print(left_sem_seg_features.size())
+        print(left_sem_seg_features['1/16'].size())
         seg_cost_volume = build_correlation_cost_volume(192, left_sem_seg_features['1/16'], right_sem_seg_features['1/16'])
         print(type(seg_cost_volume))
         print(seg_cost_volume)
