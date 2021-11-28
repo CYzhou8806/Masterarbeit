@@ -33,6 +33,7 @@ from detectron2.solver.build import maybe_add_gradient_clipping
 
 # TODO: the meaning is not clear
 import torch.distributed as dist
+
 dist.init_process_group('gloo', init_method='file:///tmp/somefile', rank=0, world_size=1)
 
 
@@ -64,11 +65,9 @@ class Trainer(DefaultTrainer):
         For your own dataset, you can simply create an evaluator manually in your
         script and do not have to worry about the hacky if-else logic here.
         """
-
         '''
         与模板相比, 这里对模板中的build_evaluator进行了合并, 本质上还是相同的, 没有大的改变
         '''
-
         if cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED:
             return None
         if output_folder is None:

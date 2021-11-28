@@ -79,9 +79,16 @@ module load GCC/8.3.0
 
 
 
+### 谷歌硬盘
+gdown 'https://drive.google.com/uc?id=14usWB-MOHF-SIYK2585Xu9ysPjE5HOQO'
+
+https://drive.google.com/file/d/14usWB-MOHF-SIYK2585Xu9ysPjE5HOQO/view?usp=sharing
+
+gdown "https://drive.google.com/u/0/uc?id=14usWB-MOHF-SIYK2585Xu9ysPjE5HOQO"
+https://drive.google.com/u/0/uc?id=14usWB-MOHF-SIYK2585Xu9ysPjE5HOQO&export=download
 
 
-
+1kzt_4i3lSnjnFzEByoa7TkkY4GFn2o5i
 
 
 

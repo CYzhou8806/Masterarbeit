@@ -32,10 +32,12 @@ MODEL:
     HEAD_CHANNELS: 256
     CONVS_DIM: 256
     COMMON_STRIDE: 4
-    NUM_CLASSES: 19
-    LOSS_TYPE: "hard_pixel_mining"
     NORM: "SyncBN"
     MAX_DISP: 192
+    LOSS_TYPE: "panoptic_guided"
+    HOURGLASS_LOSS_WEIGHT: [0.5, 0.7, 1.0]
+    INTERNAL_LOSS_WEIGHT: [0.5, 0.7, 1.0]
+    GUIDED_LOSS_WEIGHT: [0.5, 0.7, 1.0]
   INS_EMBED_HEAD:
     NAME: "JointEstimationInsEmbedHead"
     IN_FEATURES: ["res2", "res3", "res5"]

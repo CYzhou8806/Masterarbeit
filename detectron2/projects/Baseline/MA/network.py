@@ -35,7 +35,6 @@ from detectron2.utils.registry import Registry
 from .post_processing import get_panoptic_segmentation
 from .submodule import convbn_3d, disparityregression
 
-
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch", "build_dis_embed_head"]
 
 INS_EMBED_BRANCHES_REGISTRY = Registry("INS_EMBED_BRANCHES")
@@ -717,12 +716,15 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             decoder_channels: List[int],
             norm: Union[str, Callable],
             head_channels: int,
-            loss_weight: float,
+            loss_weight: float,  # the weight for the entire section
             loss_type: str,
             loss_top_k: float,
             ignore_value: int,
-            num_classes: int,
-            img_size = None,
+            img_size=None,
+            max_disp: int,
+            hourglass_loss_weight: List[float],
+            internal_loss_weight: List[float],
+            guided_loss_weight: List[float],
             **kwargs,
     ):
         """
@@ -751,6 +753,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         assert self.decoder_only
 
         self.loss_weight = loss_weight
+        self.hourglass_loss_weight = hourglass_loss_weight
+        self.internal_loss_weight = internal_loss_weight
+        self.guided_loss_weight = guided_loss_weight
+        self.max_disp = max_disp
         use_bias = norm == ""
         # `head` is additional transform before predictor
         if self.use_depthwise_separable_conv:
@@ -789,13 +795,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             )
             weight_init.c2_xavier_fill(self.head[0])
             weight_init.c2_xavier_fill(self.head[1])
-        self.predictor = Conv2d(head_channels, num_classes, kernel_size=1)
-        nn.init.normal_(self.predictor.weight, 0, 0.001)
-        nn.init.constant_(self.predictor.bias, 0)
 
-        if loss_type == "cross_entropy":
+        self.loss_type = loss_type
+        if loss_type == "panoptic_guided":
             self.loss = nn.CrossEntropyLoss(reduction="mean", ignore_index=ignore_value)
-        elif loss_type == "hard_pixel_mining":
+        elif loss_type == "smoothL1_only":
             self.loss = DeepLabCE(ignore_label=ignore_value, top_k_percent_pixels=loss_top_k)
         else:
             raise ValueError("Unexpected loss type: %s" % loss_type)
@@ -813,25 +817,25 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.classif3 = {}
         for scale in ['1/16', '1/8', '1/4']:
             self.dres0[scale] = nn.Sequential(convbn_3d(256, 32, 3, 1, 1),
-                                        nn.ReLU(inplace=True),
-                                        convbn_3d(32, 32, 3, 1, 1),
-                                        nn.ReLU(inplace=True))
+                                              nn.ReLU(inplace=True),
+                                              convbn_3d(32, 32, 3, 1, 1),
+                                              nn.ReLU(inplace=True))
 
             self.dres1[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
-                                        nn.ReLU(inplace=True),
-                                        convbn_3d(32, 32, 3, 1, 1))
+                                              nn.ReLU(inplace=True),
+                                              convbn_3d(32, 32, 3, 1, 1))
             self.dres2[scale] = hourglass(32)
             self.dres3[scale] = hourglass(32)
             self.dres4[scale] = hourglass(32)
             self.classif1[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
-                                           nn.ReLU(inplace=True),
-                                           nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                                 nn.ReLU(inplace=True),
+                                                 nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
             self.classif2[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
-                                           nn.ReLU(inplace=True),
-                                           nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                                 nn.ReLU(inplace=True),
+                                                 nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
             self.classif3[scale] = nn.Sequential(convbn_3d(32, 32, 3, 1, 1),
-                                           nn.ReLU(inplace=True),
-                                           nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
+                                                 nn.ReLU(inplace=True),
+                                                 nn.Conv3d(32, 1, kernel_size=3, padding=1, stride=1, bias=False))
 
         '''
         # 1/16
@@ -908,7 +912,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["loss_top_k"] = cfg.MODEL.SEM_SEG_HEAD.LOSS_TOP_K
         return ret
 
-    def forward(self, features, right_features, pyramid_features, targets=None, weights=None):
+    def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
         """
         Returns:
             In training, returns (None, dict of losses)
@@ -920,7 +924,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         for key in out_features:
             pyramid_features[key].append([out_features[key], right_out_features[key]])
 
-        disparity = []
+        disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
         for i, scale in enumerate(['1/16', '1/8', '1/4']):
             max_dis = self.max_disp // zoom[i]
@@ -937,8 +941,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
                 dis_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
-            else:   # TODO: add wrap
-                dis = disparity[-1]
+            else:  # TODO: add wrap
+                dis = disparity[-1][-1]
                 seg_cost_volume = build_correlation_cost_volume(
                     max_dis,
                     warping(dis, pyramid_features[scale][0][0]),
@@ -966,21 +970,38 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             cost2 = self.classif2[scale](out2) + cost1
             cost3 = self.classif3[scale](out3) + cost2
 
+            if self.training:
+                cost1 = F.upsample(cost1, [max_dis, left.size()[2], left.size()[3]], mode='trilinear')
+                cost1 = torch.squeeze(cost1, 1)
+                pred1 = F.softmax(cost1, dim=1)
+                pred1 = disparityregression(max_dis)(pred1)
+
+                cost2 = F.upsample(cost2, [max_dis, left.size()[2], left.size()[3]], mode='trilinear')
+                cost2 = torch.squeeze(cost2, 1)
+                pred2 = F.softmax(cost2, dim=1)
+                pred2 = disparityregression(max_dis)(pred2)
+
             cost3 = F.upsample(cost3, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
             cost3 = torch.squeeze(cost3, 1)
             pred3 = F.softmax(cost3, dim=1)
             # For your information: This formulation 'softmax(c)' learned "similarity"
             # while 'softmax(-c)' learned 'matching cost' as mentioned in the paper.
             # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
-            pred3 = disparityregression(max_dis)(pred3)
+            pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
 
-            if not len(disparity):
-                disparity.append(pred3)
+            if self.training:
+                if not len(disparity):
+                    disparity.append([pred1, pred2, pred3])
+                else:
+                    disparity.append([pred1 + dis, pred2 + dis, pred3 + dis])
             else:
-                disparity.append(pred3+dis)
+                if not len(disparity):
+                    disparity.append([pred3])
+                else:
+                    disparity.append([pred3 + dis])
 
         if self.training:
-            return self.losses(disparity, targets, weights)  # TODO: to be adapted
+            return self.losses(disparity, dis_targets, weights, pan_targets), None  # TODO: to be adapted
         else:
             return {}, disparity
 
@@ -1014,12 +1035,45 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         return y, out_features
 
-    def losses(self, predictions, targets, weights=None):
+    def losses(self, predictions, dis_targets, weights=None, pan_targets=None):
+        '''
         predictions = F.interpolate(
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
-        loss = self.loss(predictions, targets, weights)
-        losses = {"loss_sem_seg": loss * self.loss_weight}
+        '''
+        mask = dis_targets < self.max_disp
+        mask.detach_()
+        loss = None
+        if self.loss_type == "panoptic_guided":
+            smooth_l1 = 0.0
+            for i in range(len(predictions)):
+                smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
+                            (self.hourglass_loss_weight[0] *
+                             F.smooth_l1_loss(predictions[i][mask], dis_targets[mask], size_average=True) +
+                             self.hourglass_loss_weight[1] *
+                             F.smooth_l1_loss(predictions[i][mask], dis_targets[mask], size_average=True) +
+                             self.hourglass_loss_weight[2] *
+                             F.smooth_l1_loss(predictions[i][mask], dis_targets[mask]))
+            bdry_loss = 0.0
+            # TODO: implement the boundary loss
+            sm_loss = 0.0
+            # TODO: implement the smooth loss
+            loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
+                   self.guided_loss_weight[2] * smooth_l1
+
+        elif self.loss_type == "smoothL1_only":
+            for i in range(len(predictions)):
+                loss = loss + self.internal_loss_weight[i] * \
+                       (self.hourglass_loss_weight[0] *
+                        F.smooth_l1_loss(predictions[i][mask], dis_targets[mask], size_average=True) +
+                        self.hourglass_loss_weight[1] *
+                        F.smooth_l1_loss(predictions[i][mask], dis_targets[mask], size_average=True) +
+                        self.hourglass_loss_weight[2] *
+                        F.smooth_l1_loss(predictions[i][mask], dis_targets[mask]))
+        else:
+            raise ValueError("Unexpected loss type: %s" % self.loss_type)
+
+        losses = {"loss_dis": loss * self.loss_weight}
         return losses
 
 
@@ -1034,7 +1088,7 @@ def build_correlation_cost_volume(max_disp, left_feature, right_feature):
     return cost_volume
 
 
-def warping(disp, feature):     # TODO: to add operations
+def warping(disp, feature):  # TODO: to add operations
     warped = copy.deepcopy(feature)
     return warped
 
@@ -1069,7 +1123,7 @@ class hourglass(nn.Module):
         out = self.conv1(x)  # in:1/4 out:1/8
         pre = self.conv2(out)  # in:1/8 out:1/8
         if postsqu is not None:
-            pre = F.relu(pre + postsqu, inplace=True)   # the red connection in the figure of paper
+            pre = F.relu(pre + postsqu, inplace=True)  # the red connection in the figure of paper
         else:
             pre = F.relu(pre, inplace=True)
 
@@ -1200,7 +1254,7 @@ class JointEstimationDisEmbed(DeepLabV3PlusHead):
         """
         y, out_features = self.layers(features)
         if self.training:
-            return None, {}, out_features   # TODO: to be adapted
+            return None, {}, out_features  # TODO: to be adapted
         else:
             y = F.interpolate(
                 y, scale_factor=self.common_stride, mode="bilinear", align_corners=False
@@ -1244,6 +1298,3 @@ class JointEstimationDisEmbed(DeepLabV3PlusHead):
         loss = self.loss(predictions, targets, weights)
         losses = {"loss_sem_seg": loss * self.loss_weight}
         return losses
-
-
-
