@@ -152,6 +152,16 @@ class JointEstimation(nn.Module):
         losses.update(sem_seg_losses)
         right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None, is_left=False)
 
+
+        # tmp
+        print(left_sem_seg_features.size())
+        seg_cost_volume = build_correlation_cost_volume(192, left_sem_seg_features['1/16'], right_sem_seg_features['1/16'])
+        print(type(seg_cost_volume))
+        print(seg_cost_volume)
+        cost_volume = seg_cost_volume * seg_cost_volume
+        print(cost_volume)
+        raise RuntimeError('excepted stop')
+
         # instance branch
         if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
             center_targets = [x["center"].to(self.device) for x in batched_inputs]
