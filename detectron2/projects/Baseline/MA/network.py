@@ -132,13 +132,6 @@ class JointEstimation(nn.Module):
 
         losses = {}
 
-        # tmp
-        right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None, is_left=False)
-        for key in right_sem_seg_features:
-            print(right_sem_seg_features[key].size())
-        raise RuntimeError('excepted stop')
-
-
         # Needs to be recovered
         '''
         # semantic branch
