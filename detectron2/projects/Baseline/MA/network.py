@@ -1425,8 +1425,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             cost1 = self.classif1[scale](out1)
             cost2 = self.classif2[scale](out2) + cost1
             cost3 = self.classif3[scale](out3) + cost2
+
+            '''
             if self.training:
-                cost1 = F.upsample(cost1, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
+                cost1 = F.upsample(cost1, [cost1.size(0), max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
                 cost1 = torch.squeeze(cost1, 1)
                 pred1 = F.softmax(cost1, dim=1)
                 pred1 = disparityregression(max_dis)(pred1)
@@ -1435,9 +1437,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 cost2 = torch.squeeze(cost2, 1)
                 pred2 = F.softmax(cost2, dim=1)
                 pred2 = disparityregression(max_dis)(pred2)
-
-            cost3 = F.upsample(cost3, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
+            '''
             print("cost3.size(): ", cost3.size())
+            cost3 = F.upsample(cost3, [cost1.size(0), max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
+            print("cost3.size() after upsample: ", cost3.size())
             cost3 = torch.squeeze(cost3, 1)
             print("cost3.size() after torch.squeeze: ", cost3.size())
             pred3 = F.softmax(cost3, dim=1)
