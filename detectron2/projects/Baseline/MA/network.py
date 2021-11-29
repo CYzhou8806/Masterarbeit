@@ -813,34 +813,58 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                     max_dis = self.max_disp // zoom[i]
                 else:
                     max_dis = self.max_disp
-                self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 1),
+
+                self.dres0[scale] = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
-                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
+                                                  convbn(max_dis, max_dis, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True))
-                self.dres1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
+                '''
+                self.dres0[scale] = nn.Sequential(Conv2d(max_dis,
+                                                         hourglass_inplanes,
+                                                         kernel_size=3,
+                                                         stride=1,
+                                                         padding=1,
+                                                         bias=use_bias,
+                                                         norm=get_norm(norm, decoder_channels[idx]),
+                                                         activation=F.relu,
+                                                         ),
+
+                                                  nn.Conv2d(max_dis, hourglass_inplanes, kernel_size=3, stride=1,
+                                                            padding=1, dilation=0, bias=False),
+                                                  nn.BatchNorm2d(hourglass_inplanes),
                                                   nn.ReLU(inplace=True),
-                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1))
+                                                  nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                                            stride=1,
+                                                            padding=1, dilation=0, bias=False),
+                                                  nn.BatchNorm2d(hourglass_inplanes),
+                                                  nn.ReLU(inplace=True))
+                '''
+                self.dres1[scale] = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                                  nn.ReLU(inplace=True),
+                                                  convbn(max_dis, max_dis, 3, 1, 1, 1))
+                hourglass_inplanes = max_dis
                 self.dres2[scale] = hourglass_2d(hourglass_inplanes)
                 self.dres3[scale] = hourglass_2d(hourglass_inplanes)
                 self.dres4[scale] = hourglass_2d(hourglass_inplanes)
 
                 self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
                 self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
                 self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
+
 
     @classmethod
     def from_config(cls, cfg, input_shape):
@@ -913,16 +937,19 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             cost3 = self.classif3[scale](out3) + cost2
 
             if self.training:
+                cost1 = torch.unsqueeze(cost1, 1)
                 cost1 = F.upsample(cost1, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
                 cost1 = torch.squeeze(cost1, 1)
                 pred1 = F.softmax(cost1, dim=1)
                 pred1 = disparityregression(max_dis)(pred1)
 
+                cost2 = torch.unsqueeze(cost2, 1)
                 cost2 = F.upsample(cost2, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
                 cost2 = torch.squeeze(cost2, 1)
                 pred2 = F.softmax(cost2, dim=1)
                 pred2 = disparityregression(max_dis)(pred2)
 
+            cost3 = torch.unsqueeze(cost3, 1)
             cost3 = F.upsample(cost3, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
             cost3 = torch.squeeze(cost3, 1)
             pred3 = F.softmax(cost3, dim=1)
@@ -1442,7 +1469,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             print("cost3.size(): ", cost3.size())
             cost3 = torch.unsqueeze(cost3, 1)
             print("cost3.size() after unsqueeze: ", cost3.size())
-            cost3 = F.upsample(cost3, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
+            cost3 = F.upsample(cost3, [max_dis, self.img_size[0]//4, self.img_size[1]//4], mode='trilinear')
             print("cost3.size() after upsample: ", cost3.size())
             cost3 = torch.squeeze(cost3, 1)
             print("cost3.size() after torch.squeeze: ", cost3.size())
