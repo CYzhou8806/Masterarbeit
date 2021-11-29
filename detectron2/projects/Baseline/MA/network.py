@@ -1561,25 +1561,28 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             pan_targets = torch.squeeze(pan_targets, 1)
             pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
             pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
+            pan_gradiant_x = F.interpolate(pan_gradiant_x, scale_factor=0.25)
+            pan_gradiant_y = F.interpolate(pan_gradiant_y, scale_factor=0.25)
 
-            print(predictions.shape)
-            pred_guided = torch.unsqueeze(predictions, 1)
-            pred_guided = pred_guided.float()
-            pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(pred_guided)
-            pred_guided = torch.squeeze(pred_guided, 1)
+            pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions)
             pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
             pred_guided_gradiant_y = torch.squeeze(pred_guided_gradiant_y, 1)
-            print(predictions.shape)
             assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
             assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
 
-            raise RuntimeError("excepted stop")
             bdry_loss = 0.0
             bdry_sum = 0.0
             count = 0
+            ''''''
+            tmp = torch.exp(-pred_guided_gradiant_x)
+            print(tmp.shape)
+            bdry_sum = (tmp.mul(pan_gradiant_x) +
+                        torch.exp(-pred_guided_gradiant_y).mul(pan_gradiant_y))
+            print(bdry_sum.shape)
+            raise RuntimeError("excepted stop")
             # all pixel in the map
-            for j in range(dis_2rd_gradiant.size()[0]):
-                for k in range(dis_2rd_gradiant.size()[1]):
+            for j in range(pan_gradiant_x.shape[1]):
+                for k in range(pan_gradiant_x.shape[2]):
                     # TODO: add decision
                     # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
                     count = count + 1
