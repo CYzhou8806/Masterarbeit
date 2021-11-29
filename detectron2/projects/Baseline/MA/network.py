@@ -1637,6 +1637,7 @@ class Gradient(nn.Module):
     def forward(self, x):
         grad_x = F.conv1d(x, self.weight_x)
         gradient_x = torch.abs(grad_x)
+        print(grad_x)
         if self.grad_type == "sobel":
             grad_y = F.conv1d(x, self.weight_y)
             gradient_y = torch.abs(grad_y)
