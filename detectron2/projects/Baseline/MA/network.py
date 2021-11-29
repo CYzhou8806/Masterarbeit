@@ -190,8 +190,18 @@ class JointEstimation(nn.Module):
         self.dis_embed_head(left_features, right_features, pyramid_features)
         '''
 
+        targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
+        targets = ImageList.from_tensors(
+            targets, size_divisibility, self.sem_seg_head.ignore_value
+        ).tensor
+
+        dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
+        dis_targets = ImageList.from_tensors(
+            dis_targets, size_divisibility, self.sem_seg_head.ignore_value
+        ).tensor
+
         pyramid_features = {}
-        self.dis_embed_head(left_features, right_features, pyramid_features)
+        self.dis_embed_head(left_features, right_features, pyramid_features, dis_targets=dis_targets, pan_targets=targets)
 
         '''
         # tmp
@@ -1526,22 +1536,24 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
         '''
-        mask = dis_targets < self.max_disp  # TODO: find out the effect of mask
-        print("mask = dis_targets < self.max_disp: ", mask.size())
+        mask = dis_targets < self.max_disp
         mask.detach_()
-        print("mask after mask.detach_(): ", mask.size())
-        raise RuntimeError("excepted stop")
         loss = None
         if self.loss_type == "panoptic_guided":
+            print(pan_targets.shape)
             pan_2rd_gradiant = cv.Laplacian(pan_targets, cv.CV_32F)
             pan_2rd_gradiant = cv.convertScaleAbs(pan_2rd_gradiant)
-
+            print(type(pan_2rd_gradiant))
+            print(pan_2rd_gradiant.shape)
+            print(pan_2rd_gradiant)
+            raise RuntimeError("excepted stop")
             bdry_loss = 0.0
             # TODO: implement the boundary loss
             dis_2rd_gradiant = cv.Laplacian(predictions[mask], cv.CV_32F)
             dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
 
-            print(dis_2rd_gradiant.size())
+            raise RuntimeError("excepted stop")
+
             assert dis_2rd_gradiant.size() == pan_2rd_gradiant.size()
             bdry_sum = 0.0
             count = 0
