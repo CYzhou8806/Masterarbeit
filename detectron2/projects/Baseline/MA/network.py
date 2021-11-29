@@ -812,7 +812,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                 if self.resol_disp_adapt:
                     max_dis = self.max_disp // zoom[i]
                 else:
-                    max_dis = self.max_disp // 4
+                    max_dis = self.max_disp
                 self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
                                                   convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
@@ -875,7 +875,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
-                max_dis = self.max_disp // 4
+                max_dis = self.max_disp
             if not len(disparity):
                 seg_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
@@ -1313,11 +1313,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 if self.resol_disp_adapt:
                     max_dis = self.max_disp // zoom[i]
                 else:
-                    max_dis = self.max_disp // 4
+                    max_dis = self.max_disp
 
-                self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 1),
+                self.dres0[scale] = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
-                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
+                                                  convbn(max_dis, max_dis, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True))
                 '''
                 self.dres0[scale] = nn.Sequential(Conv2d(max_dis,
@@ -1340,26 +1340,27 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                   nn.BatchNorm2d(hourglass_inplanes),
                                                   nn.ReLU(inplace=True))
                 '''
-                self.dres1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
+                self.dres1[scale] = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
-                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1))
+                                                  convbn(max_dis, max_dis, 3, 1, 1, 1))
+                hourglass_inplanes = max_dis
                 self.dres2[scale] = hourglass_2d(hourglass_inplanes)
                 self.dres3[scale] = hourglass_2d(hourglass_inplanes)
                 self.dres4[scale] = hourglass_2d(hourglass_inplanes)
 
                 self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
                 self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
                 self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
         else:
@@ -1398,7 +1399,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
-                max_dis = self.max_disp // 4
+                max_dis = self.max_disp
             '''
             if not len(disparity):
                 dis_cost_volume = build_correlation_cost_volume(
