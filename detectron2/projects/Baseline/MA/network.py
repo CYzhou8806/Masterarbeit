@@ -895,6 +895,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         ret["hourglass_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_INPLANES
         ret["hourglass_type"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_TYPE
         ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
+        ret["loss_type"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         return ret
 
@@ -975,6 +976,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
             pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
 
+
             if self.training:
                 if not len(disparity):
                     disparity.append([pred1, pred2, pred3])
@@ -1040,14 +1042,39 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                              self.hourglass_loss_weight[2] *
                              F.smooth_l1_loss(predictions[i][2][mask], dis_targets[mask]))
 
-            pan_2rd_gradiant = cv.Laplacian(pan_targets, cv.CV_32F)
-            pan_2rd_gradiant = cv.convertScaleAbs(pan_2rd_gradiant)
+            get_gradient = Gradient(self.gradient_type)
+            pan_targets = torch.unsqueeze(pan_targets, 1)
+            pan_targets = pan_targets.float()
+            pan_targets_down = F.interpolate(pan_targets, scale_factor=0.25)
+            pan_targets_down = pan_targets_down.float()
+            pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
+            pan_targets = torch.squeeze(pan_targets, 1)
+            pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
+            if pan_gradiant_y:
+                pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
+
+            # TODO: to be corrected
+            '''
+            bdry_sum = 0.0
+            count = 0
+            # TODO: add decision
+            # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
+            bdry_sum = (torch.exp(-pred_guided_gradiant_x).mul(pan_gradiant_x) +
+                        torch.exp(-pred_guided_gradiant_y).mul(pan_gradiant_y))
+            print(type(bdry_sum))
+            bdry_loss = torch.mean(bdry_sum)
+            print(type(bdry_loss))
+            print(bdry_loss)
 
             bdry_loss = 0.0
             # TODO: implement the boundary loss
             for i in range(len(predictions)):
-                dis_2rd_gradiant = cv.Laplacian(predictions[i][-1][mask], cv.CV_32F)
-                dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
+                pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions)
+                pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
+                pred_guided_gradiant_y = torch.squeeze(pred_guided_gradiant_y, 1)
+                if 
+                assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
+                assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
 
                 print(dis_2rd_gradiant.size())
                 assert dis_2rd_gradiant.size() == pan_2rd_gradiant.size()
@@ -1061,7 +1088,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                         count = count + 1
                         bdry_sum = bdry_sum + math.exp(-abs(dis_2rd_gradiant[j, k])) * abs(pan_2rd_gradiant[j, k])
                 bdry_loss = bdry_loss + self.internal_loss_weight[i] * bdry_sum / count
-
+            '''
             sm_loss = 0.0
             # TODO: implement the smooth loss
             for i in range(len(predictions)):
@@ -1490,20 +1517,14 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 pred2 = F.softmax(cost2, dim=1)
                 pred2 = disparityregression(max_dis)(pred2)
             '''
-            print("cost3.size(): ", cost3.size())
             cost3 = torch.unsqueeze(cost3, 1)
-            print("cost3.size() after unsqueeze: ", cost3.size())
             cost3 = F.upsample(cost3, [max_dis, self.img_size[0] // 4, self.img_size[1] // 4], mode='trilinear')
-            print("cost3.size() after upsample: ", cost3.size())
             cost3 = torch.squeeze(cost3, 1)
-            print("cost3.size() after torch.squeeze: ", cost3.size())
             pred3 = F.softmax(cost3, dim=1)
-            print("pred3.size(): ", pred3.size())
             # For your information: This formulation 'softmax(c)' learned "similarity"
             # while 'softmax(-c)' learned 'matching cost' as mentioned in the paper.
             # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
             pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
-            print("pred3.size() after disparity regression: ", pred3.size())
 
             if self.training:
                 disparity = pred3
