@@ -132,6 +132,13 @@ class JointEstimation(nn.Module):
 
         losses = {}
 
+        # tmp
+        right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None, is_left=False)
+        for key in right_sem_seg_features:
+            print(right_sem_seg_features[key].size())
+        raise RuntimeError('excepted stop')
+
+
         # Needs to be recovered
         '''
         # semantic branch
@@ -1342,6 +1349,9 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         """
         y, out_features = self.layers(features)
         right_y, right_out_features = self.layers(right_features)
+        for key in right_out_features:
+            print(right_out_features[key].size())
+        raise RuntimeError('excepted stop')
 
         for key in out_features:
             pyramid_features[key] = [[out_features[key], right_out_features[key]]]
