@@ -43,6 +43,7 @@ MODEL:
     HOURGLASS_INPLANES: 32
     HOURGLASS_TYPE: "hourglass_2D"
     RESOL_DISP_ADAPT: False
+    GRADIENT_TYPE: "sobel"
   INS_EMBED_HEAD:
     NAME: "JointEstimationInsEmbedHead"
     IN_FEATURES: ["res2", "res3", "res5"]

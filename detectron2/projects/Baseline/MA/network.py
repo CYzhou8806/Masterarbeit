@@ -201,7 +201,8 @@ class JointEstimation(nn.Module):
         ).tensor
 
         pyramid_features = {}
-        self.dis_embed_head(left_features, right_features, pyramid_features, dis_targets=dis_targets, pan_targets=targets)
+        self.dis_embed_head(left_features, right_features, pyramid_features, dis_targets=dis_targets,
+                            pan_targets=targets)
 
         '''
         # tmp
@@ -730,6 +731,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             hourglass_inplanes: int,
             hourglass_type: str,
             resol_disp_adapt: bool,
+            gradient_type: str,
             **kwargs,
     ):
         """
@@ -859,22 +861,24 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
 
                 self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                                               padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
                 self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                                               padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
                 self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                                               padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
-
 
     @classmethod
     def from_config(cls, cfg, input_shape):
@@ -889,6 +893,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         ret["hourglass_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_INPLANES
         ret["hourglass_type"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_TYPE
         ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
+        ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
@@ -1258,6 +1263,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             hourglass_inplanes: int,
             hourglass_type: str,
             resol_disp_adapt: bool,
+            gradient_type: str,
             **kwargs,
     ):
         """
@@ -1293,6 +1299,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.loss_type = loss_type
         self.hourglass_type = hourglass_type
         self.resol_disp_adapt = resol_disp_adapt
+        self.gradient_type = gradient_type
         use_bias = norm == ""
         # `head` is additional transform before predictor
         if self.use_depthwise_separable_conv:
@@ -1387,17 +1394,20 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
                 self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                                               padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
                 self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                                               padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
                 self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, padding=1,
+                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                                               padding=1,
                                                                stride=1,
                                                                bias=False)).cuda()
         else:
@@ -1417,6 +1427,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["hourglass_type"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_TYPE
         ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
         ret["loss_type"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
+        ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
@@ -1480,7 +1491,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             print("cost3.size(): ", cost3.size())
             cost3 = torch.unsqueeze(cost3, 1)
             print("cost3.size() after unsqueeze: ", cost3.size())
-            cost3 = F.upsample(cost3, [max_dis, self.img_size[0]//4, self.img_size[1]//4], mode='trilinear')
+            cost3 = F.upsample(cost3, [max_dis, self.img_size[0] // 4, self.img_size[1] // 4], mode='trilinear')
             print("cost3.size() after upsample: ", cost3.size())
             cost3 = torch.squeeze(cost3, 1)
             print("cost3.size() after torch.squeeze: ", cost3.size())
@@ -1541,12 +1552,16 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         mask.detach_()
         loss = None
         if self.loss_type == "panoptic_guided":
+            get_gradient = Gradient(self.gradient_type)
             print(pan_targets.shape)
+            pan_2rd_gradiant_x, pan_2rd_gradiant_y = get_gradient(pan_targets)
+            '''
             pan_2rd_gradiant = cv.Laplacian(pan_targets, cv.CV_32F)
             pan_2rd_gradiant = cv.convertScaleAbs(pan_2rd_gradiant)
-            print(type(pan_2rd_gradiant))
-            print(pan_2rd_gradiant.shape)
-            print(pan_2rd_gradiant)
+            '''
+            print(type(pan_2rd_gradiant_x))
+            print(pan_2rd_gradiant_x.shape)
+            print(pan_2rd_gradiant_x)
             raise RuntimeError("excepted stop")
             bdry_loss = 0.0
             # TODO: implement the boundary loss
@@ -1601,3 +1616,32 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         losses = {"loss_dis": loss * self.loss_weight}
         return losses
+
+
+class Gradient(nn.Module):
+    def __init__(self, grad_type="sobel"):
+        self.grad_type = grad_type
+        super(Gradient, self).__init__()
+        if self.grad_type == "sobel":
+            kernel_x = [[-1., 0., 1.], [-2., 0., 2.], [-1., 0., 1.]]
+            kernel_y = [[-1., -2., -1.], [0., 0., 0.], [1., 2., 1.]]
+            kernel_y = torch.FloatTensor(kernel_y).unsqueeze(0).unsqueeze(0).cuda()
+            self.weight_y = nn.Parameter(data=kernel_y, requires_grad=False)
+        elif self.grad_type == "laplacian":
+            kernel_x = [[-1., -1., -1.], [-1., 8., -1.], [-1., -1., -1.]]
+        else:
+            raise ValueError("Unexpected gradient type: %s" % self.grad_type)
+        kernel_x = torch.FloatTensor(kernel_x).unsqueeze(0).unsqueeze(0).cuda()
+        self.weight_x = nn.Parameter(data=kernel_x, requires_grad=False)
+
+    def forward(self, x):
+        grad_x = F.conv2d(x, self.weight_x)
+        gradient_x = torch.abs(grad_x)
+        if self.grad_type == "sobel":
+            grad_y = F.conv2d(x, self.weight_y)
+            gradient_y = torch.abs(grad_y)
+            return gradient_x, gradient_y
+        elif self.grad_type == "laplacian":
+            return gradient_x, None
+        else:
+            raise ValueError("Unexpected gradient type: %s" % self.grad_type)
