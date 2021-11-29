@@ -35,6 +35,8 @@ from detectron2.utils.registry import Registry
 
 from .post_processing import get_panoptic_segmentation
 from .submodule import convbn_3d, disparityregression, convbn
+from torchsummary import summary
+
 
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch", "build_dis_embed_head"]
 
@@ -1554,6 +1556,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         if self.loss_type == "panoptic_guided":
             get_gradient = Gradient(self.gradient_type)
             print(pan_targets.shape)
+            pan_targets = torch.unsqueeze(pan_targets, 1)
+            print(pan_targets.shape)
             pan_2rd_gradiant_x, pan_2rd_gradiant_y = get_gradient(pan_targets)
             '''
             pan_2rd_gradiant = cv.Laplacian(pan_targets, cv.CV_32F)
@@ -1635,10 +1639,8 @@ class Gradient(nn.Module):
         self.weight_x = nn.Parameter(data=kernel_x, requires_grad=False)
 
     def forward(self, x):
-        print(F.conv1d)
         grad_x = F.conv1d(x, self.weight_x)
         gradient_x = torch.abs(grad_x)
-
         if self.grad_type == "sobel":
             grad_y = F.conv1d(x, self.weight_y)
             gradient_y = torch.abs(grad_y)
