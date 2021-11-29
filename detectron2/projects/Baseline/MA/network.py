@@ -1635,10 +1635,10 @@ class Gradient(nn.Module):
         self.weight_x = nn.Parameter(data=kernel_x, requires_grad=False)
 
     def forward(self, x):
-        grad_x = F.conv2d(x, self.weight_x)
+        grad_x = F.conv1d(x, self.weight_x)
         gradient_x = torch.abs(grad_x)
         if self.grad_type == "sobel":
-            grad_y = F.conv2d(x, self.weight_y)
+            grad_y = F.conv1d(x, self.weight_y)
             gradient_y = torch.abs(grad_y)
             return gradient_x, gradient_y
         elif self.grad_type == "laplacian":
