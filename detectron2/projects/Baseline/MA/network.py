@@ -1421,7 +1421,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             out1, pre1, post1 = self.dres2[scale](cost0, None, None)
             print(out1.size())
             out1 = out1 + cost0
-            print("out1.size(): %s" % out1.size())
+            print("out1.size(): ", out1.size())
             out2, pre2, post2 = self.dres3[scale](out1, pre1, post1)
             out2 = out2 + cost0
             out3, pre3, post3 = self.dres4[scale](out2, pre1, post2)
@@ -1429,7 +1429,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
             print(next(classif1[scale].parameters()).is_cuda)
             cost1 = self.classif1[scale](out1)
-            print("cost1.size(): %s" % cost1.size())
+            print("cost1.size(): ", cost1.size())
 
             print(next(classif2[scale].parameters()).is_cuda)
             cost2 = self.classif2[scale](out2) + cost1
