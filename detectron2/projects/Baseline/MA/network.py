@@ -1387,7 +1387,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
             cost_volume = dis_cost_volume
 
-            print(type(cost_volume))
+            print(next(self.dres0[scale].parameters()).is_cuda)
             cost0 = self.dres0[scale](cost_volume)
             print(cost0.size())
             cost0 = self.dres1[scale](cost0) + cost0

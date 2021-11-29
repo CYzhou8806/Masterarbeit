@@ -6,6 +6,7 @@ from torch.autograd import Variable
 import torch.nn.functional as F
 import math
 import numpy as np
+from detectron2.layers.batch_norm import FrozenBatchNorm2d, get_norm
 
 
 def convbn(in_planes, out_planes, kernel_size, stride, pad, dilation):
@@ -13,6 +14,56 @@ def convbn(in_planes, out_planes, kernel_size, stride, pad, dilation):
                                    padding=dilation if dilation > 1 else pad, dilation=dilation, bias=False),
                          nn.BatchNorm2d(out_planes))
 
+
+'''
+class convbn(nn.Module):
+    """
+    A CNN block is assumed to have input channels, output channels and a stride.
+    The input and output of `forward()` method must be NCHW tensors.
+    The method can perform arbitrary computation but must match the given
+    channels and stride specification.
+
+    Attribute:
+        in_channels (int):
+        out_channels (int):
+        stride (int):
+    """
+
+    def __init__(self, in_planes, out_planes, kernel_size, stride, pad, dilation):
+        """
+        The `__init__` method of any subclass should also contain these arguments.
+
+        Args:
+            in_channels (int):
+            out_channels (int):
+            stride (int):
+        """
+        super().__init__()
+        self.in_channels = in_planes
+        self.out_channels = out_planes
+        self.kernel_size = kernel_size
+        self.stride = stride
+        self.pad = pad
+        self.dilation = dilation
+    def forward(self):
+
+
+
+    def freeze(self):
+        """
+        Make this block not trainable.
+        This method sets all parameters to `requires_grad=False`,
+        and convert all BatchNorm layers to FrozenBatchNorm
+
+        Returns:
+            the block itself
+        """
+        for p in self.parameters():
+            p.requires_grad = False
+        FrozenBatchNorm2d.convert_frozen_batchnorm(self)
+        return self
+
+'''
 
 def convbn_3d(in_planes, out_planes, kernel_size, stride, pad):
     return nn.Sequential(
