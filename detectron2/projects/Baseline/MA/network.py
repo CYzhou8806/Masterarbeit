@@ -719,6 +719,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             regression_inplanes: int,
             hourglass_inplanes: int,
             hourglass_type: str,
+            resol_disp_adapt: bool,
             **kwargs,
     ):
         """
@@ -753,6 +754,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         self.lamda = streshold_guided_loss
         self.loss_type = loss_type
         self.hourglass_type = hourglass_type
+        self.resol_disp_adapt = resol_disp_adapt
         use_bias = norm == ""
         # `head` is additional transform before predictor
         if self.use_depthwise_separable_conv:
@@ -805,8 +807,13 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         self.classif3 = {}
 
         if self.hourglass_type == "hourglass_2D":
-            for scale in ['1/16', '1/8', '1/4']:
-                self.dres0[scale] = nn.Sequential(convbn(regression_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+            zoom = [16, 8, 4]
+            for i, scale in enumerate(['1/16', '1/8', '1/4']):
+                if self.resol_disp_adapt:
+                    max_dis = self.max_disp // zoom[i]
+                else:
+                    max_dis = self.max_disp // 4
+                self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 0),
                                                   nn.ReLU(inplace=True),
                                                   convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                   nn.ReLU(inplace=True))
@@ -844,6 +851,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         ret["regression_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.REGRESSION_INPLANES
         ret["hourglass_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_INPLANES
         ret["hourglass_type"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_TYPE
+        ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
@@ -861,7 +869,10 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
         for i, scale in enumerate(['1/16', '1/8', '1/4']):
-            max_dis = self.max_disp // zoom[i]
+            if self.resol_disp_adapt:
+                max_dis = self.max_disp // zoom[i]
+            else:
+                max_dis = self.max_disp // 4
             if not len(disparity):
                 seg_cost_volume = build_correlation_cost_volume(
                     max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
@@ -1207,6 +1218,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             regression_inplanes: int,
             hourglass_inplanes: int,
             hourglass_type: str,
+            resol_disp_adapt: bool,
             **kwargs,
     ):
         """
@@ -1241,6 +1253,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.lamda = streshold_guided_loss
         self.loss_type = loss_type
         self.hourglass_type = hourglass_type
+        self.resol_disp_adapt = resol_disp_adapt
         use_bias = norm == ""
         # `head` is additional transform before predictor
         if self.use_depthwise_separable_conv:
@@ -1293,8 +1306,13 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.classif3 = {}
 
         if self.hourglass_type == "hourglass_2D":
-            for scale in ['1/16', '1/8', '1/4']:
-                self.dres0[scale] = nn.Sequential(convbn(regression_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+            zoom = [16, 8, 4]
+            for i, scale in enumerate(['1/16', '1/8', '1/4']):
+                if self.resol_disp_adapt:
+                    max_dis = self.max_disp // zoom[i]
+                else:
+                    max_dis = self.max_disp // 4
+                self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 0),
                                                   nn.ReLU(inplace=True),
                                                   convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                   nn.ReLU(inplace=True))
@@ -1332,6 +1350,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["regression_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.REGRESSION_INPLANES
         ret["hourglass_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_INPLANES
         ret["hourglass_type"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_TYPE
+        ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
@@ -1342,9 +1361,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         """
         y, out_features = self.layers(features)
         right_y, right_out_features = self.layers(right_features)
-        for key in right_out_features:
-            print(right_out_features[key].size())
-        raise RuntimeError('excepted stop')
 
         for key in out_features:
             pyramid_features[key] = [[out_features[key], right_out_features[key]]]
@@ -1352,7 +1368,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
         for i, scale in enumerate(['1/16', '1/8', '1/4']):
-            max_dis = self.max_disp // zoom[i]
+            if self.resol_disp_adapt:
+                max_dis = self.max_disp // zoom[i]
+            else:
+                max_dis = self.max_disp // 4
             '''
             if not len(disparity):
                 dis_cost_volume = build_correlation_cost_volume(
