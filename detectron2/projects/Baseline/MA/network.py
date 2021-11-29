@@ -1356,12 +1356,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
-                                                               bias=False))
+                                                               bias=False)).cuda()
                 self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
-                                                               bias=False))
+                                                               bias=False)).cuda()
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
 
@@ -1427,15 +1427,13 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             out3, pre3, post3 = self.dres4[scale](out2, pre1, post2)
             out3 = out3 + cost0
 
-            print(next(self.classif1[scale].parameters()).is_cuda)
             cost1 = self.classif1[scale](out1)
             print("cost1.size(): ", cost1.size())
 
-            print(next(self.classif2[scale].parameters()).is_cuda)
             cost2 = self.classif2[scale](out2) + cost1
-            print(cost2.size())
+            print("cost2.size(): ", cost2.size())
             cost3 = self.classif3[scale](out3) + cost2
-            print(cost3.size())
+            print("cost3.size(): ", cost3.size())
             raise RuntimeError('excepted stop')
 
             if self.training:
