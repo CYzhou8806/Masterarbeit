@@ -1558,6 +1558,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             print(pan_targets.shape)
             pan_targets = torch.unsqueeze(pan_targets, 1)
             print(pan_targets.shape)
+            pan_targets = pan_targets.float()
             pan_2rd_gradiant_x, pan_2rd_gradiant_y = get_gradient(pan_targets)
             '''
             pan_2rd_gradiant = cv.Laplacian(pan_targets, cv.CV_32F)
