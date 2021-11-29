@@ -813,28 +813,28 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                     max_dis = self.max_disp // zoom[i]
                 else:
                     max_dis = self.max_disp // 4
-                self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 0),
+                self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
-                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True))
-                self.dres1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                self.dres1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
-                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0))
+                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1))
                 self.dres2[scale] = hourglass_2d(hourglass_inplanes)
                 self.dres3[scale] = hourglass_2d(hourglass_inplanes)
                 self.dres4[scale] = hourglass_2d(hourglass_inplanes)
 
-                self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False))
-                self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False))
-                self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
@@ -1341,24 +1341,24 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                   nn.BatchNorm2d(hourglass_inplanes),
                                                   nn.ReLU(inplace=True))
                 '''
-                self.dres1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                self.dres1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
-                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0))
+                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1))
                 self.dres2[scale] = hourglass_2d(hourglass_inplanes)
                 self.dres3[scale] = hourglass_2d(hourglass_inplanes)
                 self.dres4[scale] = hourglass_2d(hourglass_inplanes)
 
-                self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False))
-                self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
                                                                bias=False))
-                self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
+                self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
@@ -1414,8 +1414,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             dis_cost_volume = build_correlation_cost_volume(
                 max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
             cost_volume = dis_cost_volume
-
-            print(next(self.dres0[scale].parameters()).is_cuda)
+            print(cost_volume.size())
             cost0 = self.dres0[scale](cost_volume)
             print(cost0.size())
             cost0 = self.dres1[scale](cost0) + cost0
