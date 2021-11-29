@@ -1162,13 +1162,13 @@ class hourglass_2d(nn.Module):
 
         # note: the conv5 and conv6 is without relu
         self.conv5 = nn.Sequential(
-            nn.ConvTranspose2d(inplanes * 2, inplanes * 2, kernel_size=3, padding=1, output_padding=1, stride=2,
-                               bias=False),
+            nn.ConvTranspose2d(inplanes * 2, inplanes * 2, kernel_size=(3, 3), padding=(1,), output_padding=(1,),
+                               stride=(2,), bias=False),
             nn.BatchNorm2d(inplanes * 2))  # +conv2
 
         self.conv6 = nn.Sequential(
-            nn.ConvTranspose2d(inplanes * 2, inplanes, kernel_size=3, padding=1, output_padding=1, stride=2,
-                               bias=False),
+            nn.ConvTranspose2d(inplanes * 2, inplanes * 2, kernel_size=(3, 3), padding=(1,), output_padding=(1,),
+                               stride=(2,), bias=False),
             nn.BatchNorm2d(inplanes))  # +x
 
     def forward(self, x, presqu, postsqu):
