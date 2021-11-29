@@ -1555,27 +1555,26 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         loss = None
         if self.loss_type == "panoptic_guided":
             get_gradient = Gradient(self.gradient_type)
-            print(pan_targets.shape)
             pan_targets = torch.unsqueeze(pan_targets, 1)
-            print(pan_targets.shape)
             pan_targets = pan_targets.float()
-            pan_2rd_gradiant_x, pan_2rd_gradiant_y = get_gradient(pan_targets)
-            '''
-            pan_2rd_gradiant = cv.Laplacian(pan_targets, cv.CV_32F)
-            pan_2rd_gradiant = cv.convertScaleAbs(pan_2rd_gradiant)
-            '''
-            print(type(pan_2rd_gradiant_x))
-            print(pan_2rd_gradiant_x.shape)
-            print(pan_2rd_gradiant_x)
+            pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets)
+            pan_targets = torch.squeeze(pan_targets, 1)
+            pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
+            pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
+
+            print(predictions.shape)
+            pred_guided = torch.unsqueeze(predictions, 1)
+            pred_guided = pred_guided.float()
+            pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(pred_guided)
+            pred_guided = torch.squeeze(pred_guided, 1)
+            pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
+            pred_guided_gradiant_y = torch.squeeze(pred_guided_gradiant_y, 1)
+            print(predictions.shape)
+            assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
+            assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
+
             raise RuntimeError("excepted stop")
             bdry_loss = 0.0
-            # TODO: implement the boundary loss
-            dis_2rd_gradiant = cv.Laplacian(predictions[mask], cv.CV_32F)
-            dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
-
-            raise RuntimeError("excepted stop")
-
-            assert dis_2rd_gradiant.size() == pan_2rd_gradiant.size()
             bdry_sum = 0.0
             count = 0
             # all pixel in the map
