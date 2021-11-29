@@ -42,7 +42,7 @@ MODEL:
     REGRESSION_INPLANES: 256
     HOURGLASS_INPLANES: 32
     HOURGLASS_TYPE: "hourglass_2D"
-    RESOL_DISP_ADAPT: False
+    RESOL_DISP_ADAPT: False   # but the disp still 1/4 because the initial down sampling
   INS_EMBED_HEAD:
     NAME: "JointEstimationInsEmbedHead"
     IN_FEATURES: ["res2", "res3", "res5"]
