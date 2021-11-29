@@ -826,15 +826,18 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
 
                 self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                               stride=1,
                                                                bias=False))
                 self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                               stride=1,
                                                                bias=False))
                 self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                               stride=1,
                                                                bias=False))
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
@@ -910,12 +913,12 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             cost3 = self.classif3[scale](out3) + cost2
 
             if self.training:
-                cost1 = F.upsample(cost1, [max_dis,  self.img_size[0], self.img_size[1]], mode='trilinear')
+                cost1 = F.upsample(cost1, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
                 cost1 = torch.squeeze(cost1, 1)
                 pred1 = F.softmax(cost1, dim=1)
                 pred1 = disparityregression(max_dis)(pred1)
 
-                cost2 = F.upsample(cost2, [max_dis,  self.img_size[0], self.img_size[1]], mode='trilinear')
+                cost2 = F.upsample(cost2, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
                 cost2 = torch.squeeze(cost2, 1)
                 pred2 = F.softmax(cost2, dim=1)
                 pred2 = disparityregression(max_dis)(pred2)
@@ -1313,16 +1316,27 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 else:
                     max_dis = self.max_disp // 4
 
-                self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 0),
+                self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
-                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
-                                                  nn.ReLU(inplace=True)).cuda()
+                                                  convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
+                                                  nn.ReLU(inplace=True))
                 '''
-                self.dres0[scale] = nn.Sequential(nn.Conv2d(max_dis, hourglass_inplanes, kernel_size=3, stride=1,
+                self.dres0[scale] = nn.Sequential(Conv2d(max_dis,
+                                                         hourglass_inplanes,
+                                                         kernel_size=3,
+                                                         stride=1,
+                                                         padding=1,
+                                                         bias=use_bias,
+                                                         norm=get_norm(norm, decoder_channels[idx]),
+                                                         activation=F.relu,
+                                                         ),
+
+                                                  nn.Conv2d(max_dis, hourglass_inplanes, kernel_size=3, stride=1,
                                                             padding=1, dilation=0, bias=False),
                                                   nn.BatchNorm2d(hourglass_inplanes),
                                                   nn.ReLU(inplace=True),
-                                                  nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, stride=1,
+                                                  nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                                            stride=1,
                                                             padding=1, dilation=0, bias=False),
                                                   nn.BatchNorm2d(hourglass_inplanes),
                                                   nn.ReLU(inplace=True))
@@ -1336,15 +1350,18 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
                 self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                               stride=1,
                                                                bias=False))
                 self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                               stride=1,
                                                                bias=False))
                 self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                      nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1, stride=1,
+                                                     nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
+                                                               stride=1,
                                                                bias=False))
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
@@ -1420,12 +1437,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             raise RuntimeError('excepted stop')
 
             if self.training:
-                cost1 = F.upsample(cost1, [max_dis,  self.img_size[0], self.img_size[1]], mode='trilinear')
+                cost1 = F.upsample(cost1, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
                 cost1 = torch.squeeze(cost1, 1)
                 pred1 = F.softmax(cost1, dim=1)
                 pred1 = disparityregression(max_dis)(pred1)
 
-                cost2 = F.upsample(cost2, [max_dis,  self.img_size[0], self.img_size[1]], mode='trilinear')
+                cost2 = F.upsample(cost2, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
                 cost2 = torch.squeeze(cost2, 1)
                 pred2 = F.softmax(cost2, dim=1)
                 pred2 = disparityregression(max_dis)(pred2)
