@@ -1336,7 +1336,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         if self.hourglass_type == "hourglass_2D":
             zoom = [16, 8, 4]
-            for i, scale in enumerate(['1/16', '1/8', '1/4']):
+            for i, scale in enumerate(['1/16']):
                 if self.resol_disp_adapt:
                     max_dis = self.max_disp // zoom[i]
                 else:
@@ -1420,9 +1420,9 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         for key in out_features:
             pyramid_features[key] = [[out_features[key], right_out_features[key]]]
 
-        disparity = []  # form coarse to fine
+        # disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
-        for i, scale in enumerate(['1/16', '1/8', '1/4']):
+        for i, scale in enumerate(['1/16']):
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1480,18 +1480,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
             pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
             print("pred3.size() after disparity regression: ", pred3.size())
-            raise RuntimeError('excepted stop')
 
             if self.training:
-                if not len(disparity):
-                    disparity.append([pred1, pred2, pred3])
-                else:
-                    disparity.append([pred1 + dis, pred2 + dis, pred3 + dis])
+                disparity = pred3
             else:
-                if not len(disparity):
-                    disparity.append([pred3])
-                else:
-                    disparity.append([pred3 + dis])
+                disparity = pred3
 
         if self.training:
             return self.losses(disparity, dis_targets, weights, pan_targets), None  # TODO: to be adapted
@@ -1534,40 +1527,32 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         )
         '''
         mask = dis_targets < self.max_disp  # TODO: find out the effect of mask
+        print("mask = dis_targets < self.max_disp: ", mask.size())
         mask.detach_()
+        print("mask after mask.detach_(): ", mask.size())
+        raise RuntimeError("excepted stop")
         loss = None
         if self.loss_type == "panoptic_guided":
-            smooth_l1 = 0.0
-            for i in range(len(predictions)):
-                smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
-                            (self.hourglass_loss_weight[0] *
-                             F.smooth_l1_loss(predictions[i][0][mask], dis_targets[mask], size_average=True) +
-                             self.hourglass_loss_weight[1] *
-                             F.smooth_l1_loss(predictions[i][1][mask], dis_targets[mask], size_average=True) +
-                             self.hourglass_loss_weight[2] *
-                             F.smooth_l1_loss(predictions[i][2][mask], dis_targets[mask]))
-
             pan_2rd_gradiant = cv.Laplacian(pan_targets, cv.CV_32F)
             pan_2rd_gradiant = cv.convertScaleAbs(pan_2rd_gradiant)
 
             bdry_loss = 0.0
             # TODO: implement the boundary loss
-            for i in range(len(predictions)):
-                dis_2rd_gradiant = cv.Laplacian(predictions[i][-1][mask], cv.CV_32F)
-                dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
+            dis_2rd_gradiant = cv.Laplacian(predictions[mask], cv.CV_32F)
+            dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
 
-                print(dis_2rd_gradiant.size())
-                assert dis_2rd_gradiant.size() == pan_2rd_gradiant.size()
-                bdry_sum = 0.0
-                count = 0
-                # all pixel in the map
-                for j in range(dis_2rd_gradiant.size()[0]):
-                    for k in range(dis_2rd_gradiant.size()[1]):
-                        # TODO: add decision
-                        # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
-                        count = count + 1
-                        bdry_sum = bdry_sum + math.exp(-abs(dis_2rd_gradiant[j, k])) * abs(pan_2rd_gradiant[j, k])
-                bdry_loss = bdry_loss + self.internal_loss_weight[i] * bdry_sum / count
+            print(dis_2rd_gradiant.size())
+            assert dis_2rd_gradiant.size() == pan_2rd_gradiant.size()
+            bdry_sum = 0.0
+            count = 0
+            # all pixel in the map
+            for j in range(dis_2rd_gradiant.size()[0]):
+                for k in range(dis_2rd_gradiant.size()[1]):
+                    # TODO: add decision
+                    # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
+                    count = count + 1
+                    bdry_sum = bdry_sum + math.exp(-abs(dis_2rd_gradiant[j, k])) * abs(pan_2rd_gradiant[j, k])
+            bdry_loss = bdry_loss + self.internal_loss_weight[i] * bdry_sum / count
 
             sm_loss = 0.0
             # TODO: implement the smooth loss
