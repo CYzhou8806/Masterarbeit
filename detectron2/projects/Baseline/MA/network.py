@@ -1416,6 +1416,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["hourglass_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_INPLANES
         ret["hourglass_type"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_TYPE
         ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
+        ret["loss_type"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
