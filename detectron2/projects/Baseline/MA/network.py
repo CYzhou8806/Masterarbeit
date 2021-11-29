@@ -1164,12 +1164,12 @@ class hourglass_2d(nn.Module):
         self.conv5 = nn.Sequential(
             nn.ConvTranspose2d(inplanes * 2, inplanes * 2, kernel_size=(3, 3), padding=(1, 1), output_padding=(1, 1),
                                stride=(2, 2), bias=False),
-            nn.BatchNorm2d(inplanes * 2))  # +conv2
+            nn.BatchNorm2d(inplanes * 2)).cuda()  # +conv2
 
         self.conv6 = nn.Sequential(
             nn.ConvTranspose2d(inplanes * 2, inplanes, kernel_size=(3, 3), padding=(1, 1), output_padding=(1, 1),
                                stride=(2, 2), bias=False),
-            nn.BatchNorm2d(inplanes))  # +x
+            nn.BatchNorm2d(inplanes)).cuda()  # +x
 
     def forward(self, x, presqu, postsqu):
         out = self.conv1(x)  # in:1/4 out:1/8
@@ -1181,7 +1181,7 @@ class hourglass_2d(nn.Module):
 
         out = self.conv3(pre)  # in:1/8 out:1/16
         out = self.conv4(out)  # in:1/16 out:1/16
-
+        print(next(self.conv4.parameters()).is_cuda)
         print(next(self.conv5.parameters()).is_cuda)
         print(next(self.conv6.parameters()).is_cuda)
         if presqu is not None:
