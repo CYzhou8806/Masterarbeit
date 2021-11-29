@@ -828,17 +828,17 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
-                                                               bias=False))
+                                                               bias=False)).cuda()
                 self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
-                                                               bias=False))
+                                                               bias=False)).cuda()
                 self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
-                                                               bias=False))
+                                                               bias=False)).cuda()
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
 
@@ -1413,29 +1413,18 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             dis_cost_volume = build_correlation_cost_volume(
                 max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
             cost_volume = dis_cost_volume
-            print(cost_volume.size())
             cost0 = self.dres0[scale](cost_volume)
-            print(cost0.size())
             cost0 = self.dres1[scale](cost0) + cost0
-            print(cost0.size())
             out1, pre1, post1 = self.dres2[scale](cost0, None, None)
-            print(out1.size())
             out1 = out1 + cost0
-            print("out1.size(): ", out1.size())
             out2, pre2, post2 = self.dres3[scale](out1, pre1, post1)
             out2 = out2 + cost0
             out3, pre3, post3 = self.dres4[scale](out2, pre1, post2)
             out3 = out3 + cost0
 
             cost1 = self.classif1[scale](out1)
-            print("cost1.size(): ", cost1.size())
-
             cost2 = self.classif2[scale](out2) + cost1
-            print("cost2.size(): ", cost2.size())
             cost3 = self.classif3[scale](out3) + cost2
-            print("cost3.size(): ", cost3.size())
-            raise RuntimeError('excepted stop')
-
             if self.training:
                 cost1 = F.upsample(cost1, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
                 cost1 = torch.squeeze(cost1, 1)
@@ -1448,12 +1437,17 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 pred2 = disparityregression(max_dis)(pred2)
 
             cost3 = F.upsample(cost3, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
+            print("cost3.size(): ", cost3.size())
             cost3 = torch.squeeze(cost3, 1)
+            print("cost3.size() after torch.squeeze: ", cost3.size())
             pred3 = F.softmax(cost3, dim=1)
+            print("pred3.size(): ", pred3.size())
             # For your information: This formulation 'softmax(c)' learned "similarity"
             # while 'softmax(-c)' learned 'matching cost' as mentioned in the paper.
             # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
             pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
+            print("pred3.size() after disparity regression: ", pred3.size())
+            raise RuntimeError('excepted stop')
 
             if self.training:
                 if not len(disparity):
