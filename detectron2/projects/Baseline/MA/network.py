@@ -1556,13 +1556,14 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         if self.loss_type == "panoptic_guided":
             get_gradient = Gradient(self.gradient_type)
             pan_targets = torch.unsqueeze(pan_targets, 1)
-            pan_targets = pan_targets.float()
-            pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets)
+
+            pan_targets_down = F.interpolate(pan_targets, scale_factor=0.25)
+            pan_targets_down = pan_targets_down.float()
+            pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
             pan_targets = torch.squeeze(pan_targets, 1)
             pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
             pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
-            pan_gradiant_x = F.interpolate(pan_gradiant_x, scale_factor=0.25)
-            pan_gradiant_y = F.interpolate(pan_gradiant_y, scale_factor=0.25)
+
 
             pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions)
             pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
