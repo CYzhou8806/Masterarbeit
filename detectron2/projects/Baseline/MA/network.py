@@ -1181,9 +1181,6 @@ class hourglass_2d(nn.Module):
 
         out = self.conv3(pre)  # in:1/8 out:1/16
         out = self.conv4(out)  # in:1/16 out:1/16
-        print(next(self.conv4.parameters()).is_cuda)
-        print(next(self.conv5.parameters()).is_cuda)
-        print(next(self.conv6.parameters()).is_cuda)
         if presqu is not None:
             # the green connection
             # if this is not the first hourglass, take the output of pre-conv5 to make the fusion
@@ -1354,7 +1351,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
                                                                stride=1,
-                                                               bias=False))
+                                                               bias=False)).cuda()
                 self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
                                                      nn.ReLU(inplace=True),
                                                      nn.Conv2d(hourglass_inplanes, 1, kernel_size=3, padding=1,
@@ -1424,13 +1421,17 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             out1, pre1, post1 = self.dres2[scale](cost0, None, None)
             print(out1.size())
             out1 = out1 + cost0
-            print(out1.size())
+            print("out1.size(): %s" % out1.size())
             out2, pre2, post2 = self.dres3[scale](out1, pre1, post1)
             out2 = out2 + cost0
             out3, pre3, post3 = self.dres4[scale](out2, pre1, post2)
             out3 = out3 + cost0
+
+            print(next(classif1[scale].parameters()).is_cuda)
             cost1 = self.classif1[scale](out1)
-            print(cost1.size())
+            print("cost1.size(): %s" % cost1.size())
+
+            print(next(classif2[scale].parameters()).is_cuda)
             cost2 = self.classif2[scale](out2) + cost1
             print(cost2.size())
             cost3 = self.classif3[scale](out3) + cost2
