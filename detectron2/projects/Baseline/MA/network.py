@@ -1440,7 +1440,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 pred2 = disparityregression(max_dis)(pred2)
             '''
             print("cost3.size(): ", cost3.size())
-            cost3 = F.upsample(cost3, [self.img_size[0], self.img_size[1]], mode='trilinear')
+            cost3 = F.upsample(cost3, [self.img_size[0], self.img_size[1]], mode='bilinear')
             print("cost3.size() after upsample: ", cost3.size())
             cost3 = torch.squeeze(cost3, 1)
             print("cost3.size() after torch.squeeze: ", cost3.size())
