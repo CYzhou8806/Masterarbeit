@@ -1149,15 +1149,15 @@ class hourglass_2d(nn.Module):
     def __init__(self, inplanes):
         super(hourglass_2d, self).__init__()
 
-        self.conv1 = nn.Sequential(convbn(inplanes, inplanes * 2, kernel_size=3, stride=2, pad=1, dilation=0),
+        self.conv1 = nn.Sequential(convbn(inplanes, inplanes * 2, kernel_size=3, stride=2, pad=1, dilation=1),
                                    nn.ReLU(inplace=True))
 
-        self.conv2 = convbn(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1, dilation=0)
+        self.conv2 = convbn(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1, dilation=1)
 
-        self.conv3 = nn.Sequential(convbn(inplanes * 2, inplanes * 2, kernel_size=3, stride=2, pad=1, dilation=0),
+        self.conv3 = nn.Sequential(convbn(inplanes * 2, inplanes * 2, kernel_size=3, stride=2, pad=1, dilation=1),
                                    nn.ReLU(inplace=True))
 
-        self.conv4 = nn.Sequential(convbn(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1, dilation=0),
+        self.conv4 = nn.Sequential(convbn(inplanes * 2, inplanes * 2, kernel_size=3, stride=1, pad=1, dilation=1),
                                    nn.ReLU(inplace=True))
 
         # note: the conv5 and conv6 is without relu
