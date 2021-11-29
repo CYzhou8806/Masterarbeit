@@ -1383,6 +1383,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             print(cost2.size())
             cost3 = self.classif3[scale](out3) + cost2
             print(cost3.size())
+            raise RuntimeError('excepted stop')
 
             if self.training:
                 cost1 = F.upsample(cost1, [max_dis,  self.img_size[0], self.img_size[1]], mode='trilinear')
