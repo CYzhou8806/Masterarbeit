@@ -1312,10 +1312,21 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     max_dis = self.max_disp // zoom[i]
                 else:
                     max_dis = self.max_disp // 4
+                '''
                 self.dres0[scale] = nn.Sequential(convbn(max_dis, hourglass_inplanes, 3, 1, 1, 0),
                                                   nn.ReLU(inplace=True),
                                                   convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                   nn.ReLU(inplace=True))
+                '''
+                self.dres0[scale] = nn.Sequential(nn.Conv2d(max_dis, hourglass_inplanes, kernel_size=3, stride=1,
+                                                            padding=1, dilation=0, bias=False),
+                                                  nn.BatchNorm2d(hourglass_inplanes),
+                                                  nn.ReLU(inplace=True),
+                                                  nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3, stride=1,
+                                                            padding=1, dilation=0, bias=False),
+                                                  nn.BatchNorm2d(hourglass_inplanes),
+                                                  nn.ReLU(inplace=True))
+
                 self.dres1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0),
                                                   nn.ReLU(inplace=True),
                                                   convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 0))
