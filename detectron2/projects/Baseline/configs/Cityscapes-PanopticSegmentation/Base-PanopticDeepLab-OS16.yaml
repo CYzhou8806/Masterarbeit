@@ -41,6 +41,7 @@ MODEL:
     STRESHOLD_GUIDED_LOSS: 1.0    # to find the right value
     REGRESSION_INPLANES: 256
     HOURGLASS_INPLANES: 32
+    HOURGLASS_TYPE: "hourglass_2D"
   INS_EMBED_HEAD:
     NAME: "JointEstimationInsEmbedHead"
     IN_FEATURES: ["res2", "res3", "res5"]
