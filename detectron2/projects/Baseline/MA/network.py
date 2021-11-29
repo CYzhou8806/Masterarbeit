@@ -1344,7 +1344,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         right_y, right_out_features = self.layers(right_features)
 
         for key in out_features:
-            pyramid_features[key].append([out_features[key], right_out_features[key]])
+            pyramid_features[key] = [[out_features[key], right_out_features[key]]]
 
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
