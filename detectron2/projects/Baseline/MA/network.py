@@ -1182,6 +1182,8 @@ class hourglass_2d(nn.Module):
         out = self.conv3(pre)  # in:1/8 out:1/16
         out = self.conv4(out)  # in:1/16 out:1/16
 
+        print(next(self.conv5.parameters()).is_cuda)
+        print(next(self.conv6.parameters()).is_cuda)
         if presqu is not None:
             # the green connection
             # if this is not the first hourglass, take the output of pre-conv5 to make the fusion
