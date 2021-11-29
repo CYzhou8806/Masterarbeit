@@ -1571,15 +1571,17 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
             assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
 
-            bdry_loss = 0.0
             bdry_sum = 0.0
             count = 0
-            ''''''
-            tmp = torch.exp(-pred_guided_gradiant_x)
-            print(tmp.shape)
-            bdry_sum = (tmp.mul(pan_gradiant_x) +
+            # TODO: add decision
+            # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
+            bdry_sum = (torch.exp(-pred_guided_gradiant_x).mul(pan_gradiant_x) +
                         torch.exp(-pred_guided_gradiant_y).mul(pan_gradiant_y))
-            print(bdry_sum.shape)
+            print(type(bdry_sum))
+            bdry_loss = torch.mean(bdry_sum)
+            print(type(bdry_loss))
+            print(bdry_loss)
+
             raise RuntimeError("excepted stop")
             # all pixel in the map
             for j in range(pan_gradiant_x.shape[1]):
