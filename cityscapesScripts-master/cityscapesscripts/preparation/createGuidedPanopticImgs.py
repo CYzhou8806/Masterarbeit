@@ -104,7 +104,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
 
         # set the name of the to be generated json
         trainIfSuffix = "_trainId" if useTrainId else ""
-        outputBaseFile = "cityscapes_panoptic_{}{}".format(setName, trainIfSuffix)
+        outputBaseFile = "cityscapes_panoptic_guided_{}{}".format(setName, trainIfSuffix)
         # create the folder for panoptic segmentation PNGs
         panopticFolder = os.path.join(outputFolder, outputBaseFile)
         if not os.path.isdir(panopticFolder):
@@ -120,27 +120,33 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
 
             # TODO: change chanels
             pan_format = np.zeros(
-                (originalFormat.shape[0], originalFormat.shape[1], 3), dtype=np.uint8
+                (originalFormat.shape[0], originalFormat.shape[1], 2), dtype=np.uint8
             )
 
             segmentIds = np.unique(originalFormat)
-            for segmentId in segmentIds:
+            num_segmentIds = len(segmentIds)
+            grey_value_interval = 256//(num_segmentIds+1)
+            for i, segmentId in enumerate(segmentIds):
                 if segmentId < 1000:
                     semanticId = segmentId
                 else:
                     semanticId = segmentId // 1000
                 labelInfo = id2label[semanticId]
-                if labelInfo.ignoreInEval:  # TODO: test different setting
-                    continue
 
                 # get all pixel of this semantic class (No distinction between different instances)
                 mask = originalFormat == segmentId
 
+                if labelInfo.ignoreInEval:
+                    pan_format[mask][1] = 0
+                    continue
+                else:
+                    pan_format[mask][1] = 1
 
-                # color = [segmentId % 256, segmentId // 256, segmentId // 256 // 256]  # TODO: test different setting
+                # color = [segmentId % 256, segmentId // 256, segmentId // 256 // 256]
                 # color = labelInfo.color
-                color = [random.randint(0,255), random.randint(0,255), random.randint(0,255)]
-                pan_format[mask] = color
+                # color = [random.randint(0, 255), random.randint(0,255), random.randint(0,255)]
+                color = grey_value_interval * (i+1)
+                pan_format[mask][0] = color
 
             Image.fromarray(pan_format).save(os.path.join(panopticFolder, outputFileName))
 
