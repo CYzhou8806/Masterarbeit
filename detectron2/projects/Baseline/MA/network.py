@@ -1089,6 +1089,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                         bdry_sum = bdry_sum + math.exp(-abs(dis_2rd_gradiant[j, k])) * abs(pan_2rd_gradiant[j, k])
                 bdry_loss = bdry_loss + self.internal_loss_weight[i] * bdry_sum / count
             '''
+            '''
             sm_loss = 0.0
             # TODO: implement the smooth loss
             for i in range(len(predictions)):
@@ -1108,6 +1109,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
 
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
+            '''
 
         elif self.loss_type == "smoothL1_only":
             for i in range(len(predictions)):
@@ -1599,19 +1601,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             bdry_sum = (torch.exp(-pred_guided_gradiant_x).mul(pan_gradiant_x) +
                         torch.exp(-pred_guided_gradiant_y).mul(pan_gradiant_y))
             print(type(bdry_sum))
-            bdry_loss = torch.mean(bdry_sum)
+            bdry_loss = self.internal_loss_weight[0] * torch.mean(bdry_sum)
             print(type(bdry_loss))
             print(bdry_loss)
 
             raise RuntimeError("excepted stop")
-            # all pixel in the map
-            for j in range(pan_gradiant_x.shape[1]):
-                for k in range(pan_gradiant_x.shape[2]):
-                    # TODO: add decision
-                    # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
-                    count = count + 1
-                    bdry_sum = bdry_sum + math.exp(-abs(dis_2rd_gradiant[j, k])) * abs(pan_2rd_gradiant[j, k])
-            bdry_loss = bdry_loss + self.internal_loss_weight[i] * bdry_sum / count
 
             sm_loss = 0.0
             # TODO: implement the smooth loss
