@@ -33,11 +33,11 @@ from cityscapesscripts.helpers.labels import id2label, Label
 labels = [
     #       name                     id    trainId   category            catId     hasInstances   ignoreInEval   color
     Label('unlabeled', 0, 255, 'void', 0, False, True, (0, 0, 0)),
-    Label('ego vehicle', 1, 255, 'void', 0, False, False, (0, 0, 0)),
+    Label('ego vehicle', 1, 255, 'void', 0, False, True, (0, 0, 0)),
     Label('rectification border', 2, 255, 'void', 0, False, False, (0, 0, 0)),
-    Label('out of roi', 3, 255, 'void', 0, False, False, (0, 0, 0)),
-    Label('static', 4, 255, 'void', 0, False, True, (0, 0, 0)),
-    Label('dynamic', 5, 255, 'void', 0, False, True, (111, 74, 0)),
+    Label('out of roi', 3, 255, 'void', 0, False, True, (0, 0, 0)),
+    Label('static', 4, 255, 'void', 0, False, False, (0, 0, 0)),
+    Label('dynamic', 5, 255, 'void', 0, False, False, (111, 74, 0)),
     Label('ground', 6, 255, 'void', 0, False, False, (81, 0, 81)),
     Label('road', 7, 0, 'flat', 1, False, True, (128, 64, 128)),
     Label('sidewalk', 8, 1, 'flat', 1, False, True, (244, 35, 232)),
@@ -128,8 +128,8 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
                 else:
                     semanticId = segmentId // 1000
                 labelInfo = id2label[semanticId]
-                #if labelInfo.ignoreInEval:  # TODO: test different setting
-                #    continue
+                if labelInfo.ignoreInEval:  # TODO: test different setting
+                    continue
 
                 # get all pixel of this semantic class (No distinction between different instances)
                 mask = originalFormat == segmentId
