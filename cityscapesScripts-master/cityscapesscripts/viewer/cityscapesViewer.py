@@ -41,6 +41,9 @@ from cityscapesscripts.helpers.box3dImageTransform import Box3dImageTransform
 from collections import namedtuple
 LabelType = namedtuple('LabelType', 'description gtDir objectType')
 
+os.environ['CITYSCAPES_DATASET'] = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
+
+
 
 class CsLabelType():
     """Viewing options for labels."""
