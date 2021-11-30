@@ -28,20 +28,20 @@ from PIL import Image
 
 # cityscapes imports
 from cityscapesscripts.helpers.csHelpers import printError
-from cityscapesscripts.helpers.labels import id2label, Label
+from cityscapesscripts.helpers.labels import Label
 
 labels = [
     #       name                     id    trainId   category            catId     hasInstances   ignoreInEval   color
     Label('unlabeled', 0, 255, 'void', 0, False, True, (0, 0, 0)),
     Label('ego vehicle', 1, 255, 'void', 0, False, True, (0, 0, 0)),
-    Label('rectification border', 2, 255, 'void', 0, False, False, (0, 0, 0)),
+    Label('rectification border', 2, 255, 'void', 0, False, True, (0, 0, 0)),
     Label('out of roi', 3, 255, 'void', 0, False, True, (0, 0, 0)),
     Label('static', 4, 255, 'void', 0, False, False, (0, 0, 0)),
     Label('dynamic', 5, 255, 'void', 0, False, False, (111, 74, 0)),
-    Label('ground', 6, 255, 'void', 0, False, False, (81, 0, 81)),
+    Label('ground', 6, 255, 'void', 0, False, True, (81, 0, 81)),
     Label('road', 7, 0, 'flat', 1, False, True, (128, 64, 128)),
     Label('sidewalk', 8, 1, 'flat', 1, False, True, (244, 35, 232)),
-    Label('parking', 9, 255, 'flat', 1, False, False, (250, 170, 160)),
+    Label('parking', 9, 255, 'flat', 1, False, True, (250, 170, 160)),
     Label('rail track', 10, 255, 'flat', 1, False, False, (230, 150, 140)),
     Label('building', 11, 2, 'construction', 2, False, False, (70, 70, 70)),
     Label('wall', 12, 3, 'construction', 2, False, False, (102, 102, 156)),
@@ -69,6 +69,7 @@ labels = [
     Label('license plate', -1, -1, 'vehicle', 7, False, True, (0, 0, 142)),
 ]
 
+id2label        = { label.id      : label for label in labels           }
 
 # The main method
 def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, setNames=["val", "train", "test"]):
@@ -117,6 +118,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
             fileName = os.path.basename(f)
             outputFileName = fileName.replace("_instanceIds.png", "_panoptic.png")
 
+            # TODO: change chanels
             pan_format = np.zeros(
                 (originalFormat.shape[0], originalFormat.shape[1], 3), dtype=np.uint8
             )
