@@ -106,16 +106,21 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
         trainIfSuffix = "_trainId" if useTrainId else ""
         outputBaseFile = "{}{}".format(setName, trainIfSuffix)
         # create the folder for panoptic segmentation PNGs
-        panopticFolder = os.path.join(outputFolder, outputBaseFile)
-        if not os.path.isdir(panopticFolder):
-            print("Creating folder {} for panoptic segmentation PNGs".format(panopticFolder))
-            os.mkdir(panopticFolder)
-        print("Corresponding segmentations in .png format will be saved in {}".format(panopticFolder))
+        panopticFolder_root = os.path.join(outputFolder, outputBaseFile)
+        if not os.path.isdir(panopticFolder_root):
+            print("Creating folder {} for panoptic segmentation PNGs".format(panopticFolder_root))
+            os.mkdir(panopticFolder_root)
+        print("Corresponding segmentations in .png format will be saved in {}".format(panopticFolder_root))
 
         for progress, f in enumerate(files):  # open the single *instanceIds.png
             originalFormat = np.array(Image.open(f))
-
             fileName = os.path.basename(f)
+            panopticFolder = os.path.join(panopticFolder_root, fileName.split('_')[0])
+            if not os.path.isdir(panopticFolder):
+                print("Creating folder {} for panoptic segmentation PNGs".format(panopticFolder))
+                os.mkdir(panopticFolder)
+            print("Corresponding segmentations in .png format will be saved in {}".format(panopticFolder))
+
             outputFileName = fileName.replace("getFine_instanceIds.png", "panGuided.png")
 
             # TODO: change chanels
