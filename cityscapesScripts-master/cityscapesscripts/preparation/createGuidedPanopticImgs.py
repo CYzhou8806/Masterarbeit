@@ -120,7 +120,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
 
             # TODO: change chanels
             pan_format = np.zeros(
-                (originalFormat.shape[0], originalFormat.shape[1], 1), dtype=np.uint8
+                (originalFormat.shape[0], originalFormat.shape[1], 3), dtype=np.uint8
             )
 
             segmentIds = np.unique(originalFormat)
@@ -137,16 +137,17 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
                 mask = originalFormat == segmentId
 
                 if labelInfo.ignoreInEval:
-                    #pan_format[mask][1] = 0
                     continue
-                #else:
-                #    pan_format[mask][1] = 1
+                else:
+                    color = grey_value_interval * (i + 1)
+                    # pan_format[mask][1] = 1
+                    pan_format[mask] = [color, 1, 0]
 
                 # color = [segmentId % 256, segmentId // 256, segmentId // 256 // 256]
                 # color = labelInfo.color
                 # color = [random.randint(0, 255), random.randint(0,255), random.randint(0,255)]
-                color = grey_value_interval * (i+1)
-                pan_format[mask] = color
+                # color = grey_value_interval * (i+1)
+                # pan_format[mask] = [color, color, color]
 
             Image.fromarray(pan_format).save(os.path.join(panopticFolder, outputFileName))
 
