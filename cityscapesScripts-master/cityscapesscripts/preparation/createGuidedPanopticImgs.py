@@ -17,6 +17,7 @@
 from __future__ import print_function, absolute_import, division, unicode_literals
 import os
 import glob
+import random
 import sys
 import argparse
 import json
@@ -133,8 +134,10 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
                 # get all pixel of this semantic class (No distinction between different instances)
                 mask = originalFormat == segmentId
 
+
                 # color = [segmentId % 256, segmentId // 256, segmentId // 256 // 256]  # TODO: test different setting
-                color = labelInfo.color
+                # color = labelInfo.color
+                color = [random.randint(0,255), random.randint(0,255), random.randint(0,255)]
                 pan_format[mask] = color
 
             Image.fromarray(pan_format).save(os.path.join(panopticFolder, outputFileName))
