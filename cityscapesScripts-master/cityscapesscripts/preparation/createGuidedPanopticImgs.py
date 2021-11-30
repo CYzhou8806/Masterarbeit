@@ -117,11 +117,8 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
             fileName = os.path.basename(f)
             panopticFolder = os.path.join(panopticFolder_root, fileName.split('_')[0])
             if not os.path.isdir(panopticFolder):
-                print("Creating folder {} for panoptic segmentation PNGs".format(panopticFolder))
                 os.mkdir(panopticFolder)
-            print("Corresponding segmentations in .png format will be saved in {}".format(panopticFolder))
-
-            outputFileName = fileName.replace("getFine_instanceIds.png", "panGuided.png")
+            outputFileName = fileName.replace("gtFine_instanceIds.png", "panGuided.png")
 
             # TODO: change chanels
             pan_format = np.zeros(
