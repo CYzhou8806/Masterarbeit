@@ -116,7 +116,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
             originalFormat = np.array(Image.open(f))
 
             fileName = os.path.basename(f)
-            outputFileName = fileName.replace("_instanceIds.png", "_panoptic.png")
+            outputFileName = fileName.replace("_instanceIds.png", "_panoptic_guided.png")
 
             # TODO: change chanels
             pan_format = np.zeros(
@@ -165,14 +165,14 @@ def main():
     parser.add_argument("--output-folder",
                         dest="outputFolder",
                         help="path to the output folder.",
-                        default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/tmp",
+                        default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/gtFine",
                         type=str)
     parser.add_argument("--use-train-id", action="store_true", dest="useTrainId")
     parser.add_argument("--set-names",
                         dest="setNames",
                         help="set names to which apply the function to",
                         nargs='+',
-                        default=["val",],
+                        default=["val", "train"],
                         type=str)
     args = parser.parse_args()
 
