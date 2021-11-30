@@ -91,6 +91,7 @@ def load_cityscapes_joint(image_dir, gt_dir, gt_json, meta):
 
         right_image_file = image_file.replace("leftImg8bit", "rightImg8bit")
         disparity_file = image_file.replace("leftImg8bit", "disparity")
+        pan_guided_file = disparity_file.replace("disparity", "panGuided")
         ret.append(
             {
                 "file_name": image_file,
@@ -103,6 +104,7 @@ def load_cityscapes_joint(image_dir, gt_dir, gt_json, meta):
 
                 "right_file_name": right_image_file,
                 "disparity_file_name": disparity_file,
+                "pan_guided": pan_guided_file,
             }
         )
     assert len(ret), f"No images found in {image_dir}!"

@@ -59,6 +59,7 @@ class JointDeeplabDatasetMapper:
 
         self.panoptic_target_generator = panoptic_target_generator
         self.disparity_target_generator = disparity_target_generator
+        self.pan_guided_target_generator = pan_guided_target_generator
 
     @classmethod
     def from_config(cls, cfg):
@@ -110,9 +111,16 @@ class JointDeeplabDatasetMapper:
 
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
+        dis_gt_with_mask = np.zeros((dis_gt.shape[0], dis_gt.shape[1], 2), dtype=np.float)
         dis_gt = dis_gt.astype(float)
         mask = dis_gt > 0.0
         dis_gt[mask] = (dis_gt[mask] - 1.) / 256
+        dis_gt_with_mask[:, :, 0] = dis_gt
+        dis_gt_with_mask[mask][1] = 1.0
+        assert dis_gt_with_mask.shape[2] == 2
+
+        pan_guided = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")[:,:,:2]
+        assert pan_guided.shape[2] == 2
 
         # Reuses semantic transform for panoptic labels.
         # TODO: add augmentations
@@ -133,8 +141,11 @@ class JointDeeplabDatasetMapper:
         dataset_dict.update(targets)
 
         # Generates training targets for disparity.
-        dis_target = self.disparity_target_generator(dis_gt)
+        dis_target = self.disparity_target_generator(dis_gt_with_mask)
         dataset_dict.update(dis_target)
+
+        pan_guided_target = self.pan_guided_target_generator(pan_guided)
+        dataset_dict.update(pan_guided_target)
 
         return dataset_dict
 
@@ -145,4 +156,13 @@ def disparity_target_generator(disparity_gt):
      """
     # TODO: add operations
     return dict(dis_est=torch.as_tensor(np.ascontiguousarray(disparity_gt, dtype=np.float32)),
+                )
+
+
+def pan_guided_target_generator(pan_guided):
+    """
+     Generates training targets for disparity.
+     """
+    # TODO: add operations
+    return dict(pan_gui=torch.as_tensor(np.ascontiguousarray(pan_guided, dtype=np.float32)),
                 )
