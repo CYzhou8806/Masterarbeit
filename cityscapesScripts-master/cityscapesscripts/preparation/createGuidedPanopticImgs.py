@@ -148,7 +148,7 @@ def main():
     parser.add_argument("--dataset-folder",
                         dest="cityscapesPath",
                         help="path to the Cityscapes dataset 'gtFine' folder",
-                        default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes",
+                        default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/gtFine",
                         type=str)
     parser.add_argument("--output-folder",
                         dest="outputFolder",
