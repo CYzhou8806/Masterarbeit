@@ -104,7 +104,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
 
         # set the name of the to be generated json
         trainIfSuffix = "_trainId" if useTrainId else ""
-        outputBaseFile = "cityscapes_panoptic_guided_{}{}".format(setName, trainIfSuffix)
+        outputBaseFile = "{}{}".format(setName, trainIfSuffix)
         # create the folder for panoptic segmentation PNGs
         panopticFolder = os.path.join(outputFolder, outputBaseFile)
         if not os.path.isdir(panopticFolder):
@@ -116,7 +116,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
             originalFormat = np.array(Image.open(f))
 
             fileName = os.path.basename(f)
-            outputFileName = fileName.replace("_instanceIds.png", "_panoptic_guided.png")
+            outputFileName = fileName.replace("getFine_instanceIds.png", "panGuided.png")
 
             # TODO: change chanels
             pan_format = np.zeros(
@@ -165,7 +165,7 @@ def main():
     parser.add_argument("--output-folder",
                         dest="outputFolder",
                         help="path to the output folder.",
-                        default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/gtFine",
+                        default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/panGuided",
                         type=str)
     parser.add_argument("--use-train-id", action="store_true", dest="useTrainId")
     parser.add_argument("--set-names",
