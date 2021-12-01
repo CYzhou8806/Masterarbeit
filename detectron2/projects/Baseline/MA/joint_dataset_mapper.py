@@ -111,15 +111,17 @@ class JointDeeplabDatasetMapper:
 
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
-        dis_gt_with_mask = np.zeros((dis_gt.shape[0], dis_gt.shape[1], 2), dtype=np.float)
+        dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
         mask = dis_gt > 0.0
         dis_gt[mask] = (dis_gt[mask] - 1.) / 256
-        dis_gt_with_mask[:, :, 0] = dis_gt
-        dis_gt_with_mask[mask][1] = 1.0
+        dis_gt_with_mask[0, :, :] = dis_gt
+        dis_gt_with_mask[1][mask] = 1.0
         assert dis_gt_with_mask.shape[2] == 2
 
-        pan_guided = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")[:,:,:2]
+        pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")[:, :, :2]
+        pan_guided = np.zeros((dis_gt.shape[0], dis_gt.shape[1], 2), dtype=np.float)
+
         assert pan_guided.shape[2] == 2
 
         # Reuses semantic transform for panoptic labels.

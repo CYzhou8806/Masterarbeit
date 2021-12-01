@@ -1461,7 +1461,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         return ret
 
-    def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
+    def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_guided=None):
         """
         Returns:
             In training, returns (None, dict of losses)
@@ -1534,7 +1534,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 disparity = pred3
 
         if self.training:
-            return self.losses(disparity, dis_targets, weights, pan_targets), None  # TODO: to be adapted
+            return self.losses(disparity, dis_targets, weights, pan_guided), None  # TODO: to be adapted
         else:
             return {}, disparity
 
@@ -1567,7 +1567,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         return y, out_features
 
-    def losses(self, predictions, dis_targets, weights=None, pan_targets=None):
+    def losses(self, predictions, dis_targets, weights=None, pan_guided_target=None):
         '''
         predictions = F.interpolate(
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
@@ -1577,8 +1577,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         mask.detach_()
         loss = None
         if self.loss_type == "panoptic_guided":
+            mask_guided = pan_guided_target[:, :, 1] == 1.0
+            assert np.any(mask_guided==True)
+
             get_gradient = Gradient(self.gradient_type)
-            pan_targets = torch.unsqueeze(pan_targets, 1)
+            pan_targets = torch.unsqueeze(pan_guided_target, 1)
             pan_targets = pan_targets.float()
             pan_targets_down = F.interpolate(pan_targets, scale_factor=0.25)
             pan_targets_down = pan_targets_down.float()
