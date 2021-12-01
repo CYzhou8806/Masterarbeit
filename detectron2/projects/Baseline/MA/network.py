@@ -200,8 +200,8 @@ class JointEstimation(nn.Module):
         pan_mask.detach_()
 
         dis_embed_loss, dis_result = self.dis_embed_head(left_features, right_features, pyramid_features,
-                                                        dis_targets=dis_targets,
-                                                        dis_mask=dis_mask, pan_guided=pan_guided, pan_mask=pan_mask)
+                                                         dis_targets=dis_targets,
+                                                         dis_mask=dis_mask, pan_guided=pan_guided, pan_mask=pan_mask)
         losses.update(dis_embed_loss)
 
         if self.training:
