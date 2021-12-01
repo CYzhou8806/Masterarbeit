@@ -117,6 +117,10 @@ class JointDeeplabDatasetMapper:
         dis_gt[mask] = (dis_gt[mask] - 1.) / 256
         dis_gt_with_mask[0, :, :] = dis_gt
         dis_gt_with_mask[1][mask] = 1
+        valid_dis = dis_gt_with_mask[1, :, :]  # get mask
+        valid_dis_mask = valid_dis == 1.0
+        mask_max_disp = dis_gt_with_mask[0, :, :] < 192
+        mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
 
         pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")[:, :, :2]
         pan_guided = np.zeros((2, pan_guided_raw.shape[0], pan_guided_raw.shape[1]), dtype=np.float)
@@ -143,10 +147,10 @@ class JointDeeplabDatasetMapper:
         dataset_dict.update(targets)
 
         # Generates training targets for disparity.
-        dis_target = self.disparity_target_generator(dis_gt_with_mask)
+        dis_target = self.disparity_target_generator(dis_gt_with_mask[0], mask_disp)
         dataset_dict.update(dis_target)
 
-        pan_guided_target = self.pan_guided_target_generator(pan_guided)
+        pan_guided_target = self.pan_guided_target_generator(pan_guided[0], pan_guided[1])
         dataset_dict.update(pan_guided_target)
 
         return dataset_dict
@@ -172,17 +176,21 @@ def pan_guided_target_generator(pan_guided):
 '''
 
 
-def disparity_target_generator(disparity_gt):
+def disparity_target_generator(disparity_gt, mask):
     """
      Generates training targets for disparity.
      """
     # TODO: add operations
-    return dict(dis_est=disparity_gt)
+    return dict(dis_est=torch.as_tensor(np.ascontiguousarray(disparity_gt, dtype=np.float32)),
+                dis_mask=mask,
+                )
 
 
-def pan_guided_target_generator(pan_guided):
+def pan_guided_target_generator(pan_guided, mask):
     """
      Generates training targets for disparity.
      """
     # TODO: add operations
-    return dict(pan_gui=pan_guided)
+    return dict(pan_gui=torch.as_tensor(np.ascontiguousarray(pan_guided, dtype=np.float32)),
+                pan_mask=mask,
+                )

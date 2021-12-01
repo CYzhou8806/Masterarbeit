@@ -1577,8 +1577,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
         dis_targets_tensor = torch.as_tensor(np.ascontiguousarray(dis_targets[:, 0], dtype=np.float32))
 
-        raise RuntimeError("excepted stop")
-
         loss = None
         if self.loss_type == "panoptic_guided":
             get_gradient = Gradient(self.gradient_type)
@@ -1586,17 +1584,15 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             assert len(pan_guided_target.shape) == 4
             mask_guided = pan_guided_target[:, 1, :, :] == 1.0
             assert np.any(mask_guided == True)
-            print("mask_guided.shape: ", mask_guided.shape)
-            print("pan_guided_target.shape: ", pan_guided_target.shape)
-
             pan_guided_target = pan_guided_target[:, 0, :, :]
-            print(pan_guided_target.shape)
+            assert len(pan_guided_target.shape) == 3
             pan_guided_target = torch.unsqueeze(pan_guided_target, 1)
-            print(pan_guided_target.shape)
+            assert len(pan_guided_target.shape) == 4
 
-            # pan_targets = pan_targets.float()
-            pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
-            # pan_targets_down = pan_targets_down.float()
+            pan_guided_target = pan_guided_target.float()
+            pan_guided_target_tensor = torch.as_tensor(np.ascontiguousarray(pan_guided_target, dtype=np.float32))
+
+            pan_targets_down = F.interpolate(pan_guided_target_tensor, scale_factor=0.25)
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
             pan_guided_target = torch.squeeze(pan_guided_target, 1)
             pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
