@@ -691,7 +691,7 @@ def build_dis_embed_head(cfg, input_shape):
 
 
 @DIS_EMBED_BRANCHES_REGISTRY.register()
-class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
+class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
     """
     A semantic segmentation head of joint estimation architectures`.
     """
@@ -795,6 +795,8 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
 
         if img_size is None:
             self.img_size = [1024, 2048]  # h, w
+        else:
+            self.img_size = img_size
 
         self.warp = Warper2d(direction_str='r2l', pad_mode="zeros")
         self.dres0 = {}
@@ -1162,21 +1164,23 @@ class Warper2d(nn.Module):
         yy = yy.view(1, 1, H, W).repeat(B, 1, 1, 1)
         grid = torch.cat((xx, yy), 1).float().cuda()
         grid.detach_()
-
-        disp = torch.unsqueeze(disp, 1)  # (b,1, h,w)
+        # disp = torch.unsqueeze(disp, 1)  # (b,1, h,w)
+        assert len(disp.shape) == 4
         scale_factor = self.scale[scale]
         disp = F.interpolate(disp, scale_factor=scale_factor)
 
-        vgrid = grid[:, 0, :, :] + disp * self.direction
+        vgrid_0 = grid[:, 0, :, :] + disp * self.direction
+        vgrid_1 = grid[:, 1, :, :]
+        vgrid_1 = torch.unsqueeze(vgrid_1, 1)
+        vgrid = torch.cat((vgrid_0, vgrid_1), 1)
         # scale grid to [-1,1]
-        vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(self.W - 1, 1) - 1.0
-        vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(self.H - 1, 1) - 1.0
+        vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
+        vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
         vgrid = vgrid.permute(0, 2, 3, 1)  # b, h, w, c
-        vgrid.detach_()
 
         output = F.grid_sample(img, vgrid, padding_mode=self.pad_mode)
 
-        mask = torch.ones(img.size())
+        mask = torch.ones(img.size()).cuda()
         mask.detach_()
         mask = F.grid_sample(mask, vgrid)
 
@@ -1322,7 +1326,7 @@ class hourglass_2d(nn.Module):
 
 
 @DIS_EMBED_BRANCHES_REGISTRY.register()
-class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
+class JointEstimationDisEmbedHead_debug(DeepLabV3PlusHead):
     """
     A semantic segmentation head of joint estimation architectures`.
     """

@@ -84,8 +84,8 @@ INPUT:
   CROP:
     ENABLED: False
     TYPE: "absolute"
-    SIZE: (1024, 2048)
-  IMG_SIZE: [1024, 2048]  # h, w
+    SIZE: (64, 128)
+  IMG_SIZE: [64, 128]  # h, w
 DATALOADER:
   NUM_WORKERS: 8
 VERSION: 2
