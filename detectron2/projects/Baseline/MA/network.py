@@ -197,13 +197,16 @@ class JointEstimation(nn.Module):
         ).tensor
 
         dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
-        dis_targets = ImageList.from_tensors(
-            dis_targets, size_divisibility, self.sem_seg_head.ignore_value
-        ).tensor
+        dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
+        dis_mask = [x["dis_mask"] for x in batched_inputs]
+
+        pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
+        pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor
+        pan_mask = [x["pan_mask"] for x in batched_inputs]
 
         pyramid_features = {}
         self.dis_embed_head(left_features, right_features, pyramid_features, dis_targets=dis_targets,
-                            pan_targets=targets)
+                            dis_mask=dis_mask, pan_targets=pan_guided, pan_mask=pan_mask)
 
         '''
         # tmp
@@ -1459,7 +1462,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         return ret
 
-    def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_guided=None):
+    def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,
+                pan_guided=None, pan_mask=None, ):
         """
         Returns:
             In training, returns (None, dict of losses)
@@ -1532,7 +1536,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 disparity = pred3
 
         if self.training:
-            return self.losses(disparity, dis_targets, weights, pan_guided), None  # TODO: to be adapted
+            return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
+                               pan_guided=pan_guided, pan_mask=pan_mask)
         else:
             return {}, disparity
 
@@ -1565,35 +1570,29 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         return y, out_features
 
-    def losses(self, predictions, dis_targets, weights=None, pan_guided_target=None):
+    def losses(self, predictions, dis_targets=None, dis_mask=None, weights=None,
+               pan_guided=None, pan_mask=None):
         '''
         predictions = F.interpolate(
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
         '''
-        valid_dis = dis_targets[:, 1, :, :]  # get mask
-        valid_dis_mask = valid_dis == 1.0
-        mask_max_disp = dis_targets[:, 0, :, :] < self.max_disp
-        mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
-        dis_targets_tensor = torch.as_tensor(np.ascontiguousarray(dis_targets[:, 0], dtype=np.float32))
 
         loss = None
         if self.loss_type == "panoptic_guided":
             get_gradient = Gradient(self.gradient_type)
 
-            assert len(pan_guided_target.shape) == 4
-            mask_guided = pan_guided_target[:, 1, :, :] == 1.0
-            assert np.any(mask_guided == True)
-            pan_guided_target = pan_guided_target[:, 0, :, :]
-            assert len(pan_guided_target.shape) == 3
-            pan_guided_target = torch.unsqueeze(pan_guided_target, 1)
+            assert len(pan_guided.shape) == 3
+            pan_guided_target = torch.unsqueeze(pan_guided, 1)
             assert len(pan_guided_target.shape) == 4
 
-            pan_guided_target = pan_guided_target.float()
-            pan_guided_target_tensor = torch.as_tensor(np.ascontiguousarray(pan_guided_target, dtype=np.float32))
-
-            pan_targets_down = F.interpolate(pan_guided_target_tensor, scale_factor=0.25)
+            # change scale
+            pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
+            pan_mask = pan_mask[::4, ::4]
+            print("pan_mask.shape: ", pan_mask.shape)
+            # pan_gradiant_x, pan_gradiant_y = get_gradient(pan_guided_target)
+
             pan_guided_target = torch.squeeze(pan_guided_target, 1)
             pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
             pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
@@ -1604,12 +1603,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
             assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
 
-            bdry_sum = 0.0
+            # TODO: whether to add .detch() to GT ?!?!
             count = 0
             # TODO: add decision
             # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
-            bdry_sum = (torch.exp(-pred_guided_gradiant_x[mask_guided]).mul(pan_gradiant_x[mask_guided]) +
-                        torch.exp(-pred_guided_gradiant_y[mask_guided]).mul(pan_gradiant_y[mask_guided]))
+            bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask]).mul(pan_gradiant_x[pan_mask]) +
+                        torch.exp(-pred_guided_gradiant_y[pan_mask]).mul(pan_gradiant_y[pan_mask]))
             print("bdry_sum.shape: ", bdry_sum.shape)
             print(type(bdry_sum))
             bdry_loss = self.internal_loss_weight[0] * torch.mean(bdry_sum)
