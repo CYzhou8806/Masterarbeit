@@ -1643,7 +1643,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             print("pan_gradiant_y.shape: ", pan_gradiant_y.shape)
             sm_mask_x = pred_guided_gradiant_x < self.lamda
             sm_mask_y = pred_guided_gradiant_y < self.lamda
-            sm_mask = sm_mask_x and sm_mask_y
+            sm_mask = sm_mask_x & sm_mask_y
             print("sm_mask_x.shape: ", sm_mask_x.shape)
             print("sm_mask_y.shape: ", sm_mask_y.shape)
             print("sm_mask.shape: ", sm_mask.shape)
