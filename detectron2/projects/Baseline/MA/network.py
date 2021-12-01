@@ -1583,7 +1583,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         print("dis_mask: ", dis_mask.shape)
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_mask = F.interpolate(dis_mask, scale_factor=0.25)
-        dis_mask = torch.squeeze(dis_mask, 1)
         print("dis_mask: ", dis_mask.shape)
 
         print("dis_targets: ", dis_targets.shape)
@@ -1615,17 +1614,19 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             pan_mask = F.interpolate(pan_mask, scale_factor=0.25)
             # pan_gradiant_x, pan_gradiant_y = get_gradient(pan_guided_target)
 
-            pan_mask = torch.squeeze(pan_mask, 1)
-            pan_mask = pan_mask[:, 1:-1, 1:-1]  # to adapt the changes after gradient
+            pan_mask = pan_mask[:, :, 1:-1, 1:-1]  # to adapt the changes after gradient
             pan_mask_bool = pan_mask == 1.0
             pan_mask_bool.detach_()
-            pan_guided_target = torch.squeeze(pan_guided_target, 1)
+            '''
             pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1).detach_()
             pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1).detach_()
+            '''
+            pan_gradiant_x = pan_gradiant_x.detach_()
+            pan_gradiant_y = pan_gradiant_y.detach_()
 
             pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions)
-            pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
-            pred_guided_gradiant_y = torch.squeeze(pred_guided_gradiant_y, 1)
+            # pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
+            # pred_guided_gradiant_y = torch.squeeze(pred_guided_gradiant_y, 1)
             assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
             assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
 
