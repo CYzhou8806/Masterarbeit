@@ -1593,14 +1593,13 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         print("predictions.shape: ", predictions.shape)
         assert predictions.shape == dis_targets.shape
 
-
         dis_mask_bool = dis_mask == 1.0
         dis_mask_bool.detach_()
         loss = None
         if self.loss_type == "panoptic_guided":
             # smoothL1
-            smooth_l1 = self.internal_loss_weight[0] * F.smooth_l1_loss(predictions[dis_mask_bool], dis_targets[dis_mask_bool])
-            print("smooth_l1: ", smooth_l1)
+            smooth_l1 = self.internal_loss_weight[0] * F.smooth_l1_loss(predictions[dis_mask_bool],
+                                                                        dis_targets[dis_mask_bool])
 
             get_gradient = Gradient(self.gradient_type)
             assert len(pan_guided.shape) == 3
@@ -1634,32 +1633,19 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask_bool]).mul(pan_gradiant_x[pan_mask_bool]) +
                         torch.exp(-pred_guided_gradiant_y[pan_mask_bool]).mul(pan_gradiant_y[pan_mask_bool]))
             bdry_loss = self.internal_loss_weight[0] * torch.mean(bdry_sum)
-            print("bdry_loss: ", bdry_loss)
 
-
-            print("pred_guided_gradiant_x.shape: ", pred_guided_gradiant_x.shape)
-            print("pred_guided_gradiant_y.shape: ", pred_guided_gradiant_y.shape)
-            print("pan_gradiant_x.shape: ", pan_gradiant_x.shape)
-            print("pan_gradiant_y.shape: ", pan_gradiant_y.shape)
             sm_mask_x = pred_guided_gradiant_x < self.lamda
             sm_mask_y = pred_guided_gradiant_y < self.lamda
             sm_mask = sm_mask_x & sm_mask_y
-            print("sm_mask_x.shape: ", sm_mask_x.shape)
-            print("sm_mask_y.shape: ", sm_mask_y.shape)
-            print("sm_mask.shape: ", sm_mask.shape)
-            sm_mask_x.detach_()
-            sm_mask_y.detach_()
             sm_mask.detach_()
+            print(sm_mask.any)
             sm_sum = (torch.exp(-pan_gradiant_x[sm_mask]).mul(pred_guided_gradiant_x[sm_mask]) +
                       torch.exp(-pan_gradiant_y[sm_mask]).mul(pred_guided_gradiant_y[sm_mask]))
             sm_loss = self.internal_loss_weight[0] * torch.mean(sm_sum)
-            print("sm_loss: ", sm_loss)
 
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
-            print("loss: ", loss)
 
-            raise RuntimeError("excepted stop")
         elif self.loss_type == "smoothL1_only":
             # for i in range(len(predictions)):
             pass
