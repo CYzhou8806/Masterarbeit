@@ -1589,7 +1589,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             # change scale
             pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
-            print("pan_mask.shape before: ", pan_mask.shape)
+            print("pan_mask.shape before: ", pan_mask.size())
             pan_mask = pan_mask[:, :4, ::4]
             print("pan_mask.shape: ", pan_mask.shape)
             # pan_gradiant_x, pan_gradiant_y = get_gradient(pan_guided_target)
