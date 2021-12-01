@@ -773,6 +773,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         self.loss_type = loss_type
         self.hourglass_type = hourglass_type
         self.resol_disp_adapt = resol_disp_adapt
+        self.gradient_type = gradient_type
         use_bias = norm == ""
         # `head` is additional transform before predictor
         if self.use_depthwise_separable_conv:
@@ -836,27 +837,6 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                                                   nn.ReLU(inplace=True),
                                                   convbn(max_dis, max_dis, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True))
-                '''
-                self.dres0[scale] = nn.Sequential(Conv2d(max_dis,
-                                                         hourglass_inplanes,
-                                                         kernel_size=3,
-                                                         stride=1,
-                                                         padding=1,
-                                                         bias=use_bias,
-                                                         norm=get_norm(norm, decoder_channels[idx]),
-                                                         activation=F.relu,
-                                                         ),
-
-                                                  nn.Conv2d(max_dis, hourglass_inplanes, kernel_size=3, stride=1,
-                                                            padding=1, dilation=0, bias=False),
-                                                  nn.BatchNorm2d(hourglass_inplanes),
-                                                  nn.ReLU(inplace=True),
-                                                  nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
-                                                            stride=1,
-                                                            padding=1, dilation=0, bias=False),
-                                                  nn.BatchNorm2d(hourglass_inplanes),
-                                                  nn.ReLU(inplace=True))
-                '''
                 self.dres1[scale] = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
                                                   nn.ReLU(inplace=True),
                                                   convbn(max_dis, max_dis, 3, 1, 1, 1))
@@ -903,12 +883,8 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         return ret
 
-    def forward(self, features, right_features, pyramid_features, dis_targets=None, weights=None, pan_targets=None):
-        """
-        Returns:
-            In training, returns (None, dict of losses)
-            In inference, returns (CxHxW logits, {})
-        """
+    def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,
+                pan_guided=None, pan_mask=None, ):
         y, out_features = self.layers(features)
         right_y, right_out_features = self.layers(right_features)
 
@@ -975,14 +951,11 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             cost3 = F.upsample(cost3, [max_dis, self.img_size[0], self.img_size[1]], mode='trilinear')
             cost3 = torch.squeeze(cost3, 1)
             pred3 = F.softmax(cost3, dim=1)
-            # For your information: This formulation 'softmax(c)' learned "similarity"
-            # while 'softmax(-c)' learned 'matching cost' as mentioned in the paper.
-            # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
             pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
 
             if self.training:
                 if not len(disparity):
-                    disparity.append([pred1, pred2, pred3])
+                    disparity.append([pred1, pred2, pred3])  # List[3x List(3x Tensor)]
                 else:
                     disparity.append([pred1 + dis, pred2 + dis, pred3 + dis])
             else:
@@ -992,7 +965,8 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                     disparity.append([pred3 + dis])
 
         if self.training:
-            return self.losses(disparity, dis_targets, weights, pan_targets), None  # TODO: to be adapted
+            return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
+                               pan_guided=pan_guided, pan_mask=pan_mask)
         else:
             return {}, disparity
 
@@ -1025,104 +999,126 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
 
         return y, out_features
 
-    def losses(self, predictions, dis_targets, weights=None, pan_targets=None):
-        '''
-        predictions = F.interpolate(
-            predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
-        )
-        '''
-        mask = dis_targets < self.max_disp  # TODO: find out the effect of mask
-        mask.detach_()
-        loss = None
+    def losses(self, predictions, dis_targets=None, dis_mask=None, weights=None,
+               pan_guided=None, pan_mask=None):
+
+        dis_mask = torch.unsqueeze(dis_mask, 1)
+        dis_targets = torch.unsqueeze(dis_targets, 1)
+        dis_mask_bool = dis_mask == 1.0
+        dis_mask_bool.detach_()
+
         if self.loss_type == "panoptic_guided":
-            smooth_l1 = 0.0
-            for i in range(len(predictions)):
-                smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
-                            (self.hourglass_loss_weight[0] *
-                             F.smooth_l1_loss(predictions[i][0][mask], dis_targets[mask], size_average=True) +
-                             self.hourglass_loss_weight[1] *
-                             F.smooth_l1_loss(predictions[i][1][mask], dis_targets[mask], size_average=True) +
-                             self.hourglass_loss_weight[2] *
-                             F.smooth_l1_loss(predictions[i][2][mask], dis_targets[mask]))
-
             get_gradient = Gradient(self.gradient_type)
-            pan_targets = torch.unsqueeze(pan_targets, 1)
-            pan_targets = pan_targets.float()
-            pan_targets_down = F.interpolate(pan_targets, scale_factor=0.25)
-            pan_targets_down = pan_targets_down.float()
-            pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
-            pan_targets = torch.squeeze(pan_targets, 1)
-            pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
-            if pan_gradiant_y:
-                pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
 
-            # TODO: to be corrected
-            '''
-            bdry_sum = 0.0
-            count = 0
-            # TODO: add decision
-            # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
-            bdry_sum = (torch.exp(-pred_guided_gradiant_x).mul(pan_gradiant_x) +
-                        torch.exp(-pred_guided_gradiant_y).mul(pan_gradiant_y))
-            print(type(bdry_sum))
-            bdry_loss = torch.mean(bdry_sum)
-            print(type(bdry_loss))
-            print(bdry_loss)
+            # prepare the panoptic guided ground truth
+            pan_guided_target = torch.unsqueeze(pan_guided, 1)
+            pan_gradiant_x, pan_gradiant_y = get_gradient(pan_guided_target)
+            pan_gradiant_x = pan_gradiant_x.detach_()
+            pan_gradiant_y = pan_gradiant_y.detach_()
+            pan_mask = torch.unsqueeze(pan_mask, 1)
+            pan_mask = pan_mask[:, :, 1:-1, 1:-1]  # to adapt the changes after gradient
+            pan_mask_bool = pan_mask == 1.0
+            pan_mask_bool.detach_()
 
-            bdry_loss = 0.0
-            # TODO: implement the boundary loss
-            for i in range(len(predictions)):
-                pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions)
-                pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
-                pred_guided_gradiant_y = torch.squeeze(pred_guided_gradiant_y, 1)
-                if 
-                assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
-                assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
+            bdry_loss = None
+            sm_loss = None
+            for i in range(len(predictions)):  # for each pyramid
+                bdry_loss_pyramid = None
+                sm_loss_pyramid = None
+                for j in range(len(predictions[0])):  # for each stage of hourglass
+                    # get gradient of predictions
+                    pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions[i][j])
+                    assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
+                    assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
 
-                print(dis_2rd_gradiant.size())
-                assert dis_2rd_gradiant.size() == pan_2rd_gradiant.size()
-                bdry_sum = 0.0
-                count = 0
-                # all pixel in the map
-                for j in range(dis_2rd_gradiant.size()[0]):
-                    for k in range(dis_2rd_gradiant.size()[1]):
-                        # TODO: add decision
-                        # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
-                        count = count + 1
-                        bdry_sum = bdry_sum + math.exp(-abs(dis_2rd_gradiant[j, k])) * abs(pan_2rd_gradiant[j, k])
-                bdry_loss = bdry_loss + self.internal_loss_weight[i] * bdry_sum / count
-            '''
-            '''
-            sm_loss = 0.0
-            # TODO: implement the smooth loss
-            for i in range(len(predictions)):
-                dis_2rd_gradiant = cv.Laplacian(predictions[i][-1][mask], cv.CV_32F)
-                dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
+                    # get bdry_loss_pyramid
+                    bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask_bool]).mul(pan_gradiant_x[pan_mask_bool]) +
+                                torch.exp(-pred_guided_gradiant_y[pan_mask_bool]).mul(pan_gradiant_y[pan_mask_bool]))
+                    if bdry_loss_pyramid:
+                        bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum) + bdry_loss_pyramid
+                    else:
+                        bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum)
 
-                sm_sum = 0.0
-                count = 0
-                # all pixel in the map
-                for j in range(dis_2rd_gradiant.size()[0]):
-                    for k in range(dis_2rd_gradiant.size()[1]):
-                        # TODO: adapt decision
-                        if dis_2rd_gradiant[j, k] < self.lamda:
-                            count = count + 1
-                            sm_sum = sm_sum + math.exp(-abs(pan_2rd_gradiant[j, k])) * abs(dis_2rd_gradiant[j, k])
-                sm_loss = sm_loss + self.internal_loss_weight[i] * sm_sum / count
+                    # get sm_loss_pyramid
+                    sm_mask_x = pred_guided_gradiant_x < self.lamda
+                    sm_mask_y = pred_guided_gradiant_y < self.lamda
+                    sm_mask = sm_mask_x & sm_mask_y
+                    sm_mask.detach_()
+                    sm_sum = (torch.exp(-pan_gradiant_x[sm_mask]).mul(pred_guided_gradiant_x[sm_mask]) +
+                              torch.exp(-pan_gradiant_y[sm_mask]).mul(pred_guided_gradiant_y[sm_mask]))
+                    if sm_loss_pyramid:
+                        sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum) + sm_loss_pyramid
+                    else:
+                        sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum)
+                assert bdry_loss_pyramid
+                assert sm_loss_pyramid
+
+                if bdry_loss:
+                    bdry_loss = self.internal_loss_weight[i] * bdry_loss_pyramid + bdry_loss
+                else:
+                    bdry_loss = self.internal_loss_weight[i] * bdry_loss_pyramid
+
+                if sm_loss:
+                    sm_loss = self.internal_loss_weight[i] * sm_loss_pyramid + sm_loss
+                else:
+                    sm_loss = self.internal_loss_weight[i] * sm_loss_pyramid
+            assert bdry_loss
+            assert sm_loss
+
+            smooth_l1 = None
+            for i in range(len(predictions)):  # for each pyramid
+                if smooth_l1:
+                    smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
+                                (self.hourglass_loss_weight[0] *
+                                 F.smooth_l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool],
+                                                  size_average=True) +
+                                 self.hourglass_loss_weight[1] *
+                                 F.smooth_l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool],
+                                                  size_average=True) +
+                                 self.hourglass_loss_weight[2] *
+                                 F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
+                else:
+                    smooth_l1 = self.internal_loss_weight[i] * \
+                                (self.hourglass_loss_weight[0] *
+                                 F.smooth_l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool],
+                                                  size_average=True) +
+                                 self.hourglass_loss_weight[1] *
+                                 F.smooth_l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool],
+                                                  size_average=True) +
+                                 self.hourglass_loss_weight[2] *
+                                 F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
+            assert smooth_l1
 
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
-            '''
 
         elif self.loss_type == "smoothL1_only":
-            for i in range(len(predictions)):
-                loss = loss + self.internal_loss_weight[i] * \
-                       (self.hourglass_loss_weight[0] *
-                        F.smooth_l1_loss(predictions[i][0][mask], dis_targets[mask], size_average=True) +
-                        self.hourglass_loss_weight[1] *
-                        F.smooth_l1_loss(predictions[i][1][mask], dis_targets[mask], size_average=True) +
-                        self.hourglass_loss_weight[2] *
-                        F.smooth_l1_loss(predictions[i][2][mask], dis_targets[mask]))
+            smooth_l1 = None
+            for i in range(len(predictions)):  # for each pyramid
+                if smooth_l1:
+                    smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
+                                (self.hourglass_loss_weight[0] *
+                                 F.smooth_l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool],
+                                                  size_average=True) +
+                                 self.hourglass_loss_weight[1] *
+                                 F.smooth_l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool],
+                                                  size_average=True) +
+                                 self.hourglass_loss_weight[2] *
+                                 F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
+                else:
+                    smooth_l1 = self.internal_loss_weight[i] * \
+                                (self.hourglass_loss_weight[0] *
+                                 F.smooth_l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool],
+                                                  size_average=True) +
+                                 self.hourglass_loss_weight[1] *
+                                 F.smooth_l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool],
+                                                  size_average=True) +
+                                 self.hourglass_loss_weight[2] *
+                                 F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
+            assert smooth_l1
+
+            loss = smooth_l1
+
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
 
@@ -1632,7 +1628,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             sm_mask_y = pred_guided_gradiant_y < self.lamda
             sm_mask = sm_mask_x & sm_mask_y
             sm_mask.detach_()
-            print("sm_mask.any: ", sm_mask.any())
             sm_sum = (torch.exp(-pan_gradiant_x[sm_mask]).mul(pred_guided_gradiant_x[sm_mask]) +
                       torch.exp(-pan_gradiant_y[sm_mask]).mul(pred_guided_gradiant_y[sm_mask]))
             sm_loss = self.internal_loss_weight[0] * torch.mean(sm_sum)
