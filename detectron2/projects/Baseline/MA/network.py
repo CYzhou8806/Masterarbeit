@@ -727,7 +727,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             loss_weight: float,  # the weight for the entire section
             loss_type: str,
             ignore_value: int,
-            img_size=None,
+            img_size: List[int],
             max_disp: int,
             hourglass_loss_weight: List[float],
             internal_loss_weight: List[float],
@@ -816,6 +816,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         if img_size is None:
             self.img_size = [1024, 2048]  # h, w
 
+        self.warp = Warper2d(direction_str='r2l', pad_mode="zeros")
         self.dres0 = {}
         self.dres1 = {}
         self.dres2 = {}
@@ -881,6 +882,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
         ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
         ret["loss_type"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
+        ret["img_size"] = cfg.INPUT.IMG_SIZE
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,
@@ -909,17 +911,17 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
                 dis = disparity[-1][-1]
                 seg_cost_volume = build_correlation_cost_volume(
                     max_dis,
-                    warping(dis, pyramid_features[scale][0][0]),
-                    warping(dis, pyramid_features[scale][0][1]))
+                    pyramid_features[scale][0][0],
+                    self.warp(dis, pyramid_features[scale][0][1], scale), )
                 ins_cost_volume = build_correlation_cost_volume(
                     max_dis,
-                    warping(dis, pyramid_features[scale][1][0]),
-                    warping(dis, pyramid_features[scale][1][1]))
+                    pyramid_features[scale][1][0],
+                    self.warp(dis, pyramid_features[scale][1][1], scale))
                 # print(seg_cost_volume)
                 dis_cost_volume = build_correlation_cost_volume(
                     max_dis,
-                    warping(dis, pyramid_features[scale][2][0]),
-                    warping(dis, pyramid_features[scale][2][1]))
+                    pyramid_features[scale][2][0],
+                    self.warp(dis, pyramid_features[scale][2][1], scale))
             cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
 
             cost0 = self.dres0[scale](cost_volume)
@@ -1142,29 +1144,102 @@ def warping_old(disp, feature):  # TODO: to add operations
     return warped
 
 
-def warping(disp, img, direction_str='r2l'):
-    if direction_str == 'r2l':
-        direction = - 1
-    elif direction_str == 'l2r':
-        direction = 1
+class Warper2d(nn.Module):
+    def __init__(self, direction_str='r2l', pad_mode="zeros"):
+        super().__init__()
 
-    map_x = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
-    map_y = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
+        if direction_str == 'r2l':
+            self.direction = - 1
+        elif direction_str == 'l2r':
+            self.direction = 1
+        self.pad_mode = pad_mode
 
-    for i in range(map_x.shape[0]):
-        map_x[i, :] = [x for x in range(map_x.shape[1])]
+        self.scale = {"1/16": 0.0625,
+                      "1/8": 0.125,
+                      "1/4": 0.25, }
 
-    if disp.ndim == 3:
-        disp = np.squeeze(disp, axis=-1)
+    def forward(self, disp, img, scale):
+        '''
 
-    map_x = map_x + disp * direction
+        Args:
+            disp: tensor: (b,h,w)
+            img: tensor: (b,256, h,w)
+            scale:
 
-    for j in range(map_y.shape[1]):
-        map_y[:, j] = [y for y in range(map_y.shape[0])]
+        Returns:
 
-    left_warped = cv.remap(img, map_x, map_y, cv.INTER_LINEAR)
+        '''
+        '''
+        disp_ = disp.detach()
+        img_ = img.detach()
+        '''
 
-    return left_warped
+        [B, _, H, W] = img.size()
+        # mesh grid
+        xx = torch.arange(0, W).view(1, -1).repeat(H, 1)
+        xx = xx.view(1, 1, H, W).repeat(B, 1, 1, 1)
+        yy = torch.arange(0, H).view(-1, 1).repeat(1, W)
+        yy = yy.view(1, 1, H, W).repeat(B, 1, 1, 1)
+        grid = torch.cat((xx, yy), 1).float().cuda()
+        grid.detach_()
+
+        disp = torch.unsqueeze(disp, 1)  # (b,1, h,w)
+        scale_factor = self.scale[scale]
+        disp = F.interpolate(disp, scale_factor=scale_factor)
+
+        vgrid = grid[:, 0, :, :] + disp * self.direction
+        # scale grid to [-1,1]
+        vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(self.W - 1, 1) - 1.0
+        vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(self.H - 1, 1) - 1.0
+        vgrid = vgrid.permute(0, 2, 3, 1)  # b, h, w, c
+        vgrid.detach_()
+
+        output = F.grid_sample(img, vgrid, padding_mode=self.pad_mode)
+
+        mask = torch.ones(img.size())
+        mask.detach_()
+        mask = F.grid_sample(mask, vgrid)
+
+        mask[mask < 0.9999] = 0
+        mask[mask > 0] = 1
+
+        return output * mask  # pre elements multi
+
+
+def optical_flow_warping(x, flo, pad_mode="zeros"):
+    """
+    warp an image/tensor (im2) back to im1, according to the optical flow
+
+    x: [B, C, H, W] (im2)
+    flo: [B, 2, H, W] flow
+    pad_mode (optional): ref to https://pytorch.org/docs/stable/nn.functional.html#grid-sample
+        "zeros": use 0 for out-of-bound grid locations,
+        "border": use border values for out-of-bound grid locations
+    """
+    B, C, H, W = x.size()
+    # mesh grid
+    xx = torch.arange(0, W).view(1, -1).repeat(H, 1)
+    yy = torch.arange(0, H).view(-1, 1).repeat(1, W)
+    xx = xx.view(1, 1, H, W).repeat(B, 1, 1, 1)
+    yy = yy.view(1, 1, H, W).repeat(B, 1, 1, 1)
+    grid = torch.cat((xx, yy), 1).float()
+
+    vgrid = grid + flo  # warp后，新图每个像素对应原图的位置
+
+    # scale grid to [-1,1]
+    vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
+    vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
+
+    vgrid = vgrid.permute(0, 2, 3, 1)
+    output = F.grid_sample(x, vgrid, padding_mode=pad_mode)
+
+    mask = torch.ones(x.size())
+    mask = F.grid_sample(mask, vgrid)
+
+    mask[mask < 0.9999] = 0
+    mask[mask > 0] = 1
+
+    return output * mask
 
 
 class hourglass(nn.Module):

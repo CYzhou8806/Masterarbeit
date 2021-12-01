@@ -17,6 +17,7 @@ def add_joint_estimation_config(cfg):
     cfg.INPUT.SMALL_INSTANCE_AREA = 4096
     cfg.INPUT.SMALL_INSTANCE_WEIGHT = 3
     cfg.INPUT.IGNORE_CROWD_IN_SEMANTIC = False
+    cfg.INPUT.IMG_SIZE = [1024, 2048]
     # Optimizer type.
     cfg.SOLVER.OPTIMIZER = "ADAM"
     # Panoptic-DeepLab semantic segmentation head.
@@ -88,3 +89,4 @@ def add_joint_estimation_config(cfg):
     cfg.MODEL.PANOPTIC_DEEPLAB.SIZE_DIVISIBILITY = -1
     # Only evaluates network speed (ignores post-processing).
     cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED = False
+

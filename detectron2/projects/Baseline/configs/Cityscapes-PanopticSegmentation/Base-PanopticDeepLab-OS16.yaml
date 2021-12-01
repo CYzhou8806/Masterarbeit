@@ -85,6 +85,7 @@ INPUT:
     ENABLED: False
     TYPE: "absolute"
     SIZE: (1024, 2048)
+  IMG_SIZE: [1024, 2048]  # h, w
 DATALOADER:
   NUM_WORKERS: 8
 VERSION: 2
