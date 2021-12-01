@@ -40,4 +40,4 @@ def down_samples_dataset(dataset_root, output_root=None, scale=16):
 if __name__ == "__main__":
     # input_root = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
-    down_samples_dataset(input_root, scale=16)
+    down_samples_dataset(input_root, scale=8)
