@@ -754,6 +754,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.hourglass_type = hourglass_type
         self.resol_disp_adapt = resol_disp_adapt
         self.gradient_type = gradient_type
+        self.decoder_only = True
         use_bias = norm == ""
         # `head` is additional transform before predictor
         if self.use_depthwise_separable_conv:
