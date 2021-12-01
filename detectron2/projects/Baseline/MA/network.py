@@ -718,6 +718,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             hourglass_type: str,
             resol_disp_adapt: bool,
             gradient_type: str,
+            # num_classes=None,
             **kwargs,
     ):
         """
@@ -741,6 +742,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             decoder_channels=decoder_channels,
             norm=norm,
             ignore_value=ignore_value,
+            num_classes=None,
             **kwargs,
         )
 
@@ -866,6 +868,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["loss_type"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         ret["img_size"] = cfg.INPUT.IMG_SIZE
+        # ret["num_classes"] = cfg.MODEL.DIS_EMBED_HEAD.NUM_CLASSES
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,

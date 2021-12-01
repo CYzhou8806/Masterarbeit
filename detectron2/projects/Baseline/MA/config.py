@@ -42,6 +42,7 @@ def add_joint_estimation_config(cfg):
     cfg.MODEL.INS_EMBED_HEAD.CENTER_LOSS_WEIGHT = 200.0
     cfg.MODEL.INS_EMBED_HEAD.OFFSET_LOSS_WEIGHT = 0.01
     cfg.MODEL.INS_EMBED_HEAD.MAX_DISP = 192
+    cfg.MODEL.INS_EMBED_HEAD.NUM_CLASSES = None
 
     # JointEstimation Disparity Head.
     cfg.MODEL.DIS_EMBED_HEAD = CN()
