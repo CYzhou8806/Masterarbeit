@@ -126,6 +126,7 @@ class JointDeeplabDatasetMapper:
         pan_guided = np.zeros((2, pan_guided_raw.shape[0], pan_guided_raw.shape[1]), dtype=np.float)
         pan_guided[0, :, :] = pan_guided_raw[:, :, 0]
         pan_guided[1, :, :] = pan_guided_raw[:, :, 1]
+        pan_mask = pan_guided[1, :, :] == 1.0
         assert pan_guided.shape[0] == 2
 
         # Reuses semantic transform for panoptic labels.
@@ -150,7 +151,7 @@ class JointDeeplabDatasetMapper:
         dis_target = self.disparity_target_generator(dis_gt_with_mask[0], mask_disp)
         dataset_dict.update(dis_target)
 
-        pan_guided_target = self.pan_guided_target_generator(pan_guided[0], pan_guided[1])
+        pan_guided_target = self.pan_guided_target_generator(pan_guided[0], pan_mask)
         dataset_dict.update(pan_guided_target)
 
         return dataset_dict
