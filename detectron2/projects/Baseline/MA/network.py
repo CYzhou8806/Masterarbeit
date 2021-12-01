@@ -1643,12 +1643,15 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             print("pan_gradiant_y.shape: ", pan_gradiant_y.shape)
             sm_mask_x = pred_guided_gradiant_x < self.lamda
             sm_mask_y = pred_guided_gradiant_y < self.lamda
+            sm_mask = sm_mask_x and sm_mask_y
             print("sm_mask_x.shape: ", sm_mask_x.shape)
             print("sm_mask_y.shape: ", sm_mask_y.shape)
+            print("sm_mask.shape: ", sm_mask.shape)
             sm_mask_x.detach_()
             sm_mask_y.detach_()
-            sm_sum = (torch.exp(-pan_gradiant_x[sm_mask_x]).mul(pred_guided_gradiant_x[sm_mask_x]) +
-                      torch.exp(-pan_gradiant_y[sm_mask_y]).mul(pred_guided_gradiant_y[sm_mask_y]))
+            sm_mask.detach_()
+            sm_sum = (torch.exp(-pan_gradiant_x[sm_mask]).mul(pred_guided_gradiant_x[sm_mask]) +
+                      torch.exp(-pan_gradiant_y[sm_mask]).mul(pred_guided_gradiant_y[sm_mask]))
             sm_loss = self.internal_loss_weight[0] * torch.mean(sm_sum)
             print("sm_loss: ", sm_loss)
 
