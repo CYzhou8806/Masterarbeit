@@ -1645,7 +1645,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
-
+            raise RuntimeError("excepted stop")
         elif self.loss_type == "smoothL1_only":
             # for i in range(len(predictions)):
             pass
