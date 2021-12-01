@@ -199,12 +199,12 @@ class JointEstimation(nn.Module):
         dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
         dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
         dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
-        dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
+        dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor.detach_()
 
         pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
         pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor
         pan_mask = [x["pan_mask"].to(self.device) for x in batched_inputs]
-        pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor
+        pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor.detach_()
 
         pyramid_features = {}
         self.dis_embed_head(left_features, right_features, pyramid_features, dis_targets=dis_targets,
@@ -1591,11 +1591,13 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             # change scale
             pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
-            print("pan_mask.shape before: ", pan_mask.size())
-            pan_mask = pan_mask[:, :4, ::4]
+            print("pan_mask.shape before: ", pan_mask.shape)
+            pan_mask = F.interpolate(pan_mask, scale_factor=0.25)
             print("pan_mask.shape: ", pan_mask.shape)
             # pan_gradiant_x, pan_gradiant_y = get_gradient(pan_guided_target)
 
+            pan_mask_bool = pan_mask == 1.0
+            pan_mask_bool.detach_()
             pan_guided_target = torch.squeeze(pan_guided_target, 1)
             pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
             pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
@@ -1610,8 +1612,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             count = 0
             # TODO: add decision
             # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
-            bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask]).mul(pan_gradiant_x[pan_mask]) +
-                        torch.exp(-pred_guided_gradiant_y[pan_mask]).mul(pan_gradiant_y[pan_mask]))
+            bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask_bool]).mul(pan_gradiant_x[pan_mask_bool]) +
+                        torch.exp(-pred_guided_gradiant_y[pan_mask_bool]).mul(pan_gradiant_y[pan_mask_bool]))
             print("bdry_sum.shape: ", bdry_sum.shape)
             print(type(bdry_sum))
             bdry_loss = self.internal_loss_weight[0] * torch.mean(bdry_sum)
