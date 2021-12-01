@@ -114,26 +114,16 @@ class JointDeeplabDatasetMapper:
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
         mask = dis_gt > 0.0
-        print(np.any(mask == True))
-
         dis_gt[mask] = (dis_gt[mask] - 1.) / 256
         dis_gt_with_mask[0, :, :] = dis_gt
         dis_gt_with_mask[1][mask] = 1
 
-
-        print(dis_gt_with_mask.shape)
-        valid_dis = dis_gt_with_mask[:, 1, :, :]  # get mask
-        print(valid_dis.shape)
+        valid_dis = dis_gt_with_mask[1, :, :]  # get mask
         valid_dis_mask = valid_dis == 1.0
-        print(np.any(valid_dis_mask == True))
-        mask_max_disp = dis_gt_with_mask[:, 0, :, :] < 192
-        print(np.any(mask_max_disp == True))
-        mask_disp = valid_dis_mask and mask_max_disp
-        print(mask_disp.shape)
-        mask_disp.detach_()
-        dis_targets_tensor = torch.as_tensor(np.ascontiguousarray(dis_gt_with_mask[:, 0][mask_disp], dtype=np.float32))
-
-
+        mask_max_disp = dis_gt_with_mask[0, :, :] < 192
+        mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
+        dis_targets_tensor = torch.as_tensor(np.ascontiguousarray(dis_gt_with_mask[0], dtype=np.float32))
+        raise RuntimeError("excepted stop")
 
         pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")[:, :, :2]
         pan_guided = np.zeros((2, pan_guided_raw.shape[0], pan_guided_raw.shape[1]), dtype=np.float)
