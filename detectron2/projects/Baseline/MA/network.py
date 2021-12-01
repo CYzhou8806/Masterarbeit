@@ -1169,10 +1169,8 @@ class Warper2d(nn.Module):
         scale_factor = self.scale[scale]
         disp = F.interpolate(disp, scale_factor=scale_factor)
 
-        vgrid_0 = grid[:, 0, :, :] + disp * self.direction
-        vgrid_1 = grid[:, 1, :, :]
-        vgrid_1 = torch.unsqueeze(vgrid_1, 1)
-        vgrid = torch.cat((vgrid_0, vgrid_1), 1)
+        vgrid = grid + disp * self.direction
+        vgrid[:, 1, :, :] = grid[:, 1, :, :]
         # scale grid to [-1,1]
         vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
         vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
