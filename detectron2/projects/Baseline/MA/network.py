@@ -1588,6 +1588,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             pan_guided_target = torch.unsqueeze(pan_guided, 1)
             assert len(pan_guided_target.shape) == 4
 
+            pan_mask = pan_mask[:, 1:-1, 1:-1]
             # change scale
             pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
@@ -1676,10 +1677,10 @@ class Gradient(nn.Module):
         self.weight_x = nn.Parameter(data=kernel_x, requires_grad=False)
 
     def forward(self, x):
-        grad_x = F.conv1d(x, self.weight_x)
+        grad_x = F.conv1d(x, self.weight_x, padding="valid")
         gradient_x = torch.abs(grad_x)
         if self.grad_type == "sobel":
-            grad_y = F.conv1d(x, self.weight_y)
+            grad_y = F.conv1d(x, self.weight_y, padding="valid")
             gradient_y = torch.abs(grad_y)
             return gradient_x, gradient_y
         elif self.grad_type == "laplacian":
