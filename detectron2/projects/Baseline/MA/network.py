@@ -1571,20 +1571,14 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
         '''
-        print(dis_targets.shape)
         valid_dis = dis_targets[:, 1, :, :]  # get mask
-        print(valid_dis.shape)
         valid_dis_mask = valid_dis == 1.0
-        print(np.any(valid_dis_mask==True))
         mask_max_disp = dis_targets[:, 0, :, :] < self.max_disp
-        print(np.any(mask_max_disp == True))
-        mask_disp = valid_dis_mask and mask_max_disp
-        print(mask_disp.shape)
-        mask_disp.detach_()
-        dis_targets_tensor = torch.as_tensor(np.ascontiguousarray(dis_targets[:, 0][mask_disp], dtype=np.float32))
-
+        mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
+        dis_targets_tensor = torch.as_tensor(np.ascontiguousarray(dis_targets[:, 0], dtype=np.float32))
 
         raise RuntimeError("excepted stop")
+
         loss = None
         if self.loss_type == "panoptic_guided":
             get_gradient = Gradient(self.gradient_type)
