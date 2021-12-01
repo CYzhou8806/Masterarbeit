@@ -1579,8 +1579,15 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
         '''
+        dis_mask = torch.unsqueeze(dis_mask, 1).detach_()
         dis_mask = F.interpolate(dis_mask, scale_factor=0.25).detach_()
+        dis_mask = torch.squeeze(dis_mask, 1).detach_()
+
+        dis_targets = torch.unsqueeze(dis_targets, 1).detach_()
         dis_targets = F.interpolate(dis_targets, scale_factor=0.25).detach_()
+        dis_targets = torch.squeeze(dis_targets, 1).detach_()
+        assert predictions.shape == dis_targets.shape
+
         dis_mask_bool = dis_mask == 1.0
         dis_mask_bool.detach_()
         loss = None
