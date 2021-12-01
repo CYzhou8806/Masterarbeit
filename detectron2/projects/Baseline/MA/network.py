@@ -1583,7 +1583,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         print("dis_mask: ", dis_mask.shape)
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_mask = F.interpolate(dis_mask, scale_factor=0.25)
-        dis_mask = torch.squeeze(dis_mask, 1).detach_()
+        dis_mask = torch.squeeze(dis_mask, 1)
         print("dis_mask: ", dis_mask.shape)
 
         print("dis_targets: ", dis_targets.shape)
