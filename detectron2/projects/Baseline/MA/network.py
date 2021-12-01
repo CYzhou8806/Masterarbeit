@@ -1577,15 +1577,20 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         mask.detach_()
         loss = None
         if self.loss_type == "panoptic_guided":
-            mask_guided = pan_guided_target[:, :, 1] == 1.0
-            assert np.any(mask_guided==True)
-
             get_gradient = Gradient(self.gradient_type)
-            pan_targets = torch.unsqueeze(pan_guided_target, 1)
-            pan_targets = pan_targets.float()
-            pan_targets_down = F.interpolate(pan_targets, scale_factor=0.25)
-            pan_targets_down = pan_targets_down.float()
+
+            mask_guided = pan_guided_target[1] == 1.0
+            assert np.any(mask_guided==True)
+            print(pan_guided_target.shape)
+
+
+            # pan_targets = torch.unsqueeze(pan_guided_target, 1)
+            # pan_targets = pan_targets.float()
+            pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
+            # pan_targets_down = pan_targets_down.float()
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
+
+            raise RuntimeError("excepted stop")
             pan_targets = torch.squeeze(pan_targets, 1)
             pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
             pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
