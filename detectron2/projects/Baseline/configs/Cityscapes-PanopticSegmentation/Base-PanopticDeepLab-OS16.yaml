@@ -37,7 +37,7 @@ MODEL:
     LOSS_TYPE: "panoptic_guided"
     HOURGLASS_LOSS_WEIGHT: [0.5, 0.7, 1.0]
     INTERNAL_LOSS_WEIGHT: [0.5, 0.7, 1.0]
-    GUIDED_LOSS_WEIGHT: [0.5, 0.7, 1.0]
+    GUIDED_LOSS_WEIGHT: [0.5, 0.7, 1.0]   # guided_smooth, guided_boundary, smooth_L1
     STRESHOLD_GUIDED_LOSS: 1.0    # to find the right value
     REGRESSION_INPLANES: 256
     HOURGLASS_INPLANES: 32

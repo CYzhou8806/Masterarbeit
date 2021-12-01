@@ -197,12 +197,12 @@ class JointEstimation(nn.Module):
         ).tensor
 
         dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
-        dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
+        dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor.detach_()
         dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
         dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor.detach_()
 
         pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
-        pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor
+        pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor.detach_()
         pan_mask = [x["pan_mask"].to(self.device) for x in batched_inputs]
         pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor.detach_()
 
@@ -1579,11 +1579,17 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             predictions, scale_factor=self.common_stride, mode="bilinear", align_corners=False
         )
         '''
-
+        dis_mask = F.interpolate(dis_mask, scale_factor=0.25).detach_()
+        dis_targets = F.interpolate(dis_targets, scale_factor=0.25).detach_()
+        dis_mask_bool = dis_mask == 1.0
+        dis_mask_bool.detach_()
         loss = None
         if self.loss_type == "panoptic_guided":
-            get_gradient = Gradient(self.gradient_type)
+            # smoothL1
+            smooth_l1 = self.internal_loss_weight[0] * F.smooth_l1_loss(predictions[dis_mask_bool], dis_targets[dis_mask_bool])
+            print("smooth_l1: ", smooth_l1)
 
+            get_gradient = Gradient(self.gradient_type)
             assert len(pan_guided.shape) == 3
             pan_guided_target = torch.unsqueeze(pan_guided, 1)
             assert len(pan_guided_target.shape) == 4
@@ -1592,20 +1598,16 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
             pan_mask = torch.unsqueeze(pan_mask, 1)
-            print("pan_mask.shape before: ", pan_mask.shape)
             pan_mask = F.interpolate(pan_mask, scale_factor=0.25)
             # pan_gradiant_x, pan_gradiant_y = get_gradient(pan_guided_target)
 
-            print("pan_mask.shape: ", pan_mask.shape)
             pan_mask = torch.squeeze(pan_mask, 1)
-            pan_mask = pan_mask[:, 1:-1, 1:-1]
-            print("pan_mask.shape after -padding: ", pan_mask.shape)
-
+            pan_mask = pan_mask[:, 1:-1, 1:-1]  # to adapt the changes after gradient
             pan_mask_bool = pan_mask == 1.0
             pan_mask_bool.detach_()
             pan_guided_target = torch.squeeze(pan_guided_target, 1)
-            pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
-            pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
+            pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1).detach_()
+            pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1).detach_()
 
             pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions)
             pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
@@ -1613,49 +1615,30 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
             assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
 
-            # TODO: whether to add .detch() to GT ?!?!
-            count = 0
-            # TODO: add decision
-            # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
+            # TODO: whether to add .detach_() to GT ?!?!
             bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask_bool]).mul(pan_gradiant_x[pan_mask_bool]) +
                         torch.exp(-pred_guided_gradiant_y[pan_mask_bool]).mul(pan_gradiant_y[pan_mask_bool]))
-            print("bdry_sum.shape: ", bdry_sum.shape)
-            print(type(bdry_sum))
             bdry_loss = self.internal_loss_weight[0] * torch.mean(bdry_sum)
+            print("bdry_loss: ", bdry_loss)
 
-            print(type(bdry_loss))
-            print(bdry_loss)
-            raise RuntimeError("excepted stop")
-
-            sm_loss = 0.0
-            # TODO: implement the smooth loss
-            for i in range(len(predictions)):
-                dis_2rd_gradiant = cv.Laplacian(predictions[i][-1][mask], cv.CV_32F)
-                dis_2rd_gradiant = cv.convertScaleAbs(dis_2rd_gradiant)
-
-                sm_sum = 0.0
-                count = 0
-                # all pixel in the map
-                for j in range(dis_2rd_gradiant.size()[0]):
-                    for k in range(dis_2rd_gradiant.size()[1]):
-                        # TODO: adapt decision
-                        if dis_2rd_gradiant[j, k] < self.lamda:
-                            count = count + 1
-                            sm_sum = sm_sum + math.exp(-abs(pan_2rd_gradiant[j, k])) * abs(dis_2rd_gradiant[j, k])
-                sm_loss = sm_loss + self.internal_loss_weight[i] * sm_sum / count
+            sm_mask_x = pred_guided_gradiant_x < self.lamda
+            sm_mask_y = pred_guided_gradiant_y < self.lamda
+            sm_mask_x.detach_()
+            sm_mask_y.detach_()
+            sm_sum = (torch.exp(-pan_gradiant_x[sm_mask_x]).mul(pred_guided_gradiant_x[sm_mask_x]) +
+                      torch.exp(-pan_gradiant_y[sm_mask_y]).mul(pred_guided_gradiant_y[sm_mask_y]))
+            sm_loss = self.internal_loss_weight[0] * torch.mean(sm_sum)
+            print("sm_loss: ", sm_loss)
 
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
+            print("loss: ", loss)
 
+            raise RuntimeError("excepted stop")
         elif self.loss_type == "smoothL1_only":
-            for i in range(len(predictions)):
-                loss = loss + self.internal_loss_weight[i] * \
-                       (self.hourglass_loss_weight[0] *
-                        F.smooth_l1_loss(predictions[i][0][mask], dis_targets[mask], size_average=True) +
-                        self.hourglass_loss_weight[1] *
-                        F.smooth_l1_loss(predictions[i][1][mask], dis_targets[mask], size_average=True) +
-                        self.hourglass_loss_weight[2] *
-                        F.smooth_l1_loss(predictions[i][2][mask], dis_targets[mask]))
+            # for i in range(len(predictions)):
+            pass
+
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
 
