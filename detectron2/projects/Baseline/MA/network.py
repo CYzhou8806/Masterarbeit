@@ -37,7 +37,6 @@ from .post_processing import get_panoptic_segmentation
 from .submodule import convbn_3d, disparityregression, convbn
 from torchsummary import summary
 
-
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch", "build_dis_embed_head"]
 
 INS_EMBED_BRANCHES_REGISTRY = Registry("INS_EMBED_BRANCHES")
@@ -976,7 +975,6 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
             # However, 'c' or '-c' do not affect the performance because feature-based cost volume provided flexibility.
             pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
 
-
             if self.training:
                 if not len(disparity):
                     disparity.append([pred1, pred2, pred3])
@@ -1579,22 +1577,24 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         if self.loss_type == "panoptic_guided":
             get_gradient = Gradient(self.gradient_type)
 
-            mask_guided = pan_guided_target[1] == 1.0
-            assert np.any(mask_guided==True)
+            assert len(pan_guided_target.shape) == 4
+            mask_guided = pan_guided_target[:, 1, :, :] == 1.0
+            assert np.any(mask_guided == True)
+            print("mask_guided.shape: ", mask_guided.shape)
+            print("pan_guided_target.shape: ", pan_guided_target.shape)
+
+            pan_guided_target = pan_guided_target[:, 0, :, :]
+            print(pan_guided_target.shape)
+            pan_guided_target = torch.unsqueeze(pan_guided_target, 1)
             print(pan_guided_target.shape)
 
-
-            # pan_targets = torch.unsqueeze(pan_guided_target, 1)
             # pan_targets = pan_targets.float()
             pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
             # pan_targets_down = pan_targets_down.float()
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
-
-            raise RuntimeError("excepted stop")
-            pan_targets = torch.squeeze(pan_targets, 1)
+            pan_guided_target = torch.squeeze(pan_guided_target, 1)
             pan_gradiant_x = torch.squeeze(pan_gradiant_x, 1)
             pan_gradiant_y = torch.squeeze(pan_gradiant_y, 1)
-
 
             pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions)
             pred_guided_gradiant_x = torch.squeeze(pred_guided_gradiant_x, 1)
@@ -1606,13 +1606,14 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             count = 0
             # TODO: add decision
             # if pan_2rd_gradiant[j, k] not in [road, sidewalk, vegetation, terrain]
-            bdry_sum = (torch.exp(-pred_guided_gradiant_x).mul(pan_gradiant_x) +
-                        torch.exp(-pred_guided_gradiant_y).mul(pan_gradiant_y))
+            bdry_sum = (torch.exp(-pred_guided_gradiant_x[mask_guided]).mul(pan_gradiant_x[mask_guided]) +
+                        torch.exp(-pred_guided_gradiant_y[mask_guided]).mul(pan_gradiant_y[mask_guided]))
+            print("bdry_sum.shape: ", bdry_sum.shape)
             print(type(bdry_sum))
             bdry_loss = self.internal_loss_weight[0] * torch.mean(bdry_sum)
+
             print(type(bdry_loss))
             print(bdry_loss)
-
             raise RuntimeError("excepted stop")
 
             sm_loss = 0.0
