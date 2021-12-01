@@ -198,11 +198,13 @@ class JointEstimation(nn.Module):
 
         dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
         dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
-        dis_mask = [x["dis_mask"] for x in batched_inputs]
+        dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
+        dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
 
         pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
         pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor
-        pan_mask = [x["pan_mask"] for x in batched_inputs]
+        pan_mask = [x["pan_mask"].to(self.device) for x in batched_inputs]
+        pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor
 
         pyramid_features = {}
         self.dis_embed_head(left_features, right_features, pyramid_features, dis_targets=dis_targets,
