@@ -10,22 +10,23 @@ import os
 import shutil
 
 import cv2
+from tqdm import tqdm
 
 
 def down_samples_dataset(dataset_root, output_root=None, scale=16):
     for root, dirs, files in os.walk(dataset_root):
-        for file in files:
+        for file in tqdm(files):
             if os.path.splitext(file)[-1] == ".png":
                 file_path = os.path.join(root, file)
-                img = cv2.imread(img)
-                img_down = cv2.resize(img, (img.shape[0]//scale, img.shape[1]//scale), interpolation=cv2.INTER_NEAREST)
+                img = cv2.imread(file_path)
+                img_down = cv2.resize(img, (img.shape[1]//scale, img.shape[0]//scale), interpolation=cv2.INTER_NEAREST)
                 '''
                 cv2.imshow('', img_down)
                 cv2.waitKey(0)
                 cv2.destroyAllWindows()
                 '''
                 save_path = file_path.replace("datasets", "dataset")
-                save_dir = save_path.split('/')[0]
+                save_dir = root.replace("datasets", "dataset")
                 if not os.path.exists(save_dir):
                     os.makedirs(save_dir)
                 cv2.imwrite(save_path, img_down)
