@@ -133,8 +133,6 @@ class JointEstimation(nn.Module):
 
         losses = {}
 
-        # Needs to be recovered
-        '''
         # semantic branch
         if "sem_seg" in batched_inputs[0]:
             targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
@@ -180,54 +178,37 @@ class JointEstimation(nn.Module):
         right_center_results, right_offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
             right_features, None, None, None, None, is_left=False)
 
-        # TODO: convert 256 -> 64
         # dict{'1/4': [[left_seg, right_seg], [left_ins, right_ins], [left_dis, right_dis]], ...}
         pyramid_features = {}
         for key in left_sem_seg_features:
             pyramid_features[key] = []
             pyramid_features[key].append([left_sem_seg_features[key], right_sem_seg_features[key]])
             pyramid_features[key].append([left_ins_seg_features[key], right_ins_seg_features[key]])
-            # pyramid_features[key].append([left_dis_features[key], right_dis_features[key]])
-        self.dis_embed_head(left_features, right_features, pyramid_features)
-        '''
-
-        targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
-        targets = ImageList.from_tensors(
-            targets, size_divisibility, self.sem_seg_head.ignore_value
-        ).tensor
 
         dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
-        dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor.detach_()
+        dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
+        dis_targets.detach_()
         dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
-        dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor.detach_()
+        dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
+        dis_mask.detach_()
 
         pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
-        pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor.detach_()
+        pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor
+        pan_guided.detach_()
         pan_mask = [x["pan_mask"].to(self.device) for x in batched_inputs]
-        pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor.detach_()
+        pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor
+        pan_mask.detach_()
 
-        pyramid_features = {}
-        self.dis_embed_head(left_features, right_features, pyramid_features, dis_targets=dis_targets,
-                            dis_mask=dis_mask, pan_guided=pan_guided, pan_mask=pan_mask)
-
-        '''
-        # tmp
-        print(left_sem_seg_features['1/16'].size())
-        seg_cost_volume = build_correlation_cost_volume(192, left_sem_seg_features['1/16'], right_sem_seg_features['1/16'])
-        print(seg_cost_volume.size())
-        cost_volume = seg_cost_volume * seg_cost_volume
-        print(cost_volume.size())
-        raise RuntimeError('excepted stop')
-        '''
+        dis_embed_loss, dis_result = self.dis_embed_head(left_features, right_features, pyramid_features,
+                                                        dis_targets=dis_targets,
+                                                        dis_mask=dis_mask, pan_guided=pan_guided, pan_mask=pan_mask)
+        losses.update(dis_embed_loss)
 
         if self.training:
             return losses
-
         if self.benchmark_network_speed:
             return []
 
-        # to be recovered
-        '''
         processed_results = []
         for sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
                 sem_seg_results, center_results, offset_results, batched_inputs, left_images.image_sizes
@@ -297,7 +278,6 @@ class JointEstimation(nn.Module):
                     processed_results[-1]["instances"] = Instances.cat(instances)
 
         return processed_results
-        '''
 
 
 @SEM_SEG_HEADS_REGISTRY.register()
@@ -968,7 +948,7 @@ class JointEstimationDisEmbedHead_star(DeepLabV3PlusHead):
 
         if self.training:
             return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
-                               pan_guided=pan_guided, pan_mask=pan_mask)
+                               pan_guided=pan_guided, pan_mask=pan_mask), disparity
         else:
             return {}, disparity
 
