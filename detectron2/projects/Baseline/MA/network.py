@@ -206,7 +206,7 @@ class JointEstimation(nn.Module):
 
         pyramid_features = {}
         self.dis_embed_head(left_features, right_features, pyramid_features, dis_targets=dis_targets,
-                            dis_mask=dis_mask, pan_targets=pan_guided, pan_mask=pan_mask)
+                            dis_mask=dis_mask, pan_guided=pan_guided, pan_mask=pan_mask)
 
         '''
         # tmp
