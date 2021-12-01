@@ -1588,7 +1588,9 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             pan_guided_target = torch.unsqueeze(pan_guided, 1)
             assert len(pan_guided_target.shape) == 4
 
+            print("pan_mask.shape orignal: ", pan_mask.shape)
             pan_mask = pan_mask[:, 1:-1, 1:-1]
+            print("pan_mask.shape after -padding: ", pan_mask.shape)
             # change scale
             pan_targets_down = F.interpolate(pan_guided_target, scale_factor=0.25)
             pan_gradiant_x, pan_gradiant_y = get_gradient(pan_targets_down)
