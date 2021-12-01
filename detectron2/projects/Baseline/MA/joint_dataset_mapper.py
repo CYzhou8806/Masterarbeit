@@ -183,7 +183,7 @@ def disparity_target_generator(disparity_gt, mask):
      """
     # TODO: add operations
     return dict(dis_est=torch.as_tensor(np.ascontiguousarray(disparity_gt, dtype=np.float32)),
-                dis_mask=mask,
+                dis_mask=torch.as_tensor(np.ascontiguousarray(mask, dtype=np.float32)),
                 )
 
 
@@ -193,5 +193,5 @@ def pan_guided_target_generator(pan_guided, mask):
      """
     # TODO: add operations
     return dict(pan_gui=torch.as_tensor(np.ascontiguousarray(pan_guided, dtype=np.float32)),
-                pan_mask=mask,
+                pan_mask=torch.as_tensor(np.ascontiguousarray(mask, dtype=np.float32)),
                 )
