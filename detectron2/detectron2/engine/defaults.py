@@ -503,6 +503,8 @@ class DefaultTrainer(TrainerBase):
         Overwrite it if you'd like a different model.
         """
         model = build_model(cfg)
+        print(model.state_dict())
+        raise RuntimeError("excepted stop")
         logger = logging.getLogger(__name__)
         logger.info("Model:\n{}".format(model))
         return model
