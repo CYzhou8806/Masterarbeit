@@ -69,7 +69,7 @@ class JointEstimation(nn.Module):
         self.ins_embed_head = build_ins_embed_branch(cfg, self.backbone.output_shape())
         self.dis_embed_head = build_dis_embed_head(cfg, self.backbone.output_shape())
 
-        self.max_disp = cfg.MODEL.INS_EMBED_HEAD.MAX_DISP
+        self.max_disp = cfg.MODEL.DIS_EMBED_HEAD.MAX_DISP
 
         # TODO: following meaning still not clear
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
