@@ -16,6 +16,18 @@ MODEL:
     USE_DEPTHWISE_SEPARABLE_CONV: True
   SEM_SEG_HEAD:
     USE_DEPTHWISE_SEPARABLE_CONV: True
+  DIS_EMBED_HEAD:
+    MAX_DISP: 192
+    LOSS_TYPE: "panoptic_guided"
+    HOURGLASS_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]
+    INTERNAL_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]   # loss weight for pyramids
+    GUIDED_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
+    STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
+    REGRESSION_INPLANES: 256  # Discard, now take the maxdisp as the input dimension of 3D-Conv (2D-Conv)
+    HOURGLASS_INPLANES: 32    # Discard, now take the maxdisp as the input dimension of hourglass
+    HOURGLASS_TYPE: "hourglass_2D"
+    RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
+    GRADIENT_TYPE: "sobel"
 SOLVER:
   MAX_ITER: 999999
   IMS_PER_BATCH: 2
@@ -25,15 +37,3 @@ INPUT:
   CROP:
     SIZE: (64, 128)
   IMG_SIZE: [64, 128]  # h, w
-DIS_EMBED_HEAD:
-  MAX_DISP: 192
-  LOSS_TYPE: "panoptic_guided"
-  HOURGLASS_LOSS_WEIGHT: [0.5, 0.7, 1.0]
-  INTERNAL_LOSS_WEIGHT: [0.5, 0.7, 1.0]   # loss weight for pyramids
-  GUIDED_LOSS_WEIGHT: [0.5, 0.7, 1.0]   # guided_smooth, guided_boundary, smooth_L1
-  STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
-  REGRESSION_INPLANES: 256  # Discard, now take the maxdisp as the input dimension of 3D-Conv (2D-Conv)
-  HOURGLASS_INPLANES: 32    # Discard, now take the maxdisp as the input dimension of hourglass
-  HOURGLASS_TYPE: "hourglass_2D"
-  RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
-  GRADIENT_TYPE: "sobel"
