@@ -175,7 +175,8 @@ def main(args):
         return res
 
     trainer = Trainer(cfg)
-    trainer.resume_or_load(resume=args.resume)
+    tmp = cfg.RESUME
+    trainer.resume_or_load(resume=cfg.RESUME)
     return trainer.train()
 
 

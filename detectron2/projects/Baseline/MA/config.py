@@ -89,4 +89,5 @@ def add_joint_estimation_config(cfg):
     cfg.MODEL.PANOPTIC_DEEPLAB.SIZE_DIVISIBILITY = -1
     # Only evaluates network speed (ignores post-processing).
     cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED = False
+    cfg.RESUME = False
 

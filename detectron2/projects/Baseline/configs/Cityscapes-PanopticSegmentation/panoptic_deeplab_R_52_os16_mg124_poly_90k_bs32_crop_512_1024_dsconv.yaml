@@ -1,6 +1,6 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  WEIGHTS: None
+  WEIGHTS: "./model/init_panoptic_cityscapes_weights.pth"
   PIXEL_MEAN: [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]
   BACKBONE:
@@ -30,10 +30,12 @@ MODEL:
     GRADIENT_TYPE: "sobel"
 SOLVER:
   MAX_ITER: 999999
-  IMS_PER_BATCH: 2
+  IMS_PER_BATCH: 4
   LR_SCHEDULER_NAME: "WarmupPolyLR"
 INPUT:
   FORMAT: "RGB"
   CROP:
-    SIZE: (1024, 2048)
-  IMG_SIZE: [1024, 2048]  # h, w
+    SIZE: (128, 256)
+  IMG_SIZE: [128, 256]  # h, w
+OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
+RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
