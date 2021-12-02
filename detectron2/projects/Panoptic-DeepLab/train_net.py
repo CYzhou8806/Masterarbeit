@@ -177,8 +177,23 @@ def main(args):
 
 
 if __name__ == "__main__":
+    '''
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
+
+    cfg = setup(args)
+    from detectron2.modeling.meta_arch.build import build_model
+    model = build_model(cfg)
+    
+    
+    checkpointer = DetectionCheckpointer(model)
+    path_panoptic_model = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/model_final_23d03a.pkl"
+    checkpointer.load(path_panoptic_model)
+    # model.load_state_dict(torch.load(path_panoptic_model))
+    torch.save(model.state_dict(), 'original_panoptic_dict.pth')
+    '''
+
+    '''
     launch(
         main,
         args.num_gpus,
@@ -187,3 +202,4 @@ if __name__ == "__main__":
         dist_url=args.dist_url,
         args=(args,),
     )
+    '''

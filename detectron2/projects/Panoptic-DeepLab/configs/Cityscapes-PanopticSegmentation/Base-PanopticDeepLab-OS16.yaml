@@ -10,7 +10,6 @@ MODEL:
     IN_FEATURES: ["res2", "res3", "res5"]
     PROJECT_FEATURES: ["res2", "res3"]
     PROJECT_CHANNELS: [32, 64]
-    # PROJECT_CHANNELS: None
     ASPP_CHANNELS: 256
     ASPP_DILATIONS: [6, 12, 18]
     ASPP_DROPOUT: 0.1
@@ -40,8 +39,8 @@ MODEL:
     NMS_KERNEL: 7
     TOP_K_INSTANCE: 200
 DATASETS:
-  TRAIN: ("cityscapes_fine_joint_train",)
-  TEST: ("cityscapes_fine_joint_val",)
+  TRAIN: ("cityscapes_fine_panoptic_train",)
+  TEST: ("cityscapes_fine_panoptic_val",)
 SOLVER:
   OPTIMIZER: "ADAM"
   BASE_LR: 0.001
@@ -58,7 +57,7 @@ INPUT:
   MAX_SIZE_TRAIN: 4096
   MAX_SIZE_TEST: 2048
   CROP:
-    ENABLED: False
+    ENABLED: True
     TYPE: "absolute"
     SIZE: (1024, 2048)
 DATALOADER:
