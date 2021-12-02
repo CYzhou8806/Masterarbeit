@@ -747,7 +747,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             ignore_value=ignore_value,
             **kwargs,
         )
-
+        assert self.decoder_only
         self.loss_weight = loss_weight
         self.hourglass_loss_weight = hourglass_loss_weight
         self.internal_loss_weight = internal_loss_weight
@@ -758,8 +758,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.hourglass_type = hourglass_type
         self.resol_disp_adapt = resol_disp_adapt
         self.gradient_type = gradient_type
-        self.loss = None
-        self.predictor = None
+        # self.loss = None
+        # self.predictor = None
         self.predictor = nn.ModuleDict()
         use_bias = norm == ""
         # `head` is additional transform before predictor
