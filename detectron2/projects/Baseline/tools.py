@@ -10,7 +10,11 @@ import os
 import shutil
 
 import cv2
+import torch
 from tqdm import tqdm
+from detectron2.modeling.meta_arch.build import build_model
+from detectron2.engine import DefaultTrainer, default_argument_parser
+from train_net import setup
 
 
 def down_samples_dataset(dataset_root, output_root=None, scale=16):
@@ -40,4 +44,23 @@ def down_samples_dataset(dataset_root, output_root=None, scale=16):
 if __name__ == "__main__":
     # input_root = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
-    down_samples_dataset(input_root, scale=8)
+    # down_samples_dataset(input_root, scale=8)
+    args = default_argument_parser().parse_args()
+    cfg = setup(args)
+    model = build_model(cfg)
+
+    path_panoptic_model = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Panoptic-DeepLab/model/model_final_23d03a.pkl"
+    panoptic_model = torch.load(path_panoptic_model)
+
+    model_dict = model.state_dict()
+    # state_dict = {k: v for k, v in save_model.items() if k in model_dict.keys()}
+    panoptic_model_dict = {k: v for k, v in panoptic_model.items()}
+    model_dict.update(panoptic_model_dict)
+    model.load_state_dict(model_dict)
+
+    torch.save(model.state_dict(), 'init_panoptic_cityscapes.pth')
+
+
+
+
+
