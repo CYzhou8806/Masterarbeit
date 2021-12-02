@@ -504,7 +504,6 @@ class DefaultTrainer(TrainerBase):
         """
         model = build_model(cfg)
         model.state_dict()
-        raise RuntimeError("excepted stop")
         logger = logging.getLogger(__name__)
         logger.info("Model:\n{}".format(model))
         return model
