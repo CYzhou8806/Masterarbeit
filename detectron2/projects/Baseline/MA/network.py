@@ -747,7 +747,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             ignore_value=ignore_value,
             **kwargs,
         )
-        # assert self.decoder_only
+        assert self.decoder_only
         self.loss_weight = loss_weight
         self.hourglass_loss_weight = hourglass_loss_weight
         self.internal_loss_weight = internal_loss_weight
@@ -761,44 +761,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.loss = None
         self.predictor = None
         self.predictor = nn.ModuleDict()
-        use_bias = norm == ""
-        # `head` is additional transform before predictor
-        if self.use_depthwise_separable_conv:
-            # We use a single 5x5 DepthwiseSeparableConv2d to replace
-            # 2 3x3 Conv2d since they have the same receptive field.
-            self.head = DepthwiseSeparableConv2d(
-                decoder_channels[0],
-                head_channels,
-                kernel_size=5,
-                padding=2,
-                norm1=norm,
-                activation1=F.relu,
-                norm2=norm,
-                activation2=F.relu,
-            )
-        else:
-            self.head = nn.Sequential(
-                Conv2d(
-                    decoder_channels[0],
-                    decoder_channels[0],
-                    kernel_size=3,
-                    padding=1,
-                    bias=use_bias,
-                    norm=get_norm(norm, decoder_channels[0]),
-                    activation=F.relu,
-                ),
-                Conv2d(
-                    decoder_channels[0],
-                    head_channels,
-                    kernel_size=3,
-                    padding=1,
-                    bias=use_bias,
-                    norm=get_norm(norm, head_channels),
-                    activation=F.relu,
-                ),
-            )
-            weight_init.c2_xavier_fill(self.head[0])
-            weight_init.c2_xavier_fill(self.head[1])
 
         if img_size is None:
             self.img_size = [1024, 2048]  # h, w
@@ -874,7 +836,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["loss_type"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         ret["img_size"] = cfg.INPUT.IMG_SIZE
-        # ret["num_classes"] = cfg.MODEL.DIS_EMBED_HEAD.NUM_CLASSES
+        ret["num_classes"] = cfg.MODEL.DIS_EMBED_HEAD.NUM_CLASSES
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,

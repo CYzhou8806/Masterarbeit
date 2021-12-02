@@ -21,4 +21,4 @@ SOLVER:
 INPUT:
   FORMAT: "RGB"
   CROP:
-    SIZE: (128, 256)
+    SIZE: (64, 128)
