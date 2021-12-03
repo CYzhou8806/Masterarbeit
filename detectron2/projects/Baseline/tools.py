@@ -47,9 +47,9 @@ def down_samples_dataset(dataset_root, output_root=None, scale=16):
 if __name__ == "__main__":
     # input_root = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
-    # down_samples_dataset(input_root, scale=8)
+    down_samples_dataset(input_root, scale=4)
 
-
+    '''
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
@@ -61,6 +61,7 @@ if __name__ == "__main__":
         break
     # model.load_state_dict(torch.load('init_panoptic_cityscapes_weights.pth'))
     '''
+    '''
     path_panoptic_model_dict = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/original_panoptic_dict.pth"
     panoptic_model_dict = torch.load(path_panoptic_model_dict)
 
@@ -71,6 +72,7 @@ if __name__ == "__main__":
 
     # torch.save(model.state_dict(), 'init_panoptic_cityscapes_weights.pth')
     # torch.save(model, 'init_panoptic_cityscapes.pth')
+    '''
     '''
     # checkpointer = DetectionCheckpointer(model, save_to_disk=True, save_dir="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model")
     # checkpointer.save('init_panoptic_cityscapes.pkl')
@@ -84,6 +86,7 @@ if __name__ == "__main__":
 
 
     print("stop")
+    '''
 
 
 
