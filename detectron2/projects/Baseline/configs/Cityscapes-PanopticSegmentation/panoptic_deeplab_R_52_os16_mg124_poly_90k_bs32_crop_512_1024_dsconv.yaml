@@ -19,9 +19,9 @@ MODEL:
   DIS_EMBED_HEAD:
     MAX_DISP: 192
     LOSS_TYPE: "panoptic_guided"
-    HOURGLASS_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]
-    INTERNAL_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]   # loss weight for pyramids
-    GUIDED_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
+    HOURGLASS_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]
+    INTERNAL_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # loss weight for pyramids
+    GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
     STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
     REGRESSION_INPLANES: 256  # Discard, now take the maxdisp as the input dimension of 3D-Conv (2D-Conv)
     HOURGLASS_INPLANES: 32    # Discard, now take the maxdisp as the input dimension of hourglass
@@ -36,6 +36,6 @@ INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (128, 256)
-  IMG_SIZE: [128, 256]  # h, w
+  IMG_SIZE: [1024, 2048]  # h, w
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
