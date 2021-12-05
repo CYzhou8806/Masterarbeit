@@ -108,8 +108,15 @@ class JointDeeplabDatasetMapper:
         utils.check_image_size(dataset_dict, image)
         # Panoptic label is encoded in RGB image.
         pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB")
-
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
+
+        # Reuses semantic transform for panoptic labels.
+        # TODO: add augmentations
+        aug_input = T.AugInput(image, sem_seg=pan_seg_gt)
+        _ = self.augmentations(aug_input)
+        image, pan_seg_gt = aug_input.image, aug_input.sem_seg
+
+
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
