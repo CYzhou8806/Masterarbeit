@@ -136,13 +136,6 @@ class JointDeeplabDatasetMapper:
         pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB")
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
 
-        # Reuses semantic transform for panoptic labels.
-        # TODO: add augmentations
-        # aug_input = T.AugInput(image, sem_seg=pan_seg_gt)
-        aug_input = AugInputJointEstimation(image, sem_seg=pan_seg_gt)
-        _ = self.augmentations(aug_input)
-        image, pan_seg_gt = aug_input.image, aug_input.sem_seg
-
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
@@ -161,6 +154,14 @@ class JointDeeplabDatasetMapper:
         pan_guided[1, :, :] = pan_guided_raw[:, :, 1]
         pan_mask = pan_guided[1, :, :] == 1.0
         assert pan_guided.shape[0] == 2
+
+        # Reuses crop and transform for dataset.
+        # aug_input = T.AugInput(image, sem_seg=pan_seg_gt)
+        aug_input = AugInputJointEstimation(image, right_img=right_image, sem_seg=pan_seg_gt,
+                                            dis_gt=dis_gt_with_mask[0], dis_mask=mask_disp, pan_guid=pan_guided[0],
+                                            pan_mask=pan_mask)
+        _ = self.augmentations(aug_input)
+        image, pan_seg_gt = aug_input.image, aug_input.sem_seg
 
         # Reuses semantic transform for panoptic labels.
         # TODO: add augmentations
