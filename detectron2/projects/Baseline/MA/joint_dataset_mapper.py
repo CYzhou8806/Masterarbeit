@@ -18,6 +18,7 @@ from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
 from detectron2.data import detection_utils as utils
 from detectron2.data import transforms as T
+from detectron2.data.transforms.augmentation import _transform_to_aug
 
 from .target_generator import PanopticDeepLabTargetGenerator
 
