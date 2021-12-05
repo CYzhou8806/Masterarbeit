@@ -70,6 +70,10 @@ class JointEstimation(nn.Module):
         self.dis_embed_head = build_dis_embed_head(cfg, self.backbone.output_shape())
 
         self.max_disp = cfg.MODEL.DIS_EMBED_HEAD.MAX_DISP
+        self.panotic_branch = cfg.MODEL.MODE.PANOPTIC_BRANCH
+        self.disparity_branch = cfg.MODEL.MODE.DISPARITY_BRANCH
+        self.feature_fusion = cfg.MODEL.MODE.FEATURE_FUSION
+        self.dis_loss_type = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
 
         # TODO: following meaning still not clear
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
@@ -122,96 +126,153 @@ class JointEstimation(nn.Module):
             else self.backbone.size_divisibility
         )
 
-        # load left images
-        left_images = [x["image"].to(self.device) for x in batched_inputs]
-        left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
-        left_images = ImageList.from_tensors(left_images, size_divisibility)
-        left_features = self.backbone(left_images.tensor)
-
-        # load right images
-        right_images = [x["right_image"].to(self.device) for x in batched_inputs]
-        right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
-        right_images = ImageList.from_tensors(right_images, size_divisibility)
-        right_features = self.backbone(right_images.tensor)
-
         losses = {}
+        if self.panotic_branch and self.disparity_branch:   # both in work
+            print("using panotic and disparity both")
+            # load left images
+            left_images = [x["image"].to(self.device) for x in batched_inputs]
+            left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
+            left_images = ImageList.from_tensors(left_images, size_divisibility)
+            left_features = self.backbone(left_images.tensor)
 
-        # semantic branch
-        if "sem_seg" in batched_inputs[0]:
-            targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
-            targets = ImageList.from_tensors(
-                targets, size_divisibility, self.sem_seg_head.ignore_value
-            ).tensor
-            if "sem_seg_weights" in batched_inputs[0]:
-                # The default D2 DatasetMapper may not contain "sem_seg_weights"
-                # Avoid error in testing when default DatasetMapper is used.
-                weights = [x["sem_seg_weights"].to(self.device) for x in batched_inputs]
-                weights = ImageList.from_tensors(weights, size_divisibility).tensor
+            # semantic branch
+            if "sem_seg" in batched_inputs[0]:
+                targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
+                targets = ImageList.from_tensors(
+                    targets, size_divisibility, self.sem_seg_head.ignore_value
+                ).tensor
+                if "sem_seg_weights" in batched_inputs[0]:
+                    # The default D2 DatasetMapper may not contain "sem_seg_weights"
+                    # Avoid error in testing when default DatasetMapper is used.
+                    weights = [x["sem_seg_weights"].to(self.device) for x in batched_inputs]
+                    weights = ImageList.from_tensors(weights, size_divisibility).tensor
+                else:
+                    weights = None
             else:
+                targets = None
                 weights = None
+            sem_seg_results, sem_seg_losses, left_sem_seg_features = self.sem_seg_head(left_features, targets, weights)
+            losses.update(sem_seg_losses)
+
+            # instance branch
+            if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
+                center_targets = [x["center"].to(self.device) for x in batched_inputs]
+                center_targets = ImageList.from_tensors(
+                    center_targets, size_divisibility
+                ).tensor.unsqueeze(1)
+                center_weights = [x["center_weights"].to(self.device) for x in batched_inputs]
+                center_weights = ImageList.from_tensors(center_weights, size_divisibility).tensor
+                offset_targets = [x["offset"].to(self.device) for x in batched_inputs]
+                offset_targets = ImageList.from_tensors(offset_targets, size_divisibility).tensor
+                offset_weights = [x["offset_weights"].to(self.device) for x in batched_inputs]
+                offset_weights = ImageList.from_tensors(offset_weights, size_divisibility).tensor
+            else:
+                center_targets = None
+                center_weights = None
+                offset_targets = None
+                offset_weights = None
+            center_results, offset_results, center_losses, offset_losses, left_ins_seg_features = self.ins_embed_head(
+                left_features, center_targets, center_weights, offset_targets, offset_weights
+            )
+            losses.update(center_losses)
+            losses.update(offset_losses)
+
+            # load right images
+            right_images = [x["right_image"].to(self.device) for x in batched_inputs]
+            right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+            right_images = ImageList.from_tensors(right_images, size_divisibility)
+            right_features = self.backbone(right_images.tensor)
+
+            pyramid_features = {}
+            if self.feature_fusion:
+                right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None, is_left=False)
+                right_center_results, right_offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
+                    right_features, None, None, None, None, is_left=False)
+
+                # dict{'1/4': [[left_seg, right_seg], [left_ins, right_ins], [left_dis, right_dis]], ...}
+                for key in left_sem_seg_features:
+                    pyramid_features[key] = []
+                    pyramid_features[key].append([left_sem_seg_features[key], right_sem_seg_features[key]])
+                    pyramid_features[key].append([left_ins_seg_features[key], right_ins_seg_features[key]])
+            else:
+                for key in left_sem_seg_features:
+                    pyramid_features[key] = []
+
+            dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
+            dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
+            dis_targets.detach_()
+            dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
+            dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
+            dis_mask.detach_()
+
+            if self.dis_loss_type == "panoptic_guided":
+                pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
+                pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor
+                pan_guided.detach_()
+                pan_mask = [x["pan_mask"].to(self.device) for x in batched_inputs]
+                pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor
+                pan_mask.detach_()
+            else:
+                pan_guided = None
+                pan_mask = None
+
+            dis_embed_loss, dis_result = self.dis_embed_head(left_features, right_features, pyramid_features,
+                                                             dis_targets=dis_targets,
+                                                             dis_mask=dis_mask, pan_guided=pan_guided, pan_mask=pan_mask)
+            losses.update(dis_embed_loss)
+
+        elif self.disparity_branch:
+            print("using only disparity branch")
+            assert not self.feature_fusion, "only disparity branch, can not feature fusion"
+            # load left images
+            left_images = [x["image"].to(self.device) for x in batched_inputs]
+            left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
+            left_images = ImageList.from_tensors(left_images, size_divisibility)
+            left_features = self.backbone(left_images.tensor)
+
+            # load right images
+            right_images = [x["right_image"].to(self.device) for x in batched_inputs]
+            right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+            right_images = ImageList.from_tensors(right_images, size_divisibility)
+            right_features = self.backbone(right_images.tensor)
+
+            dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
+            dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
+            dis_targets.detach_()
+            dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
+            dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
+            dis_mask.detach_()
+
+            if self.dis_loss_type == "panoptic_guided":
+                pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
+                pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor
+                pan_guided.detach_()
+                pan_mask = [x["pan_mask"].to(self.device) for x in batched_inputs]
+                pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor
+                pan_mask.detach_()
+            else:
+                pan_guided = None
+                pan_mask = None
+
+            pyramid_features = {}
+            for key in ['1/16', '1/8', '1/4']:
+                pyramid_features[key] = []
+
+            dis_embed_loss, dis_result = self.dis_embed_head(left_features, right_features, pyramid_features,
+                                                             dis_targets=dis_targets,
+                                                             dis_mask=dis_mask, pan_guided=pan_guided,
+                                                             pan_mask=pan_mask)
+            losses.update(dis_embed_loss)
         else:
-            targets = None
-            weights = None
-        sem_seg_results, sem_seg_losses, left_sem_seg_features = self.sem_seg_head(left_features, targets, weights)
-        losses.update(sem_seg_losses)
-        right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None, is_left=False)
-
-        # instance branch
-        if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
-            center_targets = [x["center"].to(self.device) for x in batched_inputs]
-            center_targets = ImageList.from_tensors(
-                center_targets, size_divisibility
-            ).tensor.unsqueeze(1)
-            center_weights = [x["center_weights"].to(self.device) for x in batched_inputs]
-            center_weights = ImageList.from_tensors(center_weights, size_divisibility).tensor
-            offset_targets = [x["offset"].to(self.device) for x in batched_inputs]
-            offset_targets = ImageList.from_tensors(offset_targets, size_divisibility).tensor
-            offset_weights = [x["offset_weights"].to(self.device) for x in batched_inputs]
-            offset_weights = ImageList.from_tensors(offset_weights, size_divisibility).tensor
-        else:
-            center_targets = None
-            center_weights = None
-            offset_targets = None
-            offset_weights = None
-        center_results, offset_results, center_losses, offset_losses, left_ins_seg_features = self.ins_embed_head(
-            left_features, center_targets, center_weights, offset_targets, offset_weights
-        )
-        losses.update(center_losses)
-        losses.update(offset_losses)
-        right_center_results, right_offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
-            right_features, None, None, None, None, is_left=False)
-
-        # dict{'1/4': [[left_seg, right_seg], [left_ins, right_ins], [left_dis, right_dis]], ...}
-        pyramid_features = {}
-        for key in left_sem_seg_features:
-            pyramid_features[key] = []
-            pyramid_features[key].append([left_sem_seg_features[key], right_sem_seg_features[key]])
-            pyramid_features[key].append([left_ins_seg_features[key], right_ins_seg_features[key]])
-
-        dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
-        dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
-        dis_targets.detach_()
-        dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
-        dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
-        dis_mask.detach_()
-
-        pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
-        pan_guided = ImageList.from_tensors(pan_guided, size_divisibility).tensor
-        pan_guided.detach_()
-        pan_mask = [x["pan_mask"].to(self.device) for x in batched_inputs]
-        pan_mask = ImageList.from_tensors(pan_mask, size_divisibility).tensor
-        pan_mask.detach_()
-
-        dis_embed_loss, dis_result = self.dis_embed_head(left_features, right_features, pyramid_features,
-                                                         dis_targets=dis_targets,
-                                                         dis_mask=dis_mask, pan_guided=pan_guided, pan_mask=pan_mask)
-        losses.update(dis_embed_loss)
+            raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
+                             "Panoptic_Branch' are supported")
 
         if self.training:
             return losses
         if self.benchmark_network_speed:
             return []
 
+        # TODO: to adapt the results
         processed_results = []
         for sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
                 sem_seg_results, center_results, offset_results, batched_inputs, left_images.image_sizes
@@ -854,28 +915,41 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 max_dis = self.max_disp // zoom[i]
             else:
                 max_dis = self.max_disp
-            if not len(disparity):
-                seg_cost_volume = build_correlation_cost_volume(
-                    max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
-                ins_cost_volume = build_correlation_cost_volume(
-                    max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
-                dis_cost_volume = build_correlation_cost_volume(
-                    max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
+
+            if len(pyramid_features[scale]) == 3:
+                if not len(disparity):
+                    seg_cost_volume = build_correlation_cost_volume(
+                        max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
+                    ins_cost_volume = build_correlation_cost_volume(
+                        max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
+                    dis_cost_volume = build_correlation_cost_volume(
+                        max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
+                else:
+                    dis = disparity[-1][-1]
+                    seg_cost_volume = build_correlation_cost_volume(
+                        max_dis,
+                        pyramid_features[scale][0][0],
+                        self.warp(dis, pyramid_features[scale][0][1], scale), )
+                    ins_cost_volume = build_correlation_cost_volume(
+                        max_dis,
+                        pyramid_features[scale][1][0],
+                        self.warp(dis, pyramid_features[scale][1][1], scale))
+                    dis_cost_volume = build_correlation_cost_volume(
+                        max_dis,
+                        pyramid_features[scale][2][0],
+                        self.warp(dis, pyramid_features[scale][2][1], scale))
+                cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
             else:
-                dis = disparity[-1][-1]
-                seg_cost_volume = build_correlation_cost_volume(
-                    max_dis,
-                    pyramid_features[scale][0][0],
-                    self.warp(dis, pyramid_features[scale][0][1], scale), )
-                ins_cost_volume = build_correlation_cost_volume(
-                    max_dis,
-                    pyramid_features[scale][1][0],
-                    self.warp(dis, pyramid_features[scale][1][1], scale))
-                dis_cost_volume = build_correlation_cost_volume(
-                    max_dis,
-                    pyramid_features[scale][2][0],
-                    self.warp(dis, pyramid_features[scale][2][1], scale))
-            cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
+                if not len(disparity):
+                    dis_cost_volume = build_correlation_cost_volume(
+                        max_dis, pyramid_features[scale][-1][0], pyramid_features[scale][-1][1])
+                else:
+                    dis = disparity[-1][-1]
+                    dis_cost_volume = build_correlation_cost_volume(
+                        max_dis,
+                        pyramid_features[scale][-1][0],
+                        self.warp(dis, pyramid_features[scale][-1][1], scale))
+                cost_volume = dis_cost_volume
 
             cost0 = self.predictor[scale]['dres0'](cost_volume)
             cost0 = self.predictor[scale]['dres1'](cost0) + cost0
@@ -971,6 +1045,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_mask_bool.detach_()
 
         if self.loss_type == "panoptic_guided":
+            assert pan_guided, "if use loss 'panoptic_guided',the label must exist"
+            assert pan_mask
             get_gradient = Gradient(self.gradient_type)
 
             # prepare the panoptic guided ground truth
