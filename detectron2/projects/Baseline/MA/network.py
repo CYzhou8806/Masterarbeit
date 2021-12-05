@@ -1010,8 +1010,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     else:
                         sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum)
                     print(sm_loss_pyramid)
-                assert bdry_loss_pyramid
-                assert sm_loss_pyramid
+                # assert bdry_loss_pyramid
+                # assert sm_loss_pyramid
 
                 if bdry_loss:
                     bdry_loss = self.internal_loss_weight[i] * bdry_loss_pyramid + bdry_loss

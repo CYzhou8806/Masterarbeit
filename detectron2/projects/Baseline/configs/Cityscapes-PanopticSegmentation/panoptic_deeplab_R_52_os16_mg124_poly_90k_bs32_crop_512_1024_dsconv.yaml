@@ -35,7 +35,7 @@ SOLVER:
 INPUT:
   FORMAT: "RGB"
   CROP:
-    SIZE: (128, 256)
+    SIZE: (64, 128)
     ENABLED: True
     TYPE: "absolute"
   IMG_SIZE: [1024, 2048]  # h, w
