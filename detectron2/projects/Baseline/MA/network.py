@@ -992,13 +992,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     # get bdry_loss_pyramid
                     bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask_bool]).mul(pan_gradiant_x[pan_mask_bool]) +
                                 torch.exp(-pred_guided_gradiant_y[pan_mask_bool]).mul(pan_gradiant_y[pan_mask_bool]))
-                    print(type(bdry_sum))
-
                     if bdry_loss_pyramid:
                         bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum) + bdry_loss_pyramid
                     else:
                         bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum)
-                    assert bdry_loss_pyramid
+                    print(bdry_loss_pyramid)
+
                     # get sm_loss_pyramid
                     sm_mask_x = pred_guided_gradiant_x < self.lamda
                     sm_mask_y = pred_guided_gradiant_y < self.lamda
@@ -1010,6 +1009,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum) + sm_loss_pyramid
                     else:
                         sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum)
+                    print(sm_loss_pyramid)
                 assert bdry_loss_pyramid
                 assert sm_loss_pyramid
 
