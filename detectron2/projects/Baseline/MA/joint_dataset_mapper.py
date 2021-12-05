@@ -163,15 +163,14 @@ class JointDeeplabDatasetMapper:
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")
 
+        # Reuses crop and transform for dataset.
         aug_input = AugInputJointEstimation(image, right_img=right_image, sem_seg=pan_seg_gt,
                                             dis_gt=dis_gt, pan_guid=pan_guided_raw)
         _ = self.augmentations(aug_input)
         image, pan_seg_gt = aug_input.image, aug_input.sem_seg
         right_image, dis_gt = aug_input.right_img, aug_input.dis_gt
-        pan_guided_raw = aug_input.pan_guid, aug_input.pan_mask
+        pan_guided_raw = aug_input.pan_guid
 
-
-        dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
         mask = dis_gt > 0.0
@@ -183,38 +182,28 @@ class JointDeeplabDatasetMapper:
         mask_max_disp = dis_gt_with_mask[0, :, :] < 192
         mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
 
-        pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")[:, :, :2]
+        pan_guided_raw = pan_guided_raw[:, :, :2]
         pan_guided = np.zeros((2, pan_guided_raw.shape[0], pan_guided_raw.shape[1]), dtype=np.float)
         pan_guided[0, :, :] = pan_guided_raw[:, :, 0]
         pan_guided[1, :, :] = pan_guided_raw[:, :, 1]
         pan_mask = pan_guided[1, :, :] == 1.0
         assert pan_guided.shape[0] == 2
 
-        # Reuses crop and transform for dataset.
-        # aug_input = T.AugInput(image, sem_seg=pan_seg_gt)
-        aug_input = AugInputJointEstimation(image, right_img=right_image, sem_seg=pan_seg_gt,
-                                            dis_gt=dis_gt_with_mask[0], dis_mask=mask_disp, pan_guid=pan_guided[0],
-                                            pan_mask=pan_mask)
-        _ = self.augmentations(aug_input)
-        image, pan_seg_gt = aug_input.image, aug_input.sem_seg
-        right_img, dis_gt, dis_mask = aug_input.right_img, aug_input.dis_gt, aug_input.dis_mask
-        pan_guid, pan_mask = aug_input.pan_guid, aug_input.pan_mask
-
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
         dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
-        dataset_dict["right_image"] = torch.as_tensor(np.ascontiguousarray(right_img.transpose(2, 0, 1)))
+        dataset_dict["right_image"] = torch.as_tensor(np.ascontiguousarray(right_image.transpose(2, 0, 1)))
 
         # Generates training targets for Panoptic-DeepLab.
         targets = self.panoptic_target_generator(rgb2id(pan_seg_gt), dataset_dict["segments_info"])
         dataset_dict.update(targets)
 
         # Generates training targets for disparity.
-        dis_target = self.disparity_target_generator(dis_gt, dis_mask)
+        dis_target = self.disparity_target_generator(dis_gt_with_mask[0], mask_disp)
         dataset_dict.update(dis_target)
 
-        pan_guided_target = self.pan_guided_target_generator(pan_guid, pan_mask)
+        pan_guided_target = self.pan_guided_target_generator(pan_guided[0], pan_mask)
         dataset_dict.update(pan_guided_target)
 
         return dataset_dict
