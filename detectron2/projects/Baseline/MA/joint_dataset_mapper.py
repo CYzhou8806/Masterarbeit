@@ -93,6 +93,8 @@ class JointDeeplabDatasetMapper:
             panoptic_target_generator: Callable,
             do_aug: bool,
             do_crop: bool,
+            panoptic_branch: bool,
+            guided_loss: bool,
     ):
         """
         NOTE: this interface is experimental.
@@ -115,6 +117,8 @@ class JointDeeplabDatasetMapper:
         self.pan_guided_target_generator = pan_guided_target_generator
         self.do_aug = do_aug
         self.do_crop = do_crop
+        self.panoptic_branch = panoptic_branch
+        self.guided_loss = guided_loss
 
     @classmethod
     def from_config(cls, cfg):
@@ -167,10 +171,10 @@ class JointDeeplabDatasetMapper:
         image = utils.read_image(dataset_dict["file_name"], format=self.image_format)
         utils.check_image_size(dataset_dict, image)
         # Panoptic label is encoded in RGB image.
-        pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB")
+        pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB") if self.panoptic_branch else None
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
-        pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")
+        pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB") if self.guided_loss else None
 
         if self.do_aug or self.do_crop:
             # Reuses crop and transform for dataset.
@@ -192,12 +196,15 @@ class JointDeeplabDatasetMapper:
         mask_max_disp = dis_gt_with_mask[0, :, :] < 192
         mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
 
-        pan_guided_raw = pan_guided_raw[:, :, :2]
-        pan_guided = np.zeros((2, pan_guided_raw.shape[0], pan_guided_raw.shape[1]), dtype=np.float)
-        pan_guided[0, :, :] = pan_guided_raw[:, :, 0]
-        pan_guided[1, :, :] = pan_guided_raw[:, :, 1]
-        pan_mask = pan_guided[1, :, :] == 1.0
-        assert pan_guided.shape[0] == 2
+        if self.guided_loss:
+            pan_guided_raw = pan_guided_raw[:, :, :2]
+            pan_guided = np.zeros((2, pan_guided_raw.shape[0], pan_guided_raw.shape[1]), dtype=np.float)
+            pan_guided[0, :, :] = pan_guided_raw[:, :, 0]
+            pan_guided[1, :, :] = pan_guided_raw[:, :, 1]
+            pan_mask = pan_guided[1, :, :] == 1.0
+            assert pan_guided.shape[0] == 2
+            pan_guided_target = self.pan_guided_target_generator(pan_guided[0], pan_mask)
+            dataset_dict.update(pan_guided_target)
 
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
@@ -205,16 +212,14 @@ class JointDeeplabDatasetMapper:
         dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
         dataset_dict["right_image"] = torch.as_tensor(np.ascontiguousarray(right_image.transpose(2, 0, 1)))
 
-        # Generates training targets for Panoptic-DeepLab.
-        targets = self.panoptic_target_generator(rgb2id(pan_seg_gt), dataset_dict["segments_info"])
-        dataset_dict.update(targets)
+        if self.panoptic_branch:
+            # Generates training targets for Panoptic-DeepLab.
+            targets = self.panoptic_target_generator(rgb2id(pan_seg_gt), dataset_dict["segments_info"])
+            dataset_dict.update(targets)
 
         # Generates training targets for disparity.
         dis_target = self.disparity_target_generator(dis_gt_with_mask[0], mask_disp)
         dataset_dict.update(dis_target)
-
-        pan_guided_target = self.pan_guided_target_generator(pan_guided[0], pan_mask)
-        dataset_dict.update(pan_guided_target)
 
         return dataset_dict
 
