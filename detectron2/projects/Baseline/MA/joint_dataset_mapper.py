@@ -10,7 +10,7 @@
 import copy
 import logging
 import numpy as np
-from typing import Callable, List, Union
+from typing import Callable, List, Union, Optional
 import torch
 from panopticapi.utils import rgb2id
 
@@ -22,6 +22,32 @@ from detectron2.data import transforms as T
 from .target_generator import PanopticDeepLabTargetGenerator
 
 __all__ = ["JointDeeplabDatasetMapper"]
+
+
+class AugInputJointEstimation(T.AugInput):
+    def __init__(
+            self,
+            image: np.ndarray,
+            *,
+            boxes: Optional[np.ndarray] = None,
+            sem_seg: Optional[np.ndarray] = None,
+            right_img: Optional[np.ndarray] = None,
+            dis_gt: Optional[np.ndarray] = None,
+            dis_mask: Optional[np.ndarray] = None,
+            pan_guid: Optional[np.ndarray] = None,
+            pan_mask: Optional[np.ndarray] = None,
+    ):
+        super().__init__(
+            image=image,
+            boxes=boxes,
+            sem_seg=sem_seg,
+        )
+
+        self.right_img = right_img
+        self.dis_gt = dis_gt
+        self.dis_mask = dis_mask
+        self.pan_guid = pan_guid
+        self.pan_mask = pan_mask
 
 
 class JointDeeplabDatasetMapper:
@@ -112,10 +138,10 @@ class JointDeeplabDatasetMapper:
 
         # Reuses semantic transform for panoptic labels.
         # TODO: add augmentations
-        aug_input = T.AugInput(image, sem_seg=pan_seg_gt)
+        # aug_input = T.AugInput(image, sem_seg=pan_seg_gt)
+        aug_input = AugInputJointEstimation(image, sem_seg=pan_seg_gt)
         _ = self.augmentations(aug_input)
         image, pan_seg_gt = aug_input.image, aug_input.sem_seg
-
 
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
