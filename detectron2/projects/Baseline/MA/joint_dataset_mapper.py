@@ -162,7 +162,8 @@ class JointDeeplabDatasetMapper:
                                             pan_mask=pan_mask)
         _ = self.augmentations(aug_input)
         image, pan_seg_gt = aug_input.image, aug_input.sem_seg
-
+        right_img, dis_gt, dis_mask = aug_input.right_img, aug_input.dis_gt, aug_input.dis_mask
+        pan_guid, pan_mask = aug_input.pan_guid, aug_input.pan_mask
         # Reuses semantic transform for panoptic labels.
         # TODO: add augmentations
         '''
@@ -175,17 +176,17 @@ class JointDeeplabDatasetMapper:
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
         dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
-        dataset_dict["right_image"] = torch.as_tensor(np.ascontiguousarray(right_image.transpose(2, 0, 1)))
+        dataset_dict["right_image"] = torch.as_tensor(np.ascontiguousarray(right_img.transpose(2, 0, 1)))
 
         # Generates training targets for Panoptic-DeepLab.
         targets = self.panoptic_target_generator(rgb2id(pan_seg_gt), dataset_dict["segments_info"])
         dataset_dict.update(targets)
 
         # Generates training targets for disparity.
-        dis_target = self.disparity_target_generator(dis_gt_with_mask[0], mask_disp)
+        dis_target = self.disparity_target_generator(dis_gt, dis_mask)
         dataset_dict.update(dis_target)
 
-        pan_guided_target = self.pan_guided_target_generator(pan_guided[0], pan_mask)
+        pan_guided_target = self.pan_guided_target_generator(pan_guid, pan_mask)
         dataset_dict.update(pan_guided_target)
 
         return dataset_dict
