@@ -1000,7 +1000,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     if bdry_loss_pyramid:
                         bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum) + bdry_loss_pyramid
                     else:
-                        bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum)
+                        bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum) + 1e-10
                     # print(bdry_loss_pyramid)
 
                     # get sm_loss_pyramid
@@ -1013,10 +1013,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     if sm_loss_pyramid:
                         sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum) + sm_loss_pyramid
                     else:
-                        sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum)
+                        sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum) + 1e-10
                     # print(sm_loss_pyramid)
-                # assert bdry_loss_pyramid
-                # assert sm_loss_pyramid
+                assert bdry_loss_pyramid
+                assert sm_loss_pyramid
 
                 if bdry_loss:
                     bdry_loss = self.internal_loss_weight[i] * bdry_loss_pyramid + bdry_loss
@@ -1053,6 +1053,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                  self.hourglass_loss_weight[2] *
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
             assert smooth_l1
+            print(sm_loss, bdry_loss, smooth_l1)
 
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
