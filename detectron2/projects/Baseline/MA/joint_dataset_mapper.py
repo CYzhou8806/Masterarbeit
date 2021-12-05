@@ -13,7 +13,7 @@ import numpy as np
 from typing import Callable, List, Union, Optional
 import torch
 from panopticapi.utils import rgb2id
-
+from fvcore.transforms.transform import Transform, TransformList
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
 from detectron2.data import detection_utils as utils
@@ -49,6 +49,30 @@ class AugInputJointEstimation(T.AugInput):
         self.dis_mask = dis_mask
         self.pan_guid = pan_guid
         self.pan_mask = pan_mask
+
+    def transform(self, tfm: Transform) -> None:
+        """
+        In-place transform all attributes of this class.
+
+        By "in-place", it means after calling this method, accessing an attribute such
+        as ``self.image`` will return transformed data.
+        """
+        self.image = tfm.apply_image(self.image)
+        if self.boxes is not None:
+            self.boxes = tfm.apply_box(self.boxes)
+        if self.sem_seg is not None:
+            self.sem_seg = tfm.apply_segmentation(self.sem_seg)
+
+        if self.right_img is not None:
+            self.right_img = tfm.apply_image(self.right_img)
+        if self.dis_gt is not None:
+            self.dis_gt = tfm.apply_segmentation(self.dis_gt)
+        if self.dis_mask is not None:
+            self.dis_mask = tfm.apply_segmentation(self.dis_mask)
+        if self.pan_guid is not None:
+            self.pan_guid = tfm.apply_segmentation(self.pan_guid)
+        if self.pan_mask is not None:
+            self.pan_mask = tfm.apply_segmentation(self.pan_mask)
 
 
 class JointDeeplabDatasetMapper:
@@ -136,6 +160,16 @@ class JointDeeplabDatasetMapper:
         # Panoptic label is encoded in RGB image.
         pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB")
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
+        dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
+        pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")
+
+        aug_input = AugInputJointEstimation(image, right_img=right_image, sem_seg=pan_seg_gt,
+                                            dis_gt=dis_gt, pan_guid=pan_guided_raw)
+        _ = self.augmentations(aug_input)
+        image, pan_seg_gt = aug_input.image, aug_input.sem_seg
+        right_image, dis_gt = aug_input.right_img, aug_input.dis_gt
+        pan_guided_raw = aug_input.pan_guid, aug_input.pan_mask
+
 
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
