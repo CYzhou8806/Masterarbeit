@@ -129,7 +129,7 @@ class JointEstimation(nn.Module):
         left_features = self.backbone(left_images.tensor)
 
         # load right images
-        right_images = [x["right_image"].to(self.device) for x in batched_inputs]
+        right_images = [x["image"].to(self.device) for x in batched_inputs]
         right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
         right_images = ImageList.from_tensors(right_images, size_divisibility)
         right_features = self.backbone(right_images.tensor)
