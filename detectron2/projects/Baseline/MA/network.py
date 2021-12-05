@@ -835,7 +835,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
         ret["loss_type"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
-        ret["img_size"] = cfg.INPUT.IMG_SIZE
+        ret["img_size"] = cfg.INPUT.CROP.SIZE if cfg.INPUT.CROP.ENABLED else cfg.INPUT.IMG_SIZE
         ret["num_classes"] = cfg.MODEL.DIS_EMBED_HEAD.NUM_CLASSES
         return ret
 
