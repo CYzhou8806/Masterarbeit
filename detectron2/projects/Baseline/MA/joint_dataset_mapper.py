@@ -164,13 +164,6 @@ class JointDeeplabDatasetMapper:
         image, pan_seg_gt = aug_input.image, aug_input.sem_seg
         right_img, dis_gt, dis_mask = aug_input.right_img, aug_input.dis_gt, aug_input.dis_mask
         pan_guid, pan_mask = aug_input.pan_guid, aug_input.pan_mask
-        # Reuses semantic transform for panoptic labels.
-        # TODO: add augmentations
-        '''
-        aug_input = T.AugInput(image, sem_seg=pan_seg_gt)
-        _ = self.augmentations(aug_input)
-        image, pan_seg_gt = aug_input.image, aug_input.sem_seg
-        '''
 
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
