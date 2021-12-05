@@ -992,6 +992,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     # get bdry_loss_pyramid
                     bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask_bool]).mul(pan_gradiant_x[pan_mask_bool]) +
                                 torch.exp(-pred_guided_gradiant_y[pan_mask_bool]).mul(pan_gradiant_y[pan_mask_bool]))
+                    print(bdry_sum)
+
                     if bdry_loss_pyramid:
                         bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum) + bdry_loss_pyramid
                     else:
