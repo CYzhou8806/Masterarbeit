@@ -960,10 +960,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
     def losses(self, predictions, dis_targets=None, dis_mask=None, weights=None,
                pan_guided=None, pan_mask=None):
 
-        assert not torch.isnan(dis_targets).any
-        assert not torch.isnan(dis_mask).any
-        assert not torch.isnan(pan_guided).any
-        assert not torch.isnan(pan_mask).any
+        # assert not torch.isnan(dis_targets).any
+        # assert not torch.isnan(dis_mask).any
+        # assert not torch.isnan(pan_guided).any
+        # assert not torch.isnan(pan_mask).any
 
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_targets = torch.unsqueeze(dis_targets, 1)
@@ -1001,7 +1001,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum) + bdry_loss_pyramid
                     else:
                         bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum)
-                    print(bdry_loss_pyramid)
+                    # print(bdry_loss_pyramid)
 
                     # get sm_loss_pyramid
                     sm_mask_x = pred_guided_gradiant_x < self.lamda
@@ -1014,7 +1014,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum) + sm_loss_pyramid
                     else:
                         sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum)
-                    print(sm_loss_pyramid)
+                    # print(sm_loss_pyramid)
                 # assert bdry_loss_pyramid
                 # assert sm_loss_pyramid
 

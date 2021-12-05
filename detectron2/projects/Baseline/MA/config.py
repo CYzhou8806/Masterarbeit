@@ -18,6 +18,7 @@ def add_joint_estimation_config(cfg):
     cfg.INPUT.SMALL_INSTANCE_WEIGHT = 3
     cfg.INPUT.IGNORE_CROWD_IN_SEMANTIC = False
     cfg.INPUT.IMG_SIZE = [1024, 2048]
+    cfg.INPUT.DO_AUGUMENTATION = False
     # Optimizer type.
     cfg.SOLVER.OPTIMIZER = "ADAM"
     # Panoptic-DeepLab semantic segmentation head.

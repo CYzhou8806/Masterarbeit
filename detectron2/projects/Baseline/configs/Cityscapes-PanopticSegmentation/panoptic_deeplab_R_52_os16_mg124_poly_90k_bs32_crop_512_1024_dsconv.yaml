@@ -30,7 +30,7 @@ MODEL:
     GRADIENT_TYPE: "sobel"
 SOLVER:
   MAX_ITER: 999999
-  IMS_PER_BATCH: 4
+  IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"
 INPUT:
   FORMAT: "RGB"
@@ -39,5 +39,6 @@ INPUT:
     ENABLED: True
     TYPE: "absolute"
   IMG_SIZE: [1024, 2048]  # h, w
+  DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.

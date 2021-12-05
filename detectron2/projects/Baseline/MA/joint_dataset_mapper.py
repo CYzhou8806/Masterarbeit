@@ -91,6 +91,8 @@ class JointDeeplabDatasetMapper:
             augmentations: List[Union[T.Augmentation, T.Transform]],
             image_format: str,
             panoptic_target_generator: Callable,
+            do_aug: bool,
+            do_crop: bool,
     ):
         """
         NOTE: this interface is experimental.
@@ -111,20 +113,25 @@ class JointDeeplabDatasetMapper:
         self.panoptic_target_generator = panoptic_target_generator
         self.disparity_target_generator = disparity_target_generator
         self.pan_guided_target_generator = pan_guided_target_generator
+        self.do_aug = do_aug
+        self.do_crop = do_crop
 
     @classmethod
     def from_config(cls, cfg):
-        augs = [
-            T.ResizeShortestEdge(
+        if cfg.INPUT.DO_AUGUMENTATION and cfg.INPUT.CROP.ENABLED:
+            augs = [T.ResizeShortestEdge(
                 cfg.INPUT.MIN_SIZE_TRAIN,
                 cfg.INPUT.MAX_SIZE_TRAIN,
                 cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING,
-            )
-        ]
-        if cfg.INPUT.CROP.ENABLED:
-            augs.append(T.RandomCrop(cfg.INPUT.CROP.TYPE, cfg.INPUT.CROP.SIZE))
-        augs.append(T.RandomFlip())
-
+            ), T.RandomCrop(cfg.INPUT.CROP.TYPE, cfg.INPUT.CROP.SIZE), T.RandomFlip()]
+        elif cfg.INPUT.CROP.ENABLED:
+            augs = [T.RandomCrop(cfg.INPUT.CROP.TYPE, cfg.INPUT.CROP.SIZE)]
+        else:
+            augs = [T.ResizeShortestEdge(
+                cfg.INPUT.MIN_SIZE_TRAIN,
+                cfg.INPUT.MAX_SIZE_TRAIN,
+                cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING,
+            )]
         # Assume always applies to the training set.
         dataset_names = cfg.DATASETS.TRAIN
         meta = MetadataCatalog.get(dataset_names[0])
@@ -142,6 +149,8 @@ class JointDeeplabDatasetMapper:
             "augmentations": augs,
             "image_format": cfg.INPUT.FORMAT,
             "panoptic_target_generator": panoptic_target_generator,
+            "do_aug": cfg.INPUT.DO_AUGUMENTATION,
+            "do_crop": cfg.INPUT.CROP.ENABLED
         }
         return ret
 
@@ -163,13 +172,14 @@ class JointDeeplabDatasetMapper:
         dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB")
 
-        # Reuses crop and transform for dataset.
-        aug_input = AugInputJointEstimation(image, right_img=right_image, sem_seg=pan_seg_gt,
-                                            dis_gt=dis_gt, pan_guid=pan_guided_raw)
-        _ = self.augmentations(aug_input)
-        image, pan_seg_gt = aug_input.image, aug_input.sem_seg
-        right_image, dis_gt = aug_input.right_img, aug_input.dis_gt
-        pan_guided_raw = aug_input.pan_guid
+        if self.do_aug or self.do_crop:
+            # Reuses crop and transform for dataset.
+            aug_input = AugInputJointEstimation(image, right_img=right_image, sem_seg=pan_seg_gt,
+                                                dis_gt=dis_gt, pan_guid=pan_guided_raw)
+            _ = self.augmentations(aug_input)
+            image, pan_seg_gt = aug_input.image, aug_input.sem_seg
+            right_image, dis_gt = aug_input.right_img, aug_input.dis_gt
+            pan_guided_raw = aug_input.pan_guid
 
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
