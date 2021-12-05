@@ -960,6 +960,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
     def losses(self, predictions, dis_targets=None, dis_mask=None, weights=None,
                pan_guided=None, pan_mask=None):
 
+        assert not torch.isnan(dis_targets).any
+        assert not torch.isnan(dis_mask).any
+        assert not torch.isnan(pan_guided).any
+        assert not torch.isnan(pan_mask).any
+
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_targets = torch.unsqueeze(dis_targets, 1)
         dis_mask_bool = dis_mask == 1.0
