@@ -154,7 +154,9 @@ class JointDeeplabDatasetMapper:
             "image_format": cfg.INPUT.FORMAT,
             "panoptic_target_generator": panoptic_target_generator,
             "do_aug": cfg.INPUT.DO_AUGUMENTATION,
-            "do_crop": cfg.INPUT.CROP.ENABLED
+            "do_crop": cfg.INPUT.CROP.ENABLED,
+            "panoptic_branch": cfg.MODEL.MODE.PANOPTIC_BRANCH,
+            "guided_loss": cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE == "panoptic_guided"
         }
         return ret
 
