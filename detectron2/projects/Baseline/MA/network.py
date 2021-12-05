@@ -128,7 +128,6 @@ class JointEstimation(nn.Module):
 
         losses = {}
         if self.panotic_branch and self.disparity_branch:   # both in work
-            print("using panotic and disparity both")
             # load left images
             left_images = [x["image"].to(self.device) for x in batched_inputs]
             left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
@@ -222,7 +221,6 @@ class JointEstimation(nn.Module):
             losses.update(dis_embed_loss)
 
         elif self.disparity_branch:
-            print("using only disparity branch")
             assert not self.feature_fusion, "only disparity branch, can not feature fusion"
             # load left images
             left_images = [x["image"].to(self.device) for x in batched_inputs]

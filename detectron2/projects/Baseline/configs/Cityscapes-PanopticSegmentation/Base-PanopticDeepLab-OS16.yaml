@@ -63,6 +63,10 @@ MODEL:
     CENTER_THRESHOLD: 0.1
     NMS_KERNEL: 7
     TOP_K_INSTANCE: 200
+  MODE:
+    PANOPTIC_BRANCH: False
+    DISPARITY_BRANCH: True
+    FEATURE_FUSION: False  # whether create cost volume with panoptic features
 DATASETS:
   TRAIN: ("cityscapes_fine_joint_train",)
   TEST: ("cityscapes_fine_joint_val",)
