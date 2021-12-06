@@ -48,7 +48,7 @@ def load_kitti_2015(gt_dir):
         ret[0]["right_file_name"]
     ), "Please place the right images in the folder"  # noqa
     assert PathManager.isfile(
-        ret[0]["disparity_file_name_tiff"]
+        ret[0]["disparity_file_name_kitti_2015"]
     ), "Please place the disparity groundturth in the folder"  # noqa
     return ret
 
