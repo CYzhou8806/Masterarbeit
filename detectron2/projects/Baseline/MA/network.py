@@ -820,6 +820,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.loss = None
         self.predictor = None
         self.predictor = nn.ModuleDict()
+        self.hourglass_inplanes = hourglass_inplanes
+        self.regression_inplanes = regression_inplanes
 
         if img_size is None:
             self.img_size = [1024, 2048]  # h, w
@@ -839,38 +841,37 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
                 dres0 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True),
-                                      convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                      convbn(max_dis, self.regression_inplanes, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True))
                 decoder_stage['dres0'] = dres0
-                dres1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                dres1 = nn.Sequential(convbn(self.regression_inplanes, self.regression_inplanes, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True),
-                                      convbn(max_dis, max_dis, 3, 1, 1, 1))
+                                      convbn(self.regression_inplanes, self.hourglass_inplanes, 3, 1, 1, 1))
                 decoder_stage['dres1'] = dres1
-                hourglass_inplanes = max_dis
-                dres2 = hourglass_2d(hourglass_inplanes)
-                dres3 = hourglass_2d(hourglass_inplanes)
-                dres4 = hourglass_2d(hourglass_inplanes)
+                dres2 = hourglass_2d(self.hourglass_inplanes)
+                dres3 = hourglass_2d(self.hourglass_inplanes)
+                dres4 = hourglass_2d(self.hourglass_inplanes)
                 decoder_stage['dres2'] = dres2
                 decoder_stage['dres3'] = dres3
                 decoder_stage['dres4'] = dres4
 
-                classif1 = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
+                classif1 = nn.Sequential(convbn(self.hourglass_inplanes, self.hourglass_inplanes, 3, 1, 1, 1),
                                          nn.ReLU(inplace=True),
-                                         nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                         nn.Conv2d(self.hourglass_inplanes, self.hourglass_inplanes, kernel_size=3,
                                                    padding=1,
                                                    stride=1,
                                                    bias=False)).cuda()
                 decoder_stage['classif1'] = classif1
-                classif2 = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
+                classif2 = nn.Sequential(convbn(self.hourglass_inplanes, self.hourglass_inplanes, 3, 1, 1, 1),
                                          nn.ReLU(inplace=True),
-                                         nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                         nn.Conv2d(self.hourglass_inplanes, self.hourglass_inplanes, kernel_size=3,
                                                    padding=1,
                                                    stride=1,
                                                    bias=False)).cuda()
                 decoder_stage['classif2'] = classif2
-                classif3 = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
+                classif3 = nn.Sequential(convbn(self.hourglass_inplanes, self.hourglass_inplanes, 3, 1, 1, 1),
                                          nn.ReLU(inplace=True),
-                                         nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
+                                         nn.Conv2d(self.hourglass_inplanes, self.hourglass_inplanes, kernel_size=3,
                                                    padding=1,
                                                    stride=1,
                                                    bias=False)).cuda()
@@ -1641,430 +1642,3 @@ class DeepLabV3PlusHeadDecoder(nn.Module):
         losses = {"loss_sem_seg": loss * self.loss_weight}
         return losses
 
-
-@DIS_EMBED_BRANCHES_REGISTRY.register()
-class JointEstimationDisEmbedHead_backup(DeepLabV3PlusHead):
-    """
-    A semantic segmentation head of joint estimation architectures`.
-    """
-
-    @configurable
-    def __init__(
-            self,
-            input_shape: Dict[str, ShapeSpec],
-            *,
-            decoder_channels: List[int],
-            norm: Union[str, Callable],
-            head_channels: int,
-            loss_weight: float,  # the weight for the entire section
-            loss_type: str,
-            ignore_value: int,
-            img_size: List[int],
-            max_disp: int,
-            hourglass_loss_weight: List[float],
-            internal_loss_weight: List[float],
-            guided_loss_weight: List[float],
-            streshold_guided_loss: float,
-            regression_inplanes: int,
-            hourglass_inplanes: int,
-            hourglass_type: str,
-            resol_disp_adapt: bool,
-            gradient_type: str,
-            # num_classes=None,
-            **kwargs,
-    ):
-        """
-        NOTE: this interface is experimental.
-
-        Args:
-            input_shape (ShapeSpec): shape of the input feature
-            decoder_channels (list[int]): a list of output channels of each
-                decoder stage. It should have the same length as "input_shape"
-                (each element in "input_shape" corresponds to one decoder stage).
-            norm (str or callable): normalization for all conv layers.
-            head_channels (int): the output channels of extra convolutions
-                between decoder and predictor.
-            loss_weight (float): loss weight.
-            loss_top_k: (float): setting the top k% hardest pixels for
-                "hard_pixel_mining" loss.
-            loss_type, ignore_value, num_classes: the same as the base class.
-        """
-        super().__init__(
-            input_shape,
-            decoder_channels=decoder_channels,
-            norm=norm,
-            ignore_value=ignore_value,
-            **kwargs,
-        )
-
-        self.loss_weight = loss_weight
-        self.hourglass_loss_weight = hourglass_loss_weight
-        self.internal_loss_weight = internal_loss_weight
-        self.guided_loss_weight = guided_loss_weight
-        self.max_disp = max_disp
-        self.lamda = streshold_guided_loss
-        self.loss_type = loss_type
-        self.hourglass_type = hourglass_type
-        self.resol_disp_adapt = resol_disp_adapt
-        self.gradient_type = gradient_type
-        self.decoder_only = True
-        self.loss = None
-        self.predictor = None
-        use_bias = norm == ""
-        # `head` is additional transform before predictor
-        if self.use_depthwise_separable_conv:
-            # We use a single 5x5 DepthwiseSeparableConv2d to replace
-            # 2 3x3 Conv2d since they have the same receptive field.
-            self.head = DepthwiseSeparableConv2d(
-                decoder_channels[0],
-                head_channels,
-                kernel_size=5,
-                padding=2,
-                norm1=norm,
-                activation1=F.relu,
-                norm2=norm,
-                activation2=F.relu,
-            )
-        else:
-            self.head = nn.Sequential(
-                Conv2d(
-                    decoder_channels[0],
-                    decoder_channels[0],
-                    kernel_size=3,
-                    padding=1,
-                    bias=use_bias,
-                    norm=get_norm(norm, decoder_channels[0]),
-                    activation=F.relu,
-                ),
-                Conv2d(
-                    decoder_channels[0],
-                    head_channels,
-                    kernel_size=3,
-                    padding=1,
-                    bias=use_bias,
-                    norm=get_norm(norm, head_channels),
-                    activation=F.relu,
-                ),
-            )
-            weight_init.c2_xavier_fill(self.head[0])
-            weight_init.c2_xavier_fill(self.head[1])
-
-        if img_size is None:
-            self.img_size = [1024, 2048]  # h, w
-        else:
-            self.img_size = img_size
-
-        self.warp = Warper2d(direction_str='r2l', pad_mode="zeros")
-        self.dres0 = {}
-        self.dres1 = {}
-        self.dres2 = {}
-        self.dres3 = {}
-        self.dres4 = {}
-        self.classif1 = {}
-        self.classif2 = {}
-        self.classif3 = {}
-
-        if self.hourglass_type == "hourglass_2D":
-            zoom = [16, 8, 4]
-            for i, scale in enumerate(['1/16', '1/8', '1/4']):
-                if self.resol_disp_adapt:
-                    max_dis = self.max_disp // zoom[i]
-                else:
-                    max_dis = self.max_disp
-
-                self.dres0[scale] = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                                  nn.ReLU(inplace=True),
-                                                  convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                                  nn.ReLU(inplace=True))
-                self.dres1[scale] = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                                  nn.ReLU(inplace=True),
-                                                  convbn(max_dis, max_dis, 3, 1, 1, 1))
-                hourglass_inplanes = max_dis
-                self.dres2[scale] = hourglass_2d(hourglass_inplanes)
-                self.dres3[scale] = hourglass_2d(hourglass_inplanes)
-                self.dres4[scale] = hourglass_2d(hourglass_inplanes)
-
-                self.classif1[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
-                                                     nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
-                                                               padding=1,
-                                                               stride=1,
-                                                               bias=False)).cuda()
-                self.classif2[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
-                                                     nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
-                                                               padding=1,
-                                                               stride=1,
-                                                               bias=False)).cuda()
-                self.classif3[scale] = nn.Sequential(convbn(hourglass_inplanes, hourglass_inplanes, 3, 1, 1, 1),
-                                                     nn.ReLU(inplace=True),
-                                                     nn.Conv2d(hourglass_inplanes, hourglass_inplanes, kernel_size=3,
-                                                               padding=1,
-                                                               stride=1,
-                                                               bias=False)).cuda()
-        else:
-            raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
-
-    @classmethod
-    def from_config(cls, cfg, input_shape):
-        ret = super().from_config(cfg, input_shape)
-        ret["head_channels"] = cfg.MODEL.DIS_EMBED_HEAD.HEAD_CHANNELS
-        ret["max_disp"] = cfg.MODEL.DIS_EMBED_HEAD.MAX_DISP
-        ret["hourglass_loss_weight"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_LOSS_WEIGHT
-        ret["internal_loss_weight"] = cfg.MODEL.DIS_EMBED_HEAD.INTERNAL_LOSS_WEIGHT
-        ret["guided_loss_weight"] = cfg.MODEL.DIS_EMBED_HEAD.GUIDED_LOSS_WEIGHT
-        ret["streshold_guided_loss"] = cfg.MODEL.DIS_EMBED_HEAD.STRESHOLD_GUIDED_LOSS
-        ret["regression_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.REGRESSION_INPLANES
-        ret["hourglass_inplanes"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_INPLANES
-        ret["hourglass_type"] = cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_TYPE
-        ret["resol_disp_adapt"] = cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT
-        ret["loss_type"] = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
-        ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
-        ret["img_size"] = cfg.INPUT.IMG_SIZE
-        # ret["num_classes"] = cfg.MODEL.DIS_EMBED_HEAD.NUM_CLASSES
-        return ret
-
-    def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,
-                pan_guided=None, pan_mask=None, ):
-        y, out_features = self.layers(features)
-        right_y, right_out_features = self.layers(right_features)
-
-        for key in out_features:
-            pyramid_features[key].append([out_features[key], right_out_features[key]])
-
-        disparity = []  # form coarse to fine
-        zoom = [16, 8, 4]
-        for i, scale in enumerate(['1/16', '1/8', '1/4']):
-            if self.resol_disp_adapt:
-                max_dis = self.max_disp // zoom[i]
-            else:
-                max_dis = self.max_disp
-            if not len(disparity):
-                seg_cost_volume = build_correlation_cost_volume(
-                    max_dis, pyramid_features[scale][0][0], pyramid_features[scale][0][1])
-                ins_cost_volume = build_correlation_cost_volume(
-                    max_dis, pyramid_features[scale][1][0], pyramid_features[scale][1][1])
-                dis_cost_volume = build_correlation_cost_volume(
-                    max_dis, pyramid_features[scale][2][0], pyramid_features[scale][2][1])
-            else:  # TODO: add wrap
-                dis = disparity[-1][-1]
-                seg_cost_volume = build_correlation_cost_volume(
-                    max_dis,
-                    pyramid_features[scale][0][0],
-                    self.warp(dis, pyramid_features[scale][0][1], scale), )
-                ins_cost_volume = build_correlation_cost_volume(
-                    max_dis,
-                    pyramid_features[scale][1][0],
-                    self.warp(dis, pyramid_features[scale][1][1], scale))
-                # print(seg_cost_volume)
-                dis_cost_volume = build_correlation_cost_volume(
-                    max_dis,
-                    pyramid_features[scale][2][0],
-                    self.warp(dis, pyramid_features[scale][2][1], scale))
-            cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
-
-            cost0 = self.dres0[scale](cost_volume)
-            cost0 = self.dres1[scale](cost0) + cost0
-            out1, pre1, post1 = self.dres2[scale](cost0, None, None)
-            out1 = out1 + cost0
-            out2, pre2, post2 = self.dres3[scale](out1, pre1, post1)
-            out2 = out2 + cost0
-            out3, pre3, post3 = self.dres4[scale](out2, pre1, post2)
-            out3 = out3 + cost0
-            cost1 = self.classif1[scale](out1)
-            cost2 = self.classif2[scale](out2) + cost1
-            cost3 = self.classif3[scale](out3) + cost2
-
-            if self.training:
-                cost1 = torch.unsqueeze(cost1, 1)
-                cost1 = F.interpolate(cost1, size=[max_dis, self.img_size[0], self.img_size[1]], mode='trilinear',
-                                      align_corners=True)
-                cost1 = torch.squeeze(cost1, 1)
-                pred1 = F.softmax(cost1, dim=1)
-                pred1 = disparityregression(max_dis)(pred1)
-
-                cost2 = torch.unsqueeze(cost2, 1)
-                cost2 = F.interpolate(cost2, size=[max_dis, self.img_size[0], self.img_size[1]], mode='trilinear',
-                                      align_corners=True)
-                cost2 = torch.squeeze(cost2, 1)
-                pred2 = F.softmax(cost2, dim=1)
-                pred2 = disparityregression(max_dis)(pred2)
-
-            cost3 = torch.unsqueeze(cost3, 1)
-            cost3 = F.interpolate(cost3, size=[max_dis, self.img_size[0], self.img_size[1]], mode='trilinear',
-                                  align_corners=True)
-            cost3 = torch.squeeze(cost3, 1)
-            pred3 = F.softmax(cost3, dim=1)
-            pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
-
-            if self.training:
-                if not len(disparity):
-                    disparity.append([pred1, pred2, pred3])  # List[3x List(3x Tensor)]
-                else:
-                    disparity.append([pred1 + dis, pred2 + dis, pred3 + dis])
-            else:
-                if not len(disparity):
-                    disparity.append([pred3])
-                else:
-                    disparity.append([pred3 + dis])
-
-        if self.training:
-            return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
-                               pan_guided=pan_guided, pan_mask=pan_mask), disparity
-        else:
-            return {}, disparity
-
-    def layers(self, features):
-        out_features = {}
-        # Reverse feature maps into top-down order (from low to high resolution)
-        for i, f in enumerate(self.in_features[::-1]):
-            x = features[f]  # "features" is dictionary
-            proj_x = self.decoder[f]["project_conv"](x)
-            if self.decoder[f]["fuse_conv"] is None:
-                # This is aspp module
-                y = proj_x
-            else:
-                # Upsample y
-                y = F.interpolate(y, size=proj_x.size()[2:], mode="bilinear", align_corners=False)
-                y = torch.cat([proj_x, y], dim=1)
-                y = self.decoder[f]["fuse_conv"](y)
-
-            # save outputs
-            if i == 1:
-                out_features['1/8'] = y
-            elif i == 2:
-                out_features['1/4'] = y
-            elif i == 0:
-                out_features['1/16'] = y
-            else:
-                raise ValueError("undefined output of SemSeg Branch")
-
-        y = out_features['1/4']
-
-        return y, out_features
-
-    def losses(self, predictions, dis_targets=None, dis_mask=None, weights=None,
-               pan_guided=None, pan_mask=None):
-
-        dis_mask = torch.unsqueeze(dis_mask, 1)
-        dis_targets = torch.unsqueeze(dis_targets, 1)
-        dis_mask_bool = dis_mask == 1.0
-        dis_mask_bool.detach_()
-
-        if self.loss_type == "panoptic_guided":
-            get_gradient = Gradient(self.gradient_type)
-
-            # prepare the panoptic guided ground truth
-            pan_guided_target = torch.unsqueeze(pan_guided, 1)
-            pan_gradiant_x, pan_gradiant_y = get_gradient(pan_guided_target)
-            pan_gradiant_x = pan_gradiant_x.detach_()
-            pan_gradiant_y = pan_gradiant_y.detach_()
-            pan_mask = torch.unsqueeze(pan_mask, 1)
-            pan_mask = pan_mask[:, :, 1:-1, 1:-1]  # to adapt the changes after gradient
-            pan_mask_bool = pan_mask == 1.0
-            pan_mask_bool.detach_()
-
-            bdry_loss = None
-            sm_loss = None
-            for i in range(len(predictions)):  # for each pyramid
-                bdry_loss_pyramid = None
-                sm_loss_pyramid = None
-                for j in range(len(predictions[0])):  # for each stage of hourglass
-                    # get gradient of predictions
-                    pred_guided_gradiant_x, pred_guided_gradiant_y = get_gradient(predictions[i][j])
-                    assert pan_gradiant_x.shape == pred_guided_gradiant_x.shape
-                    assert pan_gradiant_y.shape == pred_guided_gradiant_y.shape
-
-                    # get bdry_loss_pyramid
-                    bdry_sum = (torch.exp(-pred_guided_gradiant_x[pan_mask_bool]).mul(pan_gradiant_x[pan_mask_bool]) +
-                                torch.exp(-pred_guided_gradiant_y[pan_mask_bool]).mul(pan_gradiant_y[pan_mask_bool]))
-                    if bdry_loss_pyramid:
-                        bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum) + bdry_loss_pyramid
-                    else:
-                        bdry_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(bdry_sum)
-
-                    # get sm_loss_pyramid
-                    sm_mask_x = pred_guided_gradiant_x < self.lamda
-                    sm_mask_y = pred_guided_gradiant_y < self.lamda
-                    sm_mask = sm_mask_x & sm_mask_y
-                    sm_mask.detach_()
-                    sm_sum = (torch.exp(-pan_gradiant_x[sm_mask]).mul(pred_guided_gradiant_x[sm_mask]) +
-                              torch.exp(-pan_gradiant_y[sm_mask]).mul(pred_guided_gradiant_y[sm_mask]))
-                    if sm_loss_pyramid:
-                        sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum) + sm_loss_pyramid
-                    else:
-                        sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum)
-                assert bdry_loss_pyramid
-                assert sm_loss_pyramid
-
-                if bdry_loss:
-                    bdry_loss = self.internal_loss_weight[i] * bdry_loss_pyramid + bdry_loss
-                else:
-                    bdry_loss = self.internal_loss_weight[i] * bdry_loss_pyramid
-
-                if sm_loss:
-                    sm_loss = self.internal_loss_weight[i] * sm_loss_pyramid + sm_loss
-                else:
-                    sm_loss = self.internal_loss_weight[i] * sm_loss_pyramid
-            assert bdry_loss
-            assert sm_loss
-
-            smooth_l1 = None
-            for i in range(len(predictions)):  # for each pyramid
-                if smooth_l1:
-                    smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
-                                (self.hourglass_loss_weight[0] *
-                                 F.smooth_l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool],
-                                                  reduction='mean') +
-                                 self.hourglass_loss_weight[1] *
-                                 F.smooth_l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool],
-                                                  reduction='mean') +
-                                 self.hourglass_loss_weight[2] *
-                                 F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
-                else:
-                    smooth_l1 = self.internal_loss_weight[i] * \
-                                (self.hourglass_loss_weight[0] *
-                                 F.smooth_l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool],
-                                                  reduction='mean') +
-                                 self.hourglass_loss_weight[1] *
-                                 F.smooth_l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool],
-                                                  reduction='mean') +
-                                 self.hourglass_loss_weight[2] *
-                                 F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
-            assert smooth_l1
-
-            loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
-                   self.guided_loss_weight[2] * smooth_l1
-
-        elif self.loss_type == "smoothL1_only":
-            smooth_l1 = None
-            for i in range(len(predictions)):  # for each pyramid
-                if smooth_l1:
-                    smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
-                                (self.hourglass_loss_weight[0] *
-                                 F.smooth_l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool],
-                                                  reduction='mean') +
-                                 self.hourglass_loss_weight[1] *
-                                 F.smooth_l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool],
-                                                  reduction='mean') +
-                                 self.hourglass_loss_weight[2] *
-                                 F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
-                else:
-                    smooth_l1 = self.internal_loss_weight[i] * \
-                                (self.hourglass_loss_weight[0] *
-                                 F.smooth_l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool],
-                                                  reduction='mean') +
-                                 self.hourglass_loss_weight[1] *
-                                 F.smooth_l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool],
-                                                  reduction='mean') +
-                                 self.hourglass_loss_weight[2] *
-                                 F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
-            assert smooth_l1
-
-            loss = smooth_l1
-
-        else:
-            raise ValueError("Unexpected loss type: %s" % self.loss_type)
-
-        losses = {"loss_dis": loss * self.loss_weight}
-        return losses
