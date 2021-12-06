@@ -95,6 +95,7 @@ class JointDeeplabDatasetMapper:
             do_crop: bool,
             panoptic_branch: bool,
             guided_loss: bool,
+            max_disp: int,
     ):
         """
         NOTE: this interface is experimental.
@@ -119,6 +120,7 @@ class JointDeeplabDatasetMapper:
         self.do_crop = do_crop
         self.panoptic_branch = panoptic_branch
         self.guided_loss = guided_loss
+        self.max_disp = max_disp
 
     @classmethod
     def from_config(cls, cfg):
@@ -135,7 +137,7 @@ class JointDeeplabDatasetMapper:
                 cfg.INPUT.MIN_SIZE_TRAIN,
                 cfg.INPUT.MAX_SIZE_TRAIN,
                 cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING,
-            )]
+            ), T.RandomFlip()]
         # Assume always applies to the training set.
         dataset_names = cfg.DATASETS.TRAIN
         meta = MetadataCatalog.get(dataset_names[0])
@@ -156,7 +158,8 @@ class JointDeeplabDatasetMapper:
             "do_aug": cfg.INPUT.DO_AUGUMENTATION,
             "do_crop": cfg.INPUT.CROP.ENABLED,
             "panoptic_branch": cfg.MODEL.MODE.PANOPTIC_BRANCH,
-            "guided_loss": cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE == "panoptic_guided"
+            "guided_loss": cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE == "panoptic_guided",
+            "max_disp": cfg.MODEL.DIS_EMBED_HEAD.MAX_DISP,
         }
         return ret
 
@@ -198,13 +201,13 @@ class JointDeeplabDatasetMapper:
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
         mask = dis_gt > 0.0
-        if "disparity_file_name" in dataset_dict:
+        if "disparity_file_name" in dataset_dict:  # only for cityscapes datasets
             dis_gt[mask] = (dis_gt[mask] - 1.) / 256
         dis_gt_with_mask[0, :, :] = dis_gt
         dis_gt_with_mask[1][mask] = 1
         valid_dis = dis_gt_with_mask[1, :, :]  # get mask
         valid_dis_mask = valid_dis == 1.0
-        mask_max_disp = dis_gt_with_mask[0, :, :] < 192
+        mask_max_disp = dis_gt_with_mask[0, :, :] < self.max_disp
         mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
         # dis_gt = dis_gt_with_mask[0]
 

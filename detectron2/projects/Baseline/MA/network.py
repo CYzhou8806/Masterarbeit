@@ -841,10 +841,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
                 dres0 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True),
-                                      convbn(max_dis, self.regression_inplanes, 3, 1, 1, 1),
+                                      convbn(max_dis, max_dis, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True))
                 decoder_stage['dres0'] = dres0
-                dres1 = nn.Sequential(convbn(self.regression_inplanes, self.regression_inplanes, 3, 1, 1, 1),
+                dres1 = nn.Sequential(convbn(max_dis, self.regression_inplanes, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True),
                                       convbn(self.regression_inplanes, self.hourglass_inplanes, 3, 1, 1, 1))
                 decoder_stage['dres1'] = dres1
