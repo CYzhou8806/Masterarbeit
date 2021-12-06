@@ -16,13 +16,13 @@ logger = logging.getLogger(__name__)
 
 def get_sceneflow_files(image_dir):
     output = []
-
+    # files = os.listdir(image_dir)
     for root, dirs, files in os.walk(image_dir):
         for file in files:
             if os.path.splitext(file)[-1] == '.png':
                 left_img_path = os.path.join(root, file)
                 right_img_path = left_img_path.replace('left', 'right')
-                gt_path = left_img_path.replace('left', 'disparity')
+                gt_path = left_img_path.replace('left', 'disparity').split('.')[0] + '.tiff'
                 output.append((left_img_path, right_img_path, gt_path))
     return output
 
@@ -48,21 +48,21 @@ def load_sceneflow(image_dir):
         ret[0]["right_file_name"]
     ), "Please place the right images in the folder"  # noqa
     assert PathManager.isfile(
-        ret[0]["disparity_file_name"]
+        ret[0]["disparity_file_name_tiff"]
     ), "Please place the disparity groundturth in the folder"  # noqa
     return ret
 
 
 _RAW_SCENEFLOW_DRIVING_SPLITS = {
-    "scenceflow_driving_train": (
-        "scenceflow/driving/train/left",
-        "scenceflow/driving/train/right",
-        "scenceflow/driving/train/disparity",
+    "sceneflow_driving_train": (
+        "sceneflow/driving/train/left",
+        "sceneflow/driving/train/right",
+        "sceneflow/driving/train/disparity",
     ),
-    "scenceflow_driving_val": (
-        "scenceflow/driving/val/left",
-        "scenceflow/driving/val/right",
-        "scenceflow/driving/val/disparity",
+    "sceneflow_driving_val": (
+        "sceneflow/driving/val/left",
+        "sceneflow/driving/val/right",
+        "sceneflow/driving/val/disparity",
     ),
     # "test": not supported yet
 }

@@ -37,15 +37,15 @@ SOLVER:
   IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"
 DATASETS:
-  TRAIN: ("scenceflow_driving_train",)   # scenceflow_driving_train or cityscapes_fine_joint_train
-  TEST: ("scenceflow_driving_val",)   # scenceflow_driving_val or cityscapes_fine_joint_train
+  TRAIN: ("sceneflow_driving_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train
+  TEST: ("sceneflow_driving_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train
 INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (64, 128)
     ENABLED: True
     TYPE: "absolute"
-  IMG_SIZE: [1024, 2048]  # h, w
+  IMG_SIZE: [540,960]  # h, w  540,960
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.

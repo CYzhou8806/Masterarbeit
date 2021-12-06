@@ -178,6 +178,7 @@ class JointDeeplabDatasetMapper:
 
         if "disparity_file_name_tiff" in dataset_dict:
             dis_gt = Image.open(dataset_dict.pop("disparity_file_name_tiff"))  # TODO: detect the dimension
+            dis_gt = np.array(dis_gt)
         elif "disparity_file_name" in dataset_dict:
             dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         else:
@@ -205,7 +206,7 @@ class JointDeeplabDatasetMapper:
         valid_dis_mask = valid_dis == 1.0
         mask_max_disp = dis_gt_with_mask[0, :, :] < 192
         mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
-        dis_gt = dis_gt_with_mask[0]
+        # dis_gt = dis_gt_with_mask[0]
 
         if self.guided_loss:
             pan_guided_raw = pan_guided_raw[:, :, :2]
@@ -229,7 +230,7 @@ class JointDeeplabDatasetMapper:
             dataset_dict.update(targets)
 
         # Generates training targets for disparity.
-        dis_target = self.disparity_target_generator(dis_gt, mask_disp)
+        dis_target = self.disparity_target_generator(dis_gt_with_mask[0], mask_disp)
         dataset_dict.update(dis_target)
 
         return dataset_dict
@@ -255,15 +256,14 @@ def pan_guided_target_generator(pan_guided):
 '''
 
 
-def disparity_target_generator(disparity_gt, mask=None):
+def disparity_target_generator(disparity_gt, mask):
     """
      Generates training targets for disparity.
      """
     # TODO: add operations
     return dict(dis_est=torch.as_tensor(np.ascontiguousarray(disparity_gt, dtype=np.float32)),
                 dis_mask=torch.as_tensor(np.ascontiguousarray(mask, dtype=np.float32)),
-                ) if mask else dict(dis_est=torch.as_tensor(np.ascontiguousarray(disparity_gt, dtype=np.float32)),
-                                    )
+                )
 
 
 def pan_guided_target_generator(pan_guided, mask):
