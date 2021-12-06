@@ -40,7 +40,7 @@ def load_sceneflow(image_dir):
                 ),
 
                 "right_file_name": right_image_file,
-                "disparity_file_name": disparity_file,
+                "disparity_file_name_tiff": disparity_file,
             }
         )
     assert len(ret), f"No images found in {image_dir}!"

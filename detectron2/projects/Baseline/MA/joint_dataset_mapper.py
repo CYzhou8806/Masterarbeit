@@ -19,7 +19,7 @@ from detectron2.data import MetadataCatalog
 from detectron2.data import detection_utils as utils
 from detectron2.data import transforms as T
 from detectron2.data.transforms.augmentation import _transform_to_aug
-
+from PIL import Image
 from .target_generator import PanopticDeepLabTargetGenerator
 
 __all__ = ["JointDeeplabDatasetMapper"]
@@ -147,7 +147,7 @@ class JointDeeplabDatasetMapper:
             small_instance_area=cfg.INPUT.SMALL_INSTANCE_AREA,
             small_instance_weight=cfg.INPUT.SMALL_INSTANCE_WEIGHT,
             ignore_crowd_in_semantic=cfg.INPUT.IGNORE_CROWD_IN_SEMANTIC,
-        )
+        ) if cfg.MODEL.MODE.PANOPTIC_BRANCH else None
 
         ret = {
             "augmentations": augs,
@@ -175,7 +175,13 @@ class JointDeeplabDatasetMapper:
         # Panoptic label is encoded in RGB image.
         pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB") if self.panoptic_branch else None
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
-        dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
+        if "disparity_file_name_tiff" in dataset_dict:
+            dis_gt = Image.open(dataset_dict.pop("disparity_file_name_tiff"))    # TODO: detect the dimension
+        elif "disparity_file_name" in dataset_dict:
+            dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
+        else:
+            raise TypeError("unexcepted form of disparity ground truth.")
+
         pan_guided_raw = utils.read_image(dataset_dict.pop("pan_guided"), "RGB") if self.guided_loss else None
 
         if self.do_aug or self.do_crop:
