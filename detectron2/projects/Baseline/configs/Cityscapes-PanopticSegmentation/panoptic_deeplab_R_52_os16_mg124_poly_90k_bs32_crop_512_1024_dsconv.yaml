@@ -43,7 +43,7 @@ INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (64, 128)
-    ENABLED: True
+    ENABLED: False
     TYPE: "absolute"
   IMG_SIZE: [540,960]  # h, w  540,960
   DO_AUGUMENTATION: False
