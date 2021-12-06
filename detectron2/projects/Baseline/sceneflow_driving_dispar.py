@@ -72,7 +72,7 @@ _RAW_SCENEFLOW_DRIVING_SPLITS = {
 def register_all_cityscapes_joint(root):
     meta = {}
 
-    for key, (image_dir,right_img_dir, gt_dir) in _RAW_SCENEFLOW_DRIVING_SPLITS.items():
+    for key, (image_dir, right_img_dir, gt_dir) in _RAW_SCENEFLOW_DRIVING_SPLITS.items():
         image_dir = os.path.join(root, image_dir)
         gt_dir = os.path.join(root, gt_dir)
         right_img_dir = os.path.join(root, right_img_dir)
