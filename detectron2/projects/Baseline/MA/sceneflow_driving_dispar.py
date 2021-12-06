@@ -4,7 +4,6 @@ import logging
 import os
 
 from detectron2.data import DatasetCatalog, MetadataCatalog
-from detectron2.data.datasets.builtin_meta import CITYSCAPES_CATEGORIES
 from detectron2.utils.file_io import PathManager
 
 """
@@ -55,23 +54,21 @@ def load_sceneflow(image_dir):
 
 
 _RAW_SCENEFLOW_DRIVING_SPLITS = {
-    "scenceflow_train": (
-        "scenceflow/train/left",
-        "scenceflow/train/right",
-        "scenceflow/train/disparity",
+    "scenceflow_driving_train": (
+        "scenceflow/driving/train/left",
+        "scenceflow/driving/train/right",
+        "scenceflow/driving/train/disparity",
     ),
-    "scenceflow_val": (
-        "scenceflow/val/left",
-        "scenceflow/val/right",
-        "scenceflow/val/disparity",
+    "scenceflow_driving_val": (
+        "scenceflow/driving/val/left",
+        "scenceflow/driving/val/right",
+        "scenceflow/driving/val/disparity",
     ),
     # "test": not supported yet
 }
 
 
-def register_all_cityscapes_joint(root):
-    meta = {}
-
+def register_all_sceneflow(root):
     for key, (image_dir, right_img_dir, gt_dir) in _RAW_SCENEFLOW_DRIVING_SPLITS.items():
         image_dir = os.path.join(root, image_dir)
         gt_dir = os.path.join(root, gt_dir)
@@ -81,10 +78,8 @@ def register_all_cityscapes_joint(root):
             key, lambda x=image_dir: load_sceneflow(x)
         )
         MetadataCatalog.get(key).set(
-            panoptic_root=gt_dir,
+            disparity_root=gt_dir,
             image_root=image_dir,
-            panoptic_json=gt_json,
-            gt_dir=gt_dir.replace("cityscapes_panoptic_", ""),
+            right_image_root=right_img_dir,
             evaluator_type="cityscapes_panoptic_seg",
-            **meta,
         )

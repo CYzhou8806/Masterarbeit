@@ -26,6 +26,7 @@ from detectron2.projects.deeplab import build_lr_scheduler
 from detectron2.projects.MA import (
     add_joint_estimation_config,
     register_all_cityscapes_joint,
+    register_all_sceneflow,
     JointDeeplabDatasetMapper,
 )
 from detectron2.solver import get_default_optimizer_params
@@ -108,6 +109,7 @@ class Trainer(DefaultTrainer):
     def build_train_loader(cls, cfg):
         _root = os.getenv("DETECTRON2_DATASETS", "datasets")
         register_all_cityscapes_joint(_root)
+        register_all_sceneflow(_root)
         mapper = JointDeeplabDatasetMapper(cfg) # TODO: changes
         return build_detection_train_loader(cfg, mapper=mapper)
 

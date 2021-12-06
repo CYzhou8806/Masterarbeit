@@ -36,6 +36,9 @@ SOLVER:
   MAX_ITER: 999999
   IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"
+DATASETS:
+  TRAIN: ("scenceflow_driving_train",)   # scenceflow_driving_train or cityscapes_fine_joint_train
+  TEST: ("scenceflow_driving_val",)   # scenceflow_driving_val or cityscapes_fine_joint_train
 INPUT:
   FORMAT: "RGB"
   CROP:
