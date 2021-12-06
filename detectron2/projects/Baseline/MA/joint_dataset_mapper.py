@@ -184,6 +184,9 @@ class JointDeeplabDatasetMapper:
             dis_gt = np.array(dis_gt)
         elif "disparity_file_name" in dataset_dict:
             dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
+        elif "disparity_file_name_kitti_2015" in dataset_dict:
+            dis_gt = Image.open(dataset_dict.pop("disparity_file_name_kitti_2015"))
+            dis_gt = np.array(dis_gt)
         else:
             raise TypeError("unexcepted form of disparity ground truth.")
 
@@ -203,6 +206,8 @@ class JointDeeplabDatasetMapper:
         mask = dis_gt > 0.0
         if "disparity_file_name" in dataset_dict:  # only for cityscapes datasets
             dis_gt[mask] = (dis_gt[mask] - 1.) / 256
+        if "disparity_file_name_kitti_2015" in dataset_dict:  # only for kitti 2015 datasets
+            dis_gt[mask] = dis_gt[mask] / 256
         dis_gt_with_mask[0, :, :] = dis_gt
         dis_gt_with_mask[1][mask] = 1
         valid_dis = dis_gt_with_mask[1, :, :]  # get mask

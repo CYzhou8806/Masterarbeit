@@ -27,6 +27,7 @@ from detectron2.projects.MA import (
     add_joint_estimation_config,
     register_all_cityscapes_joint,
     register_all_sceneflow,
+    register_all_kitti_2015,
     JointDeeplabDatasetMapper,
 )
 from detectron2.solver import get_default_optimizer_params
@@ -110,6 +111,7 @@ class Trainer(DefaultTrainer):
         _root = os.getenv("DETECTRON2_DATASETS", "datasets")
         register_all_cityscapes_joint(_root)
         register_all_sceneflow(_root)
+        register_all_kitti_2015(_root)
         mapper = JointDeeplabDatasetMapper(cfg) # TODO: changes
         return build_detection_train_loader(cfg, mapper=mapper)
 
