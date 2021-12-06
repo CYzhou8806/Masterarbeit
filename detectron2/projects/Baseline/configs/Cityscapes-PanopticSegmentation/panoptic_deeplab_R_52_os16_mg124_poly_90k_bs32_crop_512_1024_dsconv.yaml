@@ -34,18 +34,18 @@ MODEL:
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 999999
-  IMS_PER_BATCH: 4
+  IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"
 DATASETS:
-  TRAIN: ("sceneflow_driving_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train
-  TEST: ("sceneflow_driving_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train
+  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train
+  TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train
 INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (256, 512)
     ENABLED: True
     TYPE: "absolute"
-  IMG_SIZE: [540,960]  # h, w  540,960
+  IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti) or 1024,2048 (cityscapes)
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
