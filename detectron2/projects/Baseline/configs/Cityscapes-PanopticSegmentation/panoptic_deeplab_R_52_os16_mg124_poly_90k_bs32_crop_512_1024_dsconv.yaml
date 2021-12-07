@@ -1,6 +1,6 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  WEIGHTS: "./model/init_panoptic_cityscapes_weights.pth"
+  WEIGHTS: "./model/re_init_panoptic_cityscapes_weights.pth"
   PIXEL_MEAN: [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]
   BACKBONE:
