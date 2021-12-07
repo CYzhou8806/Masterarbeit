@@ -106,6 +106,14 @@ class JointPredictor:
             inputs = {"image": imgL, "right_image": imgR, "height": height, "width": width}
             predictions = self.model([inputs])[0]
 
+            if top_pad != 0 and right_pad != 0:
+                img = pred_disp[top_pad:, :-right_pad]
+            elif top_pad == 0 and right_pad != 0:
+                img = pred_disp[:, :-right_pad]
+            elif top_pad != 0 and right_pad == 0:
+                img = pred_disp[top_pad:, :]
+            else:
+                img = pred_disp
 
             return predictions
 
