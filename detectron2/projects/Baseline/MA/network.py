@@ -236,12 +236,16 @@ class JointEstimation(nn.Module):
             right_images = ImageList.from_tensors(right_images, size_divisibility)
             right_features = self.backbone(right_images.tensor)
 
-            dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
-            dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
-            dis_targets.detach_()
-            dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
-            dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
-            dis_mask.detach_()
+            if "dis_est" in batched_inputs[0]:
+                dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
+                dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
+                dis_targets.detach_()
+                dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
+                dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
+                dis_mask.detach_()
+            else:
+                dis_targets = None
+                dis_mask = None
 
             if self.dis_loss_type == "panoptic_guided":
                 pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]

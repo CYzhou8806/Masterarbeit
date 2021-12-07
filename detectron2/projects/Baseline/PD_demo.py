@@ -43,8 +43,8 @@ def get_parser():
     )
     parser.add_argument(
         "--input_right_dir",
-        default=[
-            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3"],
+        default=
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -115,7 +115,7 @@ def main(args):
         for path in tqdm.tqdm(args.input, disable=not args.output):
             # use PIL, to be consistent with evaluation
             img = read_image(path, format="BGR")
-            right_path = os.path.join(args.input_dir, os.path.basename(path))
+            right_path = os.path.join(args.input_right_dir, os.path.basename(path))
             img_right = read_image(right_path, format="BGR")
 
             start_time = time.time()
