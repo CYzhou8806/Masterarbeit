@@ -206,7 +206,7 @@ class ResizeDemoInput(Augmentation):
 
     @torch.jit.unused
     def __init__(
-        self, short_edge_length, max_size=sys.maxsize, sample_style="range", interp=Image.BILINEAR
+        self, short_edge_length, max_size=sys.maxsize, sample_style="range", interp=Image.NEAREST
     ):
         """
         Args:
@@ -239,7 +239,8 @@ class ResizeDemoInput(Augmentation):
         if size == 0:
             return NoOpTransform()
 
-        newh, neww = ResizeShortestEdge.get_output_shape(h, w, size, self.max_size)
+        # newh, neww = ResizeDemoInput.get_output_shape(h, w, size, self.max_size)
+        newh, neww = size, self.max_size
         return ResizeTransform(h, w, newh, neww, self.interp)
 
     @staticmethod
