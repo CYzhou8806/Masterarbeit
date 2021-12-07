@@ -86,24 +86,27 @@ class JointPredictor:
             # img_right = original_img_right
             imgR = torch.as_tensor(original_img_right.astype("float32").transpose(2, 0, 1))
 
-            # pad to width and hight to 16 times
-            if imgL.shape[1] % 16 != 0:
-                times = imgL.shape[1] // 16
-                top_pad = (times + 1) * 16 - imgL.shape[1]
-            else:
-                top_pad = 0
+            # pad to width and hight to 64 times
 
-            if imgL.shape[2] % 16 != 0:
-                times = imgL.shape[2] // 16
-                right_pad = (times + 1) * 16 - imgL.shape[2]
+            if imgL.shape[2] % 64 != 0:
+                times = imgL.shape[2] // 64
+                right_pad = (times + 1) * 64 - imgL.shape[2]
             else:
                 right_pad = 0
 
-            imgL = F.pad(imgL, (0, right_pad, top_pad, 0)).unsqueeze(0)
-            imgR = F.pad(imgR, (0, right_pad, top_pad, 0)).unsqueeze(0)
+            if imgL.shape[1] % 64 != 0:
+                times = imgL.shape[1] // 64
+                top_pad = (times + 1) * 64 - imgL.shape[1]
+            else:
+                top_pad = 0
 
-            inputs = {"image": image, "right_image": img_right, "height": height, "width": width}
+            imgL = F.pad(imgL, (0, right_pad, top_pad, 0))
+            imgR = F.pad(imgR, (0, right_pad, top_pad, 0))
+
+            inputs = {"image": imgL, "right_image": imgR, "height": height, "width": width}
             predictions = self.model([inputs])[0]
+
+
             return predictions
 
 
