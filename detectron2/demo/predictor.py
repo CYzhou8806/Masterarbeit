@@ -110,6 +110,7 @@ class JointPredictor:
             # if 'dis_est' in predictions:
             for key in predictions:
                 if key == 'dis_est':
+                    tmp = predictions[key][-1]
                     if top_pad != 0 and right_pad != 0:
                         results[key] = predictions[key][-1].squeeze(0)[top_pad:, :-right_pad].cpu().numpy()
                     elif top_pad == 0 and right_pad != 0:

@@ -37,7 +37,7 @@ def get_parser():
     parser.add_argument(
         "--input",
         default=[
-            "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -46,7 +46,7 @@ def get_parser():
     parser.add_argument(
         "--input_right_dir",
         default=
-            "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3",
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -63,7 +63,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_0069999.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_0059999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser

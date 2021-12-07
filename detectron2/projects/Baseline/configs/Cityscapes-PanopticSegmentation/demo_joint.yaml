@@ -1,6 +1,6 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  WEIGHTS: "./model/model_0069999.pth"
+  WEIGHTS: "./model/model_0059999.pth"
   PIXEL_MEAN: [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]
   BACKBONE:
@@ -29,7 +29,7 @@ MODEL:
     RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
     GRADIENT_TYPE: "sobel"
   MODE:
-    PANOPTIC_BRANCH: False
+    PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
