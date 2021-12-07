@@ -106,33 +106,27 @@ class JointPredictor:
             inputs = {"image": imgL, "right_image": imgR, "height": height, "width": width}
             predictions = self.model([inputs])[0]
 
-
-            print(type(predictions['dis_est'][0]))
-            print(len(predictions['panoptic_seg']))
-            print(predictions['panoptic_seg'][1].shape)
-
-            raise RuntimeError('excepted stop')
             results = {}
             # if 'dis_est' in predictions:
             for key in predictions:
                 if key == 'dis_est':
                     if top_pad != 0 and right_pad != 0:
-                        results[key] = predictions[key][-1][-1].squeeze(0)[top_pad:, :-right_pad].cpu().numpy()
+                        results[key] = predictions[key][-1].squeeze(0)[top_pad:, :-right_pad].cpu().numpy()
                     elif top_pad == 0 and right_pad != 0:
-                        results[key] = predictions[key][-1][-1].squeeze(0)[:, :-right_pad].cpu().numpy()
+                        results[key] = predictions[key][-1].squeeze(0)[:, :-right_pad].cpu().numpy()
                     elif top_pad != 0 and right_pad == 0:
-                        results[key] = predictions[key][-1][-1].squeeze(0)[top_pad:, :].cpu().numpy()
+                        results[key] = predictions[key][-1].squeeze(0)[top_pad:, :].cpu().numpy()
                     else:
-                        results[key] = predictions[key][-1][-1].squeeze(0).cpu().numpy()
-                if key == 'dis_est':
+                        results[key] = predictions[key][-1].squeeze(0).cpu().numpy()
+                if key == 'panoptic_seg':
                     if top_pad != 0 and right_pad != 0:
-                        results[key] = predictions[key][-1][-1].squeeze(0)[top_pad:, :-right_pad].cpu().numpy()
+                        results[key] = predictions[key][0][top_pad:, :-right_pad].cpu().numpy()
                     elif top_pad == 0 and right_pad != 0:
-                        results[key] = predictions[key][-1][-1].squeeze(0)[:, :-right_pad].cpu().numpy()
+                        results[key] = predictions[key][0][:, :-right_pad].cpu().numpy()
                     elif top_pad != 0 and right_pad == 0:
-                        results[key] = predictions[key][-1][-1].squeeze(0)[top_pad:, :].cpu().numpy()
+                        results[key] = predictions[key][0][top_pad:, :].cpu().numpy()
                     else:
-                        results[key] = predictions[key][-1][-1].squeeze(0).cpu().numpy()
+                        results[key] = predictions[key][0].cpu().numpy()
             return results
 
 
