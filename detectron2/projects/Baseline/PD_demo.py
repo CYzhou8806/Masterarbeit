@@ -37,14 +37,16 @@ def get_parser():
     parser.add_argument(
         "--input",
         default=[
-            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
+            "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
+    # /bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015
+    # /home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png
     parser.add_argument(
         "--input_right_dir",
         default=
-            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3",
+            "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -52,15 +54,16 @@ def get_parser():
 
     parser.add_argument(
         "--output",
-        default="/home/eistrauben/桌面/000004_10_seg.png",
+        default="/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/demo_output/000004_10_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
     # default=r"C:\Users\cyzho\Desktop\000004_10_seg.png",
+    # default="/home/eistrauben/桌面/000004_10_seg.png",
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_0059999.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_0069999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser

@@ -106,6 +106,11 @@ class JointPredictor:
             inputs = {"image": imgL, "right_image": imgR, "height": height, "width": width}
             predictions = self.model([inputs])[0]
 
+            for key in predictions:
+                if key != 'dis_est':
+                    print(key)
+                    print(predictions[key])
+            raise RuntimeError('excepted stop')
             results = {}
             # if 'dis_est' in predictions:
             for key in predictions:
