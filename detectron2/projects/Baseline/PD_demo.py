@@ -37,16 +37,17 @@ def get_parser():
     parser.add_argument(
         "--input",
         default=[
-            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/demo_input/left/aachen_000000_000019.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
     # /bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015
     # /home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png
+    # /home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/demo_input/left/aachen_000000_000019.png
     parser.add_argument(
         "--input_right_dir",
         default=
-            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3",
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/demo_input/right",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -54,7 +55,7 @@ def get_parser():
 
     parser.add_argument(
         "--output",
-        default="/home/eistrauben/桌面/000004_10_seg.png",
+        default="/home/eistrauben/桌面/aachen_000000_000019_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
