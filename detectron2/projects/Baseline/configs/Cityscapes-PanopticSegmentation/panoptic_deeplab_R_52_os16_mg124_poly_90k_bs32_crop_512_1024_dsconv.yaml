@@ -36,6 +36,9 @@ SOLVER:
   MAX_ITER: 999999
   IMS_PER_BATCH: 4
   LR_SCHEDULER_NAME: "WarmupPolyLR"
+  FREEZE_BACKBONE: True
+  FREEZE_PANOPTIC: True
+  FREEZE_DISPARITY: False
 DATASETS:
   TRAIN: ("sceneflow_driving_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train
   TEST: ("sceneflow_driving_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train

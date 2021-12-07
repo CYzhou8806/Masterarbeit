@@ -95,4 +95,7 @@ def add_joint_estimation_config(cfg):
     cfg.MODEL.MODE.DISPARITY_BRANCH = True
     cfg.MODEL.MODE.FEATURE_FUSION = True
     cfg.RESUME = False
+    cfg.SOLVER.FREEZE_BACKBONE = False
+    cfg.SOLVER.FREEZE_PANOPTIC = False
+    cfg.SOLVER.FREEZE_DISPARITY = False
 
