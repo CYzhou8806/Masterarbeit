@@ -49,7 +49,7 @@ if __name__ == "__main__":
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     # down_samples_dataset(input_root, scale=4)
 
-
+    '''
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
@@ -63,17 +63,18 @@ if __name__ == "__main__":
 
     checkpointer = DetectionCheckpointer(model)
     checkpointer_5999 = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/model_0059999.pth"
-    checkpointer.load(checkpointer_init)
-
+    checkpointer.load(checkpointer_5999)
+    '''
     path_panoptic_model_dict = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/original_panoptic_dict.pth"
     panoptic_model_dict = torch.load(path_panoptic_model_dict)
 
+    '''
     model_dict = model.state_dict()
     # state_dict = {k: v for k, v in panoptic_model.items() if k in model_dict.keys()}
     model_dict.update(panoptic_model_dict)
     model.load_state_dict(model_dict)
 
-    torch.save(model.state_dict(), 're_init_panoptic_cityscapes_weights.pth')
+    # torch.save(model.state_dict(), 're_init_panoptic_cityscapes_weights.pth')
     # torch.save(model, 'init_panoptic_cityscapes.pth')
 
     # checkpointer = DetectionCheckpointer(model, save_to_disk=True, save_dir="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model")
@@ -82,7 +83,7 @@ if __name__ == "__main__":
     # checkpointer_init = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/init_panoptic_cityscapes.pth"
     # checkpointer.load(checkpointer_init)
     # model.load_state_dict(torch.load(checkpointer_init))
-
+    '''
 
 
 
