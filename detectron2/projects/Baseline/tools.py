@@ -74,12 +74,19 @@ if __name__ == "__main__":
     joint_dict_name = list(model.state_dict())
 
     count = 0
+    sum_p = []
     for i, p in enumerate(joint_dict_name):
-        if p not in panoptic_dict_name:
-            # print(i)
-            count += 1
-            print(p.split('.')[0])
-    print("count",count)
+        sum_p.append(p.split('.')[0])
+        print(p.split('.')[0])
+
+
+    print(sum_p.index('backbone'))
+    print(sum_p.index('sem_seg_head'))
+
+    print(sum_p.index('ins_embed_head'))
+    print(sum_p.index('dis_embed_head'))
+
+
     '''
     model_dict = model.state_dict()
     # state_dict = {k: v for k, v in panoptic_model.items() if k in model_dict.keys()}

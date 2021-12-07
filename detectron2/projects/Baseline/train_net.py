@@ -132,12 +132,24 @@ class Trainer(DefaultTrainer):
         与default相比, 这里更改了参数设置, 并且使用了不同的优化器. 
         所有的优化器都在相同的目录里, 按照需要调用即可
         """
+
+        index_backbone = []
+        index_panoptic = []
+        index_disparity = []
+        for i, p in enumerate(list(model.state_dict())):
+            if p.split('.')[0] == 'backbone':
+                index_backbone.append(i)
+            if p.split('.')[0] in ['sem_seg_head', 'ins_embed_head']:
+                index_panoptic.append(i)
+            if p.split('.')[0] == 'dis_embed_head':
+                index_disparity.append(i)
+
         for i, p in enumerate(model.parameters()):
-            if cfg.SOLVER.FREEZE_BACKBONE and p.split('.')[0] == 'backbone':
+            if cfg.SOLVER.FREEZE_BACKBONE and i in index_backbone:
                 p.requires_grad = False
-            if cfg.SOLVER.FREEZE_PANOPTIC and (p.split('.')[0] == 'sem_seg_head' or p.split('.')[0] == 'ins_embed_head'):
+            if cfg.SOLVER.FREEZE_PANOPTIC and i in index_panoptic:
                 p.requires_grad = False
-            if cfg.SOLVER.FREEZE_DISPARITY and p.split('.')[0] == 'dis_embed_head':
+            if cfg.SOLVER.FREEZE_DISPARITY and i in index_disparity:
                 p.requires_grad = False
 
         params = get_default_optimizer_params(
