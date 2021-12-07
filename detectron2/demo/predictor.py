@@ -107,8 +107,8 @@ class JointPredictor:
             predictions = self.model([inputs])[0]
 
 
-            print(type(predictions['dis_est']))
-            print(predictions['panoptic_seg'][0].shape)
+            print(type(predictions['dis_est'][0]))
+            print(len(predictions['panoptic_seg']))
             print(predictions['panoptic_seg'][1].shape)
 
             raise RuntimeError('excepted stop')
