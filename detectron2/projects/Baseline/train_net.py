@@ -132,6 +132,9 @@ class Trainer(DefaultTrainer):
         与default相比, 这里更改了参数设置, 并且使用了不同的优化器. 
         所有的优化器都在相同的目录里, 按照需要调用即可
         """
+
+
+
         params = get_default_optimizer_params(
             model,
             weight_decay=cfg.SOLVER.WEIGHT_DECAY,
