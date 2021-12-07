@@ -120,6 +120,7 @@ class JointPredictor:
                     else:
                         results[key] = predictions[key][-1].squeeze(0).cpu().numpy()
                 if key == 'panoptic_seg':
+                    '''
                     if top_pad != 0 and right_pad != 0:
                         results[key] = predictions[key][0][top_pad:, :-right_pad].cpu().numpy()
                     elif top_pad == 0 and right_pad != 0:
@@ -128,6 +129,8 @@ class JointPredictor:
                         results[key] = predictions[key][0][top_pad:, :].cpu().numpy()
                     else:
                         results[key] = predictions[key][0].cpu().numpy()
+                    '''
+                    results[key] = predictions[key]
             return results
 
 
