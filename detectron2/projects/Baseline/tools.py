@@ -67,7 +67,10 @@ if __name__ == "__main__":
     '''
     path_panoptic_model_dict = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/original_panoptic_dict.pth"
     panoptic_model_dict = torch.load(path_panoptic_model_dict)
+    dict_name = list(panoptic_model_dict)
 
+    for p in dict_name:
+        print(p)
     '''
     model_dict = model.state_dict()
     # state_dict = {k: v for k, v in panoptic_model.items() if k in model_dict.keys()}
