@@ -312,7 +312,7 @@ class JointEstimation(nn.Module):
                 panoptic_image = panoptic_image.squeeze(0)
                 semantic_prob = F.softmax(r, dim=0)
                 # For panoptic segmentation evaluation.
-                processed_results[-1]["panoptic_seg"] = (panoptic_image, None)
+                processed_results[-1]["panoptic_seg"] = (panoptic_image, self.meta.label_divisor)
                 # For instance segmentation evaluation.
                 if self.predict_instances:
                     instances = []
