@@ -5,6 +5,7 @@ import multiprocessing as mp
 from collections import deque
 import cv2
 import torch
+import torch.nn.functional as F
 
 import detectron2.data.transforms as T
 from detectron2.checkpoint import DetectionCheckpointer
@@ -77,13 +78,29 @@ class JointPredictor:
                 original_image = original_image[:, :, ::-1]
                 original_img_right = original_img_right[:, :, ::-1]
             height, width = original_image.shape[:2]
-            image = self.aug.get_transform(original_image).apply_image(original_image)
+            # image = self.aug.get_transform(original_image).apply_image(original_image)
             # image = original_image
-            image = torch.as_tensor(image.astype("float32").transpose(2, 0, 1))
+            imgL = torch.as_tensor(original_image.astype("float32").transpose(2, 0, 1))
 
-            img_right = self.aug.get_transform(original_img_right).apply_image(original_img_right)
+            # img_right = self.aug.get_transform(original_img_right).apply_image(original_img_right)
             # img_right = original_img_right
-            img_right = torch.as_tensor(img_right.astype("float32").transpose(2, 0, 1))
+            imgR = torch.as_tensor(original_img_right.astype("float32").transpose(2, 0, 1))
+
+            # pad to width and hight to 16 times
+            if imgL.shape[1] % 16 != 0:
+                times = imgL.shape[1] // 16
+                top_pad = (times + 1) * 16 - imgL.shape[1]
+            else:
+                top_pad = 0
+
+            if imgL.shape[2] % 16 != 0:
+                times = imgL.shape[2] // 16
+                right_pad = (times + 1) * 16 - imgL.shape[2]
+            else:
+                right_pad = 0
+
+            imgL = F.pad(imgL, (0, right_pad, top_pad, 0)).unsqueeze(0)
+            imgR = F.pad(imgR, (0, right_pad, top_pad, 0)).unsqueeze(0)
 
             inputs = {"image": image, "right_image": img_right, "height": height, "width": width}
             predictions = self.model([inputs])[0]

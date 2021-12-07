@@ -126,6 +126,7 @@ class JointEstimation(nn.Module):
             else self.backbone.size_divisibility
         )
 
+        # img_size = [batched_inputs[0].get("hight"), batched_inputs[0].get("width")]
         losses = {}
         if self.panotic_branch and self.disparity_branch:  # both in work
             # load left images
