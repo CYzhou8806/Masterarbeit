@@ -106,16 +106,28 @@ class JointPredictor:
             inputs = {"image": imgL, "right_image": imgR, "height": height, "width": width}
             predictions = self.model([inputs])[0]
 
-            if top_pad != 0 and right_pad != 0:
-                img = pred_disp[top_pad:, :-right_pad]
-            elif top_pad == 0 and right_pad != 0:
-                img = pred_disp[:, :-right_pad]
-            elif top_pad != 0 and right_pad == 0:
-                img = pred_disp[top_pad:, :]
-            else:
-                img = pred_disp
-
-            return predictions
+            results = {}
+            # if 'dis_est' in predictions:
+            for key in predictions:
+                if key == 'dis_est':
+                    if top_pad != 0 and right_pad != 0:
+                        results[key] = predictions[key][-1][-1].squeeze(0)[top_pad:, :-right_pad].cpu().numpy()
+                    elif top_pad == 0 and right_pad != 0:
+                        results[key] = predictions[key][-1][-1].squeeze(0)[:, :-right_pad].cpu().numpy()
+                    elif top_pad != 0 and right_pad == 0:
+                        results[key] = predictions[key][-1][-1].squeeze(0)[top_pad:, :].cpu().numpy()
+                    else:
+                        results[key] = predictions[key][-1][-1].squeeze(0).cpu().numpy()
+                if key == 'dis_est':
+                    if top_pad != 0 and right_pad != 0:
+                        results[key] = predictions[key][-1][-1].squeeze(0)[top_pad:, :-right_pad].cpu().numpy()
+                    elif top_pad == 0 and right_pad != 0:
+                        results[key] = predictions[key][-1][-1].squeeze(0)[:, :-right_pad].cpu().numpy()
+                    elif top_pad != 0 and right_pad == 0:
+                        results[key] = predictions[key][-1][-1].squeeze(0)[top_pad:, :].cpu().numpy()
+                    else:
+                        results[key] = predictions[key][-1][-1].squeeze(0).cpu().numpy()
+            return results
 
 
 class VisualizationDemo(object):

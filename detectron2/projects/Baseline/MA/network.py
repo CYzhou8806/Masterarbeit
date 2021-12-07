@@ -78,7 +78,7 @@ class JointEstimation(nn.Module):
         # TODO: following meaning still not clear
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
         self.register_buffer("pixel_std", torch.tensor(cfg.MODEL.PIXEL_STD).view(-1, 1, 1), False)
-        self.meta = MetadataCatalog.get(cfg.DATASETS.TRAIN[0])
+        self.meta = MetadataCatalog.get("cityscapes_fine_panoptic_train")
         self.stuff_area = cfg.MODEL.PANOPTIC_DEEPLAB.STUFF_AREA
         self.threshold = cfg.MODEL.PANOPTIC_DEEPLAB.CENTER_THRESHOLD
         self.nms_kernel = cfg.MODEL.PANOPTIC_DEEPLAB.NMS_KERNEL
@@ -199,12 +199,16 @@ class JointEstimation(nn.Module):
                 for key in left_sem_seg_features:
                     pyramid_features[key] = []
 
-            dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
-            dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
-            dis_targets.detach_()
-            dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
-            dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
-            dis_mask.detach_()
+            if "dis_est" in batched_inputs[0]:
+                dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
+                dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
+                dis_targets.detach_()
+                dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
+                dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
+                dis_mask.detach_()
+            else:
+                dis_targets = None
+                dis_mask = None
 
             if self.dis_loss_type == "panoptic_guided":
                 pan_guided = [x["pan_gui"].to(self.device) for x in batched_inputs]
@@ -349,8 +353,7 @@ class JointEstimation(nn.Module):
                     if len(instances) > 0:
                         processed_results[-1]["instances"] = Instances.cat(instances)
         elif self.disparity_branch:
-            for dis_result in zip(dis_results):
-                processed_results.append({"dis_est": dis_result})
+            processed_results.append({"dis_est": dis_results[-1]})
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
                              "Panoptic_Branch' are supported")

@@ -29,7 +29,7 @@ MODEL:
     RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
     GRADIENT_TYPE: "sobel"
   MODE:
-    PANOPTIC_BRANCH: False
+    PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:

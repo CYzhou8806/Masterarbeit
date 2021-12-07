@@ -129,9 +129,9 @@ def main(args):
                     time.time() - start_time,
                 )
             )
-            dis_est = predictions['dis_est'][-1][-1].cpu().numpy()
+            dis_est = predictions['dis_est']
             dis_est = (dis_est * 256).astype('uint16')
-            dis_img = Image.fromarray(dis_est[0,0,:,:])
+            dis_img = Image.fromarray(dis_est)
 
             if args.output:
                 if os.path.isdir(args.output):
@@ -142,7 +142,7 @@ def main(args):
                     assert len(args.input) == 1, "Please specify a directory with args.output"
                     out_filename = args.output
                     out_disp_name = out_filename.replace('seg', 'dis')
-                #visualized_output.save(out_filename)
+                visualized_output.save(out_filename)
                 dis_img.save(out_disp_name)
             else:
                 cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
