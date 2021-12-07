@@ -22,3 +22,4 @@ INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (1024, 2048)
+    ENABLE: False
