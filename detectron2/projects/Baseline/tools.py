@@ -75,7 +75,7 @@ if __name__ == "__main__":
 
     count = 0
     for i, p in enumerate(joint_dict_name):
-        if p in panoptic_dict_name:
+        if p not in panoptic_dict_name:
             # print(i)
             count += 1
             print(p.split('.')[0])
