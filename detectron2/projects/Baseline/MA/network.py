@@ -127,7 +127,7 @@ class JointEstimation(nn.Module):
         )
 
         losses = {}
-        if self.panotic_branch and self.disparity_branch:   # both in work
+        if self.panotic_branch and self.disparity_branch:  # both in work
             # load left images
             left_images = [x["image"].to(self.device) for x in batched_inputs]
             left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
@@ -184,7 +184,8 @@ class JointEstimation(nn.Module):
 
             pyramid_features = {}
             if self.feature_fusion:
-                right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None, is_left=False)
+                right_sem_seg_results, _, right_sem_seg_features = self.sem_seg_head(right_features, None, None,
+                                                                                     is_left=False)
                 right_center_results, right_offset_results, _, _, right_ins_seg_features = self.ins_embed_head(
                     right_features, None, None, None, None, is_left=False)
 
@@ -215,9 +216,10 @@ class JointEstimation(nn.Module):
                 pan_guided = None
                 pan_mask = None
 
-            dis_embed_loss, dis_result = self.dis_embed_head(left_features, right_features, pyramid_features,
-                                                             dis_targets=dis_targets,
-                                                             dis_mask=dis_mask, pan_guided=pan_guided, pan_mask=pan_mask)
+            dis_embed_loss, dis_results = self.dis_embed_head(left_features, right_features, pyramid_features,
+                                                              dis_targets=dis_targets,
+                                                              dis_mask=dis_mask, pan_guided=pan_guided,
+                                                              pan_mask=pan_mask)
             losses.update(dis_embed_loss)
 
         elif self.disparity_branch:
@@ -256,10 +258,10 @@ class JointEstimation(nn.Module):
             for key in ['1/16', '1/8', '1/4']:
                 pyramid_features[key] = []
 
-            dis_embed_loss, dis_result = self.dis_embed_head(left_features, right_features, pyramid_features,
-                                                             dis_targets=dis_targets,
-                                                             dis_mask=dis_mask, pan_guided=pan_guided,
-                                                             pan_mask=pan_mask)
+            dis_embed_loss, dis_results = self.dis_embed_head(left_features, right_features, pyramid_features,
+                                                              dis_targets=dis_targets,
+                                                              dis_mask=dis_mask, pan_guided=pan_guided,
+                                                              pan_mask=pan_mask)
             losses.update(dis_embed_loss)
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
@@ -270,74 +272,83 @@ class JointEstimation(nn.Module):
         if self.benchmark_network_speed:
             return []
 
-        # TODO: to adapt the results
         processed_results = []
-        for sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
-                sem_seg_results, center_results, offset_results, batched_inputs, left_images.image_sizes
-        ):
-            height = input_per_image.get("height")
-            width = input_per_image.get("width")
-            r = sem_seg_postprocess(sem_seg_result, image_size, height, width)
-            c = sem_seg_postprocess(center_result, image_size, height, width)
-            o = sem_seg_postprocess(offset_result, image_size, height, width)
-            # Post-processing to get panoptic segmentation.
-            panoptic_image, _ = get_panoptic_segmentation(
-                r.argmax(dim=0, keepdim=True),
-                c,
-                o,
-                thing_ids=self.meta.thing_dataset_id_to_contiguous_id.values(),
-                label_divisor=self.meta.label_divisor,
-                stuff_area=self.stuff_area,
-                void_label=-1,
-                threshold=self.threshold,
-                nms_kernel=self.nms_kernel,
-                top_k=self.top_k,
-            )
-            # For semantic segmentation evaluation.
-            processed_results.append({"sem_seg": r})
-            panoptic_image = panoptic_image.squeeze(0)
-            semantic_prob = F.softmax(r, dim=0)
-            # For panoptic segmentation evaluation.
-            processed_results[-1]["panoptic_seg"] = (panoptic_image, None)
-            # For instance segmentation evaluation.
-            if self.predict_instances:
-                instances = []
-                panoptic_image_cpu = panoptic_image.cpu().numpy()
-                for panoptic_label in np.unique(panoptic_image_cpu):
-                    if panoptic_label == -1:
-                        continue
-                    pred_class = panoptic_label // self.meta.label_divisor
-                    isthing = pred_class in list(
-                        self.meta.thing_dataset_id_to_contiguous_id.values()
-                    )
-                    # Get instance segmentation results.
-                    if isthing:
-                        instance = Instances((height, width))
-                        # Evaluation code takes continuous id starting from 0
-                        instance.pred_classes = torch.tensor(
-                            [pred_class], device=panoptic_image.device
+        if self.panotic_branch and self.disparity_branch:
+            for dis_result, sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
+                    dis_results, sem_seg_results, center_results, offset_results, batched_inputs,
+                    left_images.image_sizes
+            ):
+                height = input_per_image.get("height")
+                width = input_per_image.get("width")
+                r = sem_seg_postprocess(sem_seg_result, image_size, height, width)
+                c = sem_seg_postprocess(center_result, image_size, height, width)
+                o = sem_seg_postprocess(offset_result, image_size, height, width)
+                # Post-processing to get panoptic segmentation.
+                panoptic_image, _ = get_panoptic_segmentation(
+                    r.argmax(dim=0, keepdim=True),
+                    c,
+                    o,
+                    thing_ids=self.meta.thing_dataset_id_to_contiguous_id.values(),
+                    label_divisor=self.meta.label_divisor,
+                    stuff_area=self.stuff_area,
+                    void_label=-1,
+                    threshold=self.threshold,
+                    nms_kernel=self.nms_kernel,
+                    top_k=self.top_k,
+                )
+                processed_results.append({"dis_est": dis_result})
+                # For semantic segmentation evaluation.
+                # processed_results.append({"sem_seg": r})
+                processed_results[-1]["panoptic_seg"] = r
+                panoptic_image = panoptic_image.squeeze(0)
+                semantic_prob = F.softmax(r, dim=0)
+                # For panoptic segmentation evaluation.
+                processed_results[-1]["panoptic_seg"] = (panoptic_image, None)
+                # For instance segmentation evaluation.
+                if self.predict_instances:
+                    instances = []
+                    panoptic_image_cpu = panoptic_image.cpu().numpy()
+                    for panoptic_label in np.unique(panoptic_image_cpu):
+                        if panoptic_label == -1:
+                            continue
+                        pred_class = panoptic_label // self.meta.label_divisor
+                        isthing = pred_class in list(
+                            self.meta.thing_dataset_id_to_contiguous_id.values()
                         )
-                        mask = panoptic_image == panoptic_label
-                        instance.pred_masks = mask.unsqueeze(0)
-                        # Average semantic probability
-                        sem_scores = semantic_prob[pred_class, ...]
-                        sem_scores = torch.mean(sem_scores[mask])
-                        # Center point probability
-                        mask_indices = torch.nonzero(mask).float()
-                        center_y, center_x = (
-                            torch.mean(mask_indices[:, 0]),
-                            torch.mean(mask_indices[:, 1]),
-                        )
-                        center_scores = c[0, int(center_y.item()), int(center_x.item())]
-                        # Confidence score is semantic prob * center prob.
-                        instance.scores = torch.tensor(
-                            [sem_scores * center_scores], device=panoptic_image.device
-                        )
-                        # Get bounding boxes
-                        instance.pred_boxes = BitMasks(instance.pred_masks).get_bounding_boxes()
-                        instances.append(instance)
-                if len(instances) > 0:
-                    processed_results[-1]["instances"] = Instances.cat(instances)
+                        # Get instance segmentation results.
+                        if isthing:
+                            instance = Instances((height, width))
+                            # Evaluation code takes continuous id starting from 0
+                            instance.pred_classes = torch.tensor(
+                                [pred_class], device=panoptic_image.device
+                            )
+                            mask = panoptic_image == panoptic_label
+                            instance.pred_masks = mask.unsqueeze(0)
+                            # Average semantic probability
+                            sem_scores = semantic_prob[pred_class, ...]
+                            sem_scores = torch.mean(sem_scores[mask])
+                            # Center point probability
+                            mask_indices = torch.nonzero(mask).float()
+                            center_y, center_x = (
+                                torch.mean(mask_indices[:, 0]),
+                                torch.mean(mask_indices[:, 1]),
+                            )
+                            center_scores = c[0, int(center_y.item()), int(center_x.item())]
+                            # Confidence score is semantic prob * center prob.
+                            instance.scores = torch.tensor(
+                                [sem_scores * center_scores], device=panoptic_image.device
+                            )
+                            # Get bounding boxes
+                            instance.pred_boxes = BitMasks(instance.pred_masks).get_bounding_boxes()
+                            instances.append(instance)
+                    if len(instances) > 0:
+                        processed_results[-1]["instances"] = Instances.cat(instances)
+        elif self.disparity_branch:
+            for dis_result in zip(dis_results):
+                processed_results.append({"dis_est": dis_result})
+        else:
+            raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
+                             "Panoptic_Branch' are supported")
 
         return processed_results
 
@@ -1641,4 +1652,3 @@ class DeepLabV3PlusHeadDecoder(nn.Module):
         loss = self.loss(predictions, targets)
         losses = {"loss_sem_seg": loss * self.loss_weight}
         return losses
-

@@ -1,0 +1,51 @@
+_BASE_: Base-PanopticDeepLab-OS16.yaml
+MODEL:
+  WEIGHTS: "./model/model_0059999.pth"
+  PIXEL_MEAN: [123.675, 116.280, 103.530]
+  PIXEL_STD: [58.395, 57.120, 57.375]
+  BACKBONE:
+    NAME: "build_resnet_deeplab_backbone"
+  RESNETS:
+    DEPTH: 50
+    NORM: "SyncBN"
+    RES5_MULTI_GRID: [1, 2, 4]
+    STEM_TYPE: "deeplab"
+    STEM_OUT_CHANNELS: 128
+    STRIDE_IN_1X1: False
+  PANOPTIC_DEEPLAB:
+    USE_DEPTHWISE_SEPARABLE_CONV: True
+  SEM_SEG_HEAD:
+    USE_DEPTHWISE_SEPARABLE_CONV: True
+  DIS_EMBED_HEAD:
+    MAX_DISP: 192
+    LOSS_TYPE: "smoothL1_only"  # "smoothL1_only" or "panoptic_guided"
+    HOURGLASS_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]
+    INTERNAL_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # loss weight for pyramids
+    GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
+    STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
+    REGRESSION_INPLANES: 192  # to change dimension during the 3D-regression
+    HOURGLASS_INPLANES: 192
+    HOURGLASS_TYPE: "hourglass_2D"
+    RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
+    GRADIENT_TYPE: "sobel"
+  MODE:
+    PANOPTIC_BRANCH: False
+    DISPARITY_BRANCH:  True
+    FEATURE_FUSION: False  # whether create cost volume with panoptic features
+SOLVER:
+  MAX_ITER: 999999
+  IMS_PER_BATCH: 4
+  LR_SCHEDULER_NAME: "WarmupPolyLR"
+DATASETS:
+  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train
+  TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train
+INPUT:
+  FORMAT: "RGB"
+  CROP:
+    SIZE: (256, 512)
+    ENABLED: False
+    TYPE: "absolute"
+  IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti) or 1024,2048 (cityscapes)
+  DO_AUGUMENTATION: False
+OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
+RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.

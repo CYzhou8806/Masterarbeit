@@ -16,7 +16,9 @@ from train_net import setup
 from detectron2.data.detection_utils import read_image
 from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.utils.logger import setup_logger
-from demo.predictor import VisualizationDemo
+from demo.predictor import JointVisualizationDemo
+from PIL import Image
+import detectron2.data.transforms as T
 
 # constants
 WINDOW_NAME = "demo"
@@ -26,7 +28,7 @@ def get_parser():
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
-        default="./configs/Cityscapes-PanopticSegmentation/demo_panoptic_deeplab.yaml",
+        default="./configs/Cityscapes-PanopticSegmentation/demo_joint.yaml",
         metavar="FILE",
         help="path to config file",
     )
@@ -34,7 +36,15 @@ def get_parser():
     parser.add_argument("--video-input", help="Path to video file.")
     parser.add_argument(
         "--input",
-        default=["/home/eistrauben/桌面/data_scene_flow/training/image_2/000004_10.png"],
+        default=[
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
+        help="A list of space separated input images; "
+             "or a single glob pattern such as 'directory/*.jpg'",
+    )
+    parser.add_argument(
+        "--input_right_dir",
+        default=[
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -50,7 +60,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_final_23d03a.pkl'],
+        default=['MODEL.WEIGHTS', 'model/model_0059999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -96,7 +106,7 @@ def main(args):
     logger.info("Arguments: " + str(args))
 
     cfg = setup(args)  # 配置设置
-    demo = VisualizationDemo(cfg)  # $$$ 数据集的处理仍然不清楚
+    demo = JointVisualizationDemo(cfg)  # $$$ 数据集的处理仍然不清楚
 
     if args.input:
         if len(args.input) == 1:
@@ -105,8 +115,11 @@ def main(args):
         for path in tqdm.tqdm(args.input, disable=not args.output):
             # use PIL, to be consistent with evaluation
             img = read_image(path, format="BGR")
+            right_path = os.path.join(args.input_dir, os.path.basename(path))
+            img_right = read_image(right_path, format="BGR")
+
             start_time = time.time()
-            predictions, visualized_output = demo.run_on_image(img)
+            predictions, visualized_output = demo.run_on_image(img, img_right)
             logger.info(
                 "{}: {} in {:.2f}s".format(
                     path,
@@ -116,15 +129,21 @@ def main(args):
                     time.time() - start_time,
                 )
             )
+            dis_est = predictions['dis_est'][-1]
+            dis_est = (dis_est * 256).astype('uint16')
+            dis_img = Image.fromarray(dis_est)
 
             if args.output:
                 if os.path.isdir(args.output):
                     assert os.path.isdir(args.output), args.output
                     out_filename = os.path.join(args.output, os.path.basename(path))
+                    out_disp_name = os.path.join(args.output, os.path.basename(path)).replace('seg', 'dis')
                 else:
                     assert len(args.input) == 1, "Please specify a directory with args.output"
                     out_filename = args.output
+                    out_disp_name = out_filename.replace('seg', 'dis')
                 visualized_output.save(out_filename)
+                dis_img.save(out_disp_name)
             else:
                 cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
                 cv2.imshow(WINDOW_NAME, visualized_output.get_image()[:, :, ::-1])
