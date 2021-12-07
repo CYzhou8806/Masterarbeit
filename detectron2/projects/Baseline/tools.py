@@ -49,7 +49,7 @@ if __name__ == "__main__":
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     # down_samples_dataset(input_root, scale=4)
 
-    '''
+
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
@@ -64,13 +64,22 @@ if __name__ == "__main__":
     checkpointer = DetectionCheckpointer(model)
     checkpointer_5999 = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/model_0059999.pth"
     checkpointer.load(checkpointer_5999)
-    '''
+
     path_panoptic_model_dict = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/original_panoptic_dict.pth"
     panoptic_model_dict = torch.load(path_panoptic_model_dict)
-    dict_name = list(panoptic_model_dict)
+    panoptic_dict_name = list(panoptic_model_dict)
 
-    for p in dict_name:
-        print(p)
+    # path_joint_model_dict = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/model_0059999.pth"
+    # joint_model_dict = torch.load(path_joint_model_dict)
+    joint_dict_name = list(model.state_dict())
+
+    count = 0
+    for i, p in enumerate(joint_dict_name):
+        if p in panoptic_dict_name:
+            # print(i)
+            count += 1
+            print(p.split('.')[0])
+    print("count",count)
     '''
     model_dict = model.state_dict()
     # state_dict = {k: v for k, v in panoptic_model.items() if k in model_dict.keys()}
