@@ -34,7 +34,7 @@ MODEL:
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 999999
-  IMS_PER_BATCH: 8
+  IMS_PER_BATCH: 16
   LR_SCHEDULER_NAME: "WarmupPolyLR"
   FREEZE_BACKBONE: True
   FREEZE_PANOPTIC: True
