@@ -110,27 +110,27 @@ class JointPredictor:
             # if 'dis_est' in predictions:
             for key in predictions:
                 if key == 'dis_est':
-                    tmp = predictions[key][-1]
                     if top_pad != 0 and right_pad != 0:
-                        results[key] = predictions[key][-1].squeeze(0)[top_pad:, :-right_pad].cpu().numpy()
+                        results[key] = predictions[key][-1].squeeze(0).squeeze(0)[top_pad:, :-right_pad].cpu().numpy()
                     elif top_pad == 0 and right_pad != 0:
-                        results[key] = predictions[key][-1].squeeze(0)[:, :-right_pad].cpu().numpy()
+                        results[key] = predictions[key][-1].squeeze(0).squeeze(0)[:, :-right_pad].cpu().numpy()
                     elif top_pad != 0 and right_pad == 0:
-                        results[key] = predictions[key][-1].squeeze(0)[top_pad:, :].cpu().numpy()
+                        results[key] = predictions[key][-1].squeeze(0).squeeze(0)[top_pad:, :].cpu().numpy()
                     else:
-                        results[key] = predictions[key][-1].squeeze(0).cpu().numpy()
+                        results[key] = predictions[key][-1].squeeze(0).squeeze(0).cpu().numpy()
                 if key == 'panoptic_seg':
-                    '''
+
                     if top_pad != 0 and right_pad != 0:
-                        results[key] = predictions[key][0][top_pad:, :-right_pad].cpu().numpy()
+                        results[key] = [predictions[key][0][top_pad:, :-right_pad], None]
                     elif top_pad == 0 and right_pad != 0:
-                        results[key] = predictions[key][0][:, :-right_pad].cpu().numpy()
+                        results[key] = [predictions[key][0][:, :-right_pad], None]
                     elif top_pad != 0 and right_pad == 0:
-                        results[key] = predictions[key][0][top_pad:, :].cpu().numpy()
+                        results[key] = [predictions[key][0][top_pad:, :], None]
                     else:
-                        results[key] = predictions[key][0].cpu().numpy()
+                        results[key] = [predictions[key][0], None]
                     '''
                     results[key] = predictions[key]
+                    '''
             return results
 
 

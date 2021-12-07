@@ -369,7 +369,7 @@ class Visualizer:
         self.img = np.asarray(img_rgb).clip(0, 255).astype(np.uint8)
         if metadata is None:
             metadata = MetadataCatalog.get("__nonexist__")
-        self.metadata = metadata
+        self.metadata = MetadataCatalog.get("cityscapes_fine_panoptic_train")
         self.output = VisImage(self.img, scale=scale)
         self.cpu_device = torch.device("cpu")
 

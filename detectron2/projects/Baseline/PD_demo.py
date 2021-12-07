@@ -54,12 +54,13 @@ def get_parser():
 
     parser.add_argument(
         "--output",
-        default="/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/demo_output/000004_10_seg.png",
+        default="/home/eistrauben/桌面/000004_10_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
     # default=r"C:\Users\cyzho\Desktop\000004_10_seg.png",
     # default="/home/eistrauben/桌面/000004_10_seg.png",
+    # default="/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/demo_output/000004_10_seg.png",
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",

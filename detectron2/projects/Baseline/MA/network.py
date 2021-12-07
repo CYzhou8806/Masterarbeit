@@ -289,9 +289,14 @@ class JointEstimation(nn.Module):
             ):
                 height = input_per_image.get("height")
                 width = input_per_image.get("width")
+                '''
                 r = sem_seg_postprocess(sem_seg_result, image_size, height, width)
                 c = sem_seg_postprocess(center_result, image_size, height, width)
                 o = sem_seg_postprocess(offset_result, image_size, height, width)
+                '''
+                r = sem_seg_postprocess(sem_seg_result, image_size, image_size[0], image_size[1])
+                c = sem_seg_postprocess(center_result, image_size, image_size[0], image_size[1])
+                o = sem_seg_postprocess(offset_result, image_size, image_size[0], image_size[1])
                 # Post-processing to get panoptic segmentation.
                 panoptic_image, _ = get_panoptic_segmentation(
                     r.argmax(dim=0, keepdim=True),
@@ -312,7 +317,7 @@ class JointEstimation(nn.Module):
                 panoptic_image = panoptic_image.squeeze(0)
                 semantic_prob = F.softmax(r, dim=0)
                 # For panoptic segmentation evaluation.
-                processed_results[-1]["panoptic_seg"] = (panoptic_image, self.meta.label_divisor)
+                processed_results[-1]["panoptic_seg"] = (panoptic_image, None)
                 # For instance segmentation evaluation.
                 if self.predict_instances:
                     instances = []
