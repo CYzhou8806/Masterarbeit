@@ -37,7 +37,7 @@ def get_parser():
     parser.add_argument(
         "--input",
         default=[
-            "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/leftImg8bit/train/aachen/aachen_000000_000019_leftImg8bit.png"],
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -47,7 +47,7 @@ def get_parser():
     parser.add_argument(
         "--input_right",
         default=
-            "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/rightImg8bit/train/aachen/aachen_000000_000019_rightImg8bit.png",
+            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3/000004_10.png",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -55,17 +55,18 @@ def get_parser():
 
     parser.add_argument(
         "--output",
-        default="/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/demo_output/aachen_000000_000019_seg.png",
+        default="/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/demo_output/000004_10_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
     # default=r"C:\Users\cyzho\Desktop\000004_10_seg.png",
     # default="/home/eistrauben/桌面/000004_10_seg.png",
     # default="/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/demo_output/000004_10_seg.png",
+    # /bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/demo_output/aachen_000000_000019_seg.png
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_0074999.pth'],
+        default=['MODEL.WEIGHTS', 'model/init_panoptic_cityscapes_weights.pth.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
