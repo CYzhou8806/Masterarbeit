@@ -26,8 +26,6 @@ from detectron2.projects.deeplab import build_lr_scheduler
 from detectron2.projects.panoptic_deeplab import (
     PanopticDeeplabDatasetMapper,
     add_panoptic_deeplab_config,
-    register_all_cityscapes_joint,
-    JointDeeplabDatasetMapper,
 )
 from detectron2.solver import get_default_optimizer_params
 from detectron2.solver.build import maybe_add_gradient_clipping
@@ -61,11 +59,6 @@ class Trainer(DefaultTrainer):
         For your own dataset, you can simply create an evaluator manually in your
         script and do not have to worry about the hacky if-else logic here.
         """
-
-        '''
-        与模板相比, 这里对模板中的build_evaluator进行了合并, 本质上还是相同的, 没有大的改变
-        '''
-
         if cfg.MODEL.PANOPTIC_DEEPLAB.BENCHMARK_NETWORK_SPEED:
             return None
         if output_folder is None:
@@ -76,7 +69,7 @@ class Trainer(DefaultTrainer):
             evaluator_list.append(COCOPanopticEvaluator(dataset_name, output_folder))
         if evaluator_type == "cityscapes_panoptic_seg":
             assert (
-                    torch.cuda.device_count() > comm.get_rank()
+                torch.cuda.device_count() > comm.get_rank()
             ), "CityscapesEvaluator currently do not work with multiple machines."
             evaluator_list.append(CityscapesSemSegEvaluator(dataset_name))
             evaluator_list.append(CityscapesInstanceEvaluator(dataset_name))
@@ -104,10 +97,7 @@ class Trainer(DefaultTrainer):
 
     @classmethod
     def build_train_loader(cls, cfg):
-        _root = os.getenv("DETECTRON2_DATASETS", "datasets")
-        register_all_cityscapes_joint(_root)
-        # mapper = PanopticDeeplabDatasetMapper(cfg, augmentations=build_sem_seg_train_aug(cfg))
-        mapper = JointDeeplabDatasetMapper(cfg, augmentations=build_sem_seg_train_aug(cfg))
+        mapper = PanopticDeeplabDatasetMapper(cfg, augmentations=build_sem_seg_train_aug(cfg))
         return build_detection_train_loader(cfg, mapper=mapper)
 
     @classmethod
@@ -122,10 +112,6 @@ class Trainer(DefaultTrainer):
     def build_optimizer(cls, cfg, model):
         """
         Build an optimizer from config.
-        """
-        """
-        与default相比, 这里更改了参数设置, 并且使用了不同的优化器. 
-        所有的优化器都在相同的目录里, 按照需要调用即可
         """
         params = get_default_optimizer_params(
             model,
@@ -177,23 +163,8 @@ def main(args):
 
 
 if __name__ == "__main__":
-    '''
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
-
-    cfg = setup(args)
-    from detectron2.modeling.meta_arch.build import build_model
-    model = build_model(cfg)
-    
-    
-    checkpointer = DetectionCheckpointer(model)
-    path_panoptic_model = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/model_final_23d03a.pkl"
-    checkpointer.load(path_panoptic_model)
-    # model.load_state_dict(torch.load(path_panoptic_model))
-    torch.save(model.state_dict(), 'original_panoptic_dict.pth')
-    '''
-
-    '''
     launch(
         main,
         args.num_gpus,
@@ -202,4 +173,3 @@ if __name__ == "__main__":
         dist_url=args.dist_url,
         args=(args,),
     )
-    '''

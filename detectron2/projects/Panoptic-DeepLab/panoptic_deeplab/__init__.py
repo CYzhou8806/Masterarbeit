@@ -8,6 +8,3 @@ from .panoptic_seg import (
     PanopticDeepLabSemSegHead,
     PanopticDeepLabInsEmbedHead,
 )
-
-from .cityscapes_jointestamation import register_all_cityscapes_joint
-from .joint_dataset_mapper import JointDeeplabDatasetMapper
