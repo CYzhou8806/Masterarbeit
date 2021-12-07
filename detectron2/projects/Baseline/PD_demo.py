@@ -37,17 +37,17 @@ def get_parser():
     parser.add_argument(
         "--input",
         default=[
-            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/demo_input/left/aachen_000000_000019.png"],
+            "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/leftImg8bit/train/aachen/aachen_000000_000019_leftImg8bit.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
     # /bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015
     # /home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png
-    # /home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/demo_input/left/aachen_000000_000019.png
+    # /home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/rightImg8bit/train/aachen/aachen_000000_000019_rightImg8bit.png"
     parser.add_argument(
-        "--input_right_dir",
+        "--input_right",
         default=
-            "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/demo_input/right",
+            "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/rightImg8bit/train/aachen/aachen_000000_000019_rightImg8bit.png",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -55,7 +55,7 @@ def get_parser():
 
     parser.add_argument(
         "--output",
-        default="/home/eistrauben/桌面/aachen_000000_000019_seg.png",
+        default="/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/demo_output/aachen_000000_000019_seg.png",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -65,7 +65,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_0059999.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_0069999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -120,8 +120,8 @@ def main(args):
         for path in tqdm.tqdm(args.input, disable=not args.output):
             # use PIL, to be consistent with evaluation
             img = read_image(path, format="BGR")
-            right_path = os.path.join(args.input_right_dir, os.path.basename(path))
-            img_right = read_image(right_path, format="BGR")
+            # right_path = os.path.join(args.input_right_dir, os.path.basename(path))
+            img_right = read_image(args.input_right, format="BGR")
 
             start_time = time.time()
             predictions, visualized_output = demo.run_on_image(img, img_right)
