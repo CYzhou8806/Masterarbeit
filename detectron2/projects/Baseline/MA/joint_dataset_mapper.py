@@ -203,7 +203,7 @@ class JointDeeplabDatasetMapper:
 
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
-        mask = dis_gt > 0.0
+        mask = dis_gt_with_mask[0] = 0.0
         print(np.all(mask == True))
         raise RuntimeError("excepted stop")
 
