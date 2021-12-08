@@ -180,7 +180,7 @@ class JointDeeplabDatasetMapper:
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
 
         if "disparity_file_name_tiff" in dataset_dict:
-            dis_gt = Image.open(dataset_dict.pop("disparity_file_name_tiff"))  # TODO: detect the dimension
+            dis_gt = Image.open(dataset_dict.pop("disparity_file_name_tiff"))
             dis_gt = np.array(dis_gt)
         elif "disparity_file_name" in dataset_dict:
             dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
