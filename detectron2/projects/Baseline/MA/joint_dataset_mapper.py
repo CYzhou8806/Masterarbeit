@@ -204,6 +204,9 @@ class JointDeeplabDatasetMapper:
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
         mask = dis_gt > 0.0
+        print(np.all(mask == True))
+        raise RuntimeError("excepted stop")
+
         if "disparity_file_name" in dataset_dict:  # only for cityscapes datasets
             dis_gt[mask] = (dis_gt[mask] - 1.) / 256
         if "disparity_file_name_kitti_2015" in dataset_dict:  # only for kitti 2015 datasets
