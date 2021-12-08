@@ -66,7 +66,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/init_panoptic_cityscapes_weights.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_0109999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
