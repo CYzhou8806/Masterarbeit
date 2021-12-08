@@ -1068,8 +1068,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_mask_bool.detach_()
 
         if self.loss_type == "panoptic_guided":
-            assert pan_guided, "if use loss 'panoptic_guided',the label must exist"
-            assert pan_mask
+            assert pan_guided is not None, "if use loss 'panoptic_guided',the label must exist"
+            assert pan_mask is not None
             get_gradient = Gradient(self.gradient_type)
 
             # prepare the panoptic guided ground truth
@@ -1152,7 +1152,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                  self.hourglass_loss_weight[2] *
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
             assert smooth_l1
-            print(sm_loss, bdry_loss, smooth_l1)
+            # print(sm_loss, bdry_loss, smooth_l1)
 
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
