@@ -1019,12 +1019,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 else:
                     disparity.append([pred3 + dis])
 
-        print(disparity[0][0].shape)
-        print(dis_targets.shape)
-        raise RuntimeError("excepted stop")
+
         for i in range(len(disparity)):
             for j in range(len(disparity[i])):
-                disparity[i][j] = dis_targets
+                disparity[i][j] = torch.unsqueeze(dis_targets, 1)
 
         if self.training:
             return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
