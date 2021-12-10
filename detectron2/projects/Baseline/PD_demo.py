@@ -138,6 +138,7 @@ def main(args):
             )
             dis_est = predictions['dis_est']
 
+            '''
             # TODO:debug
             dis_gt = Image.open("datasets/kitti_2015/data_scene_flow/training/disp_occ_0/000004_10.png")
             dis_gt = np.array(dis_gt)
@@ -153,6 +154,7 @@ def main(args):
             mask_max_disp = dis_gt_with_mask[0, :, :] < 192
             mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
             dis_est[mask_disp] = dis_gt_with_mask[0, :, :][mask_disp]
+            '''
 
             dis_est = (dis_est * 256).astype('uint16')
 
