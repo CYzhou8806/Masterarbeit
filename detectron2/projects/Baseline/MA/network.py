@@ -1187,7 +1187,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
             # assert smooth_l1
 
-            loss = smooth_l1
+            loss = smooth_l1 + 0.00000001
 
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
