@@ -1023,7 +1023,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             for j in range(len(disparity[i])):
                 disparity[i][j] = torch.unsqueeze(dis_targets, 1)
 
-        dis_targets.detach_()
+        # dis_targets.detach_()
         if self.training:
             return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
                                pan_guided=pan_guided, pan_mask=pan_mask), disparity
