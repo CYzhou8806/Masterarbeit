@@ -1185,7 +1185,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                   reduction='mean') +
                                  self.hourglass_loss_weight[2] *
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
-            assert smooth_l1
+            # assert smooth_l1
 
             loss = smooth_l1
 
