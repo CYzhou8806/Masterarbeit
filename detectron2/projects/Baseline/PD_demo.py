@@ -3,6 +3,7 @@ import glob
 import os
 import shutil
 
+import numpy as np
 import tqdm
 import time
 import cv2
@@ -137,6 +138,14 @@ def main(args):
             )
             dis_est = predictions['dis_est']
             dis_est = (dis_est * 256).astype('uint16')
+
+            # TODO:debug
+            print(dis_est.shape)
+            dis_gt = Image.open("datasets/kitti_2015/data_scene_flow/training/disp_occ_0/000004_10.png")
+            dis_gt = np.array(dis_gt)
+            print(dis_gt.shape)
+            raise RuntimeError("excepted stop")
+
             dis_img = Image.fromarray(dis_est)
 
             if args.output:

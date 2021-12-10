@@ -1023,7 +1023,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         for i in range(len(disparity)):
             for j in range(len(disparity[i])):
                 disparity[i][j] = torch.unsqueeze(dis_targets.clone(), 1)
-        '''
+        
 
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_targets = torch.unsqueeze(dis_targets, 1)
@@ -1032,6 +1032,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         disparity = [[[]]]
         print(disparity)
         disparity[-1][-1][dis_mask_bool] = dis_targets[dis_mask_bool]
+        dis_est = disparity[-1][-1]
+        dis_est = (dis_est * 256).astype('uint16')
+        dis_img = Image.fromarray(dis_est)
+        '''
 
         if self.training:
             return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
