@@ -1019,9 +1019,19 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 else:
                     disparity.append([pred3 + dis])
 
+        '''
         for i in range(len(disparity)):
             for j in range(len(disparity[i])):
                 disparity[i][j] = torch.unsqueeze(dis_targets.clone(), 1)
+        '''
+
+        dis_mask = torch.unsqueeze(dis_mask, 1)
+        dis_targets = torch.unsqueeze(dis_targets, 1)
+        dis_mask_bool = dis_mask == 1.0
+        dis_mask_bool.detach_()
+        disparity = [[[]]]
+        print(disparity)
+        disparity[-1][-1][dis_mask_bool] = dis_targets[dis_mask_bool]
 
         if self.training:
             return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
@@ -1185,11 +1195,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                  self.hourglass_loss_weight[2] *
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
             # assert smooth_l1
-
             loss = smooth_l1
-            print(loss)
-            raise RuntimeError("excepted stop")
-
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
 
