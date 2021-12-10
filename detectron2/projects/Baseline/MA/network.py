@@ -1019,6 +1019,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 else:
                     disparity.append([pred3 + dis])
 
+        for i in range(len(disparity)):
+            for j in range(len(disparity[i])):
+                disparity[i][j] = dis_targets
+
         if self.training:
             return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
                                pan_guided=pan_guided, pan_mask=pan_mask), disparity
