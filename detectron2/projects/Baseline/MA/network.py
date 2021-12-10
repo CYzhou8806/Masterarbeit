@@ -244,7 +244,7 @@ class JointEstimation(nn.Module):
             if "dis_est" in batched_inputs[0]:
                 dis_targets = [x["dis_est"].to(self.device) for x in batched_inputs]
                 dis_targets = ImageList.from_tensors(dis_targets, size_divisibility).tensor
-                dis_targets.detach_()
+                # dis_targets.detach_()
                 dis_mask = [x["dis_mask"].to(self.device) for x in batched_inputs]
                 dis_mask = ImageList.from_tensors(dis_mask, size_divisibility).tensor
                 dis_mask.detach_()
@@ -1019,11 +1019,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 else:
                     disparity.append([pred3 + dis])
 
-
         for i in range(len(disparity)):
             for j in range(len(disparity[i])):
                 disparity[i][j] = torch.unsqueeze(dis_targets, 1)
 
+        dis_targets.detach_()
         if self.training:
             return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
                                pan_guided=pan_guided, pan_mask=pan_mask), disparity
@@ -1187,7 +1187,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
             # assert smooth_l1
 
-            loss = smooth_l1 + 0.00000001
+            loss = smooth_l1
 
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
