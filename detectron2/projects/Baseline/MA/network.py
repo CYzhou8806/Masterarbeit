@@ -20,7 +20,6 @@ import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
-import torchvision.transforms as transforms
 
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
@@ -130,18 +129,22 @@ class JointEstimation(nn.Module):
 
         # img_size = [batched_inputs[0].get("hight"), batched_inputs[0].get("width")]
         losses = {}
-        if self.panotic_branch and self.disparity_branch:  # both in work
-            # load left images
-            left_images = [x["image"].to(self.device) for x in batched_inputs]
-            '''
-            normal_mean_var = {'mean': [0.485, 0.456, 0.406],
-                               'std': [0.229, 0.224, 0.225]}
-            infer_transform = transforms.Normalize(**normal_mean_var)
-            left_images = [infer_transform(x) for x in left_images]
-            '''
+
+        # load left images
+        left_images = [x["image"].to(self.device) for x in batched_inputs]
+        '''
+        normal_mean_var = {'mean': [0.485, 0.456, 0.406],
+                           'std': [0.229, 0.224, 0.225]}
+        infer_transform = transforms.Normalize(**normal_mean_var)
+        left_images = [infer_transform(x) for x in left_images]
+        '''
+
+        if self.training:
             left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
-            left_images = ImageList.from_tensors(left_images, size_divisibility)
-            left_features = self.backbone(left_images.tensor)
+        left_images = ImageList.from_tensors(left_images, size_divisibility)
+        left_features = self.backbone(left_images.tensor)
+
+        if self.panotic_branch and self.disparity_branch:  # both in work
 
             # semantic branch
             if "sem_seg" in batched_inputs[0]:
@@ -193,8 +196,8 @@ class JointEstimation(nn.Module):
             infer_transform = transforms.Normalize(**normal_mean_var)
             right_images = [infer_transform(x) for x in right_images]
             '''
-
-            right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+            if self.training:
+                right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
             right_images = ImageList.from_tensors(right_images, size_divisibility)
             right_features = self.backbone(right_images.tensor)
 
@@ -241,20 +244,8 @@ class JointEstimation(nn.Module):
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
             losses.update(dis_embed_loss)
-
         elif self.disparity_branch:
             assert not self.feature_fusion, "only disparity branch, can not feature fusion"
-            # load left images
-            left_images = [x["image"].to(self.device) for x in batched_inputs]
-            '''
-            normal_mean_var = {'mean': [0.485, 0.456, 0.406],
-                               'std': [0.229, 0.224, 0.225]}
-            infer_transform = transforms.Normalize(**normal_mean_var)
-            left_images = [infer_transform(x) for x in left_images]
-            '''
-            left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
-            left_images = ImageList.from_tensors(left_images, size_divisibility)
-            left_features = self.backbone(left_images.tensor)
 
             # load right images
             right_images = [x["right_image"].to(self.device) for x in batched_inputs]
@@ -264,7 +255,8 @@ class JointEstimation(nn.Module):
             infer_transform = transforms.Normalize(**normal_mean_var)
             right_images = [infer_transform(x) for x in right_images]
             '''
-            right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+            if self.training:
+                right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
             right_images = ImageList.from_tensors(right_images, size_divisibility)
             right_features = self.backbone(right_images.tensor)
 
@@ -299,9 +291,9 @@ class JointEstimation(nn.Module):
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
 
-            '''
-            print("tmp")
 
+            print("tmp")
+            '''
             dis_est = dis_results[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
             tmp = np.all(dis_est==0.0)
             # dis_est = dis_est.numpy()

@@ -6,6 +6,7 @@ from collections import deque
 import cv2
 import torch
 import torch.nn.functional as F
+import torchvision.transforms as transforms
 
 import detectron2.data.transforms as T
 from detectron2.checkpoint import DetectionCheckpointer
@@ -100,8 +101,19 @@ class JointPredictor:
             else:
                 top_pad = 0
 
+            print(torch.max(imgL))
+            print(imgL)
             imgL = F.pad(imgL, (0, right_pad, top_pad, 0))
             imgR = F.pad(imgR, (0, right_pad, top_pad, 0))
+            print(torch.max(imgL))
+            print(imgL)
+
+            normal_mean_var = {'mean': [0.485, 0.456, 0.406],
+                               'std': [0.229, 0.224, 0.225]}
+            infer_transform = transforms.Normalize(**normal_mean_var)
+            imgL = infer_transform(imgL)
+            imgR = infer_transform(imgR)
+
 
             inputs = {"image": imgL, "right_image": imgR, "height": height, "width": width}
             predictions = self.model([inputs])[0]
