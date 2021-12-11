@@ -66,7 +66,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_0194999.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_0249999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
