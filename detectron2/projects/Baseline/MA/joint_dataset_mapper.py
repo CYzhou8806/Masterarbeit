@@ -179,12 +179,18 @@ class JointDeeplabDatasetMapper:
         pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB") if self.panoptic_branch else None
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
 
+        cityscapes = False
+        kitti_2015 = False
+        scene_flow = False
         if "disparity_file_name_tiff" in dataset_dict:
+            scene_flow = True
             dis_gt = Image.open(dataset_dict.pop("disparity_file_name_tiff"))
             dis_gt = np.array(dis_gt)
         elif "disparity_file_name" in dataset_dict:
+            cityscapes = True
             dis_gt = utils.read_image(dataset_dict.pop("disparity_file_name"), "RGB")[:, :, 0]
         elif "disparity_file_name_kitti_2015" in dataset_dict:
+            kitti_2015 = True
             dis_gt = Image.open(dataset_dict.pop("disparity_file_name_kitti_2015"))
             dis_gt = np.array(dis_gt)
         else:
@@ -205,9 +211,9 @@ class JointDeeplabDatasetMapper:
         dis_gt = dis_gt.astype(float)
         mask = dis_gt_with_mask[0] == 0.0
 
-        if "disparity_file_name" in dataset_dict:  # only for cityscapes datasets
+        if cityscapes:  # only for cityscapes datasets
             dis_gt[mask] = (dis_gt[mask] - 1.) / 256
-        if "disparity_file_name_kitti_2015" in dataset_dict:  # only for kitti 2015 datasets
+        if kitti_2015:  # only for kitti 2015 datasets
             dis_gt[mask] = dis_gt[mask] / 256
         dis_gt_with_mask[0, :, :] = dis_gt
         dis_gt_with_mask[1][mask] = 1
@@ -215,7 +221,6 @@ class JointDeeplabDatasetMapper:
         valid_dis_mask = valid_dis == 1.0
         mask_max_disp = dis_gt_with_mask[0, :, :] < self.max_disp
         mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
-        # dis_gt = dis_gt_with_mask[0]
 
         if self.guided_loss:
             pan_guided_raw = pan_guided_raw[:, :, :2]

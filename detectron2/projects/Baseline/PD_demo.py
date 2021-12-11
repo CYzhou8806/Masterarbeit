@@ -37,7 +37,7 @@ def get_parser():
     parser.add_argument(
         "--input",
         default=[
-            "datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
+            "datasets/kitti_2015/data_scene_flow/training/image_2/000004_10_crop.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -47,7 +47,7 @@ def get_parser():
     parser.add_argument(
         "--input_right",
         default=
-            "datasets/kitti_2015/data_scene_flow/training/image_3/000004_10.png",
+            "datasets/kitti_2015/data_scene_flow/training/image_3/000004_10_crop.png",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -148,7 +148,8 @@ def main(args):
                     assert len(args.input) == 1, "Please specify a directory with args.output"
                     out_filename = args.output
                     out_disp_name = out_filename.replace('seg', 'dis')
-                visualized_output.save(out_filename)
+                if visualized_output:
+                    visualized_output.save(out_filename)
                 dis_img.save(out_disp_name)
             else:
                 cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)

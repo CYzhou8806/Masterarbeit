@@ -40,6 +40,7 @@ from detectron2.utils.registry import Registry
 from .post_processing import get_panoptic_segmentation
 from .submodule import convbn_3d, disparityregression, convbn
 from torchsummary import summary
+from PIL import Image
 
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch", "build_dis_embed_head"]
 
@@ -132,11 +133,13 @@ class JointEstimation(nn.Module):
         if self.panotic_branch and self.disparity_branch:  # both in work
             # load left images
             left_images = [x["image"].to(self.device) for x in batched_inputs]
+            '''
             normal_mean_var = {'mean': [0.485, 0.456, 0.406],
                                'std': [0.229, 0.224, 0.225]}
             infer_transform = transforms.Normalize(**normal_mean_var)
             left_images = [infer_transform(x) for x in left_images]
-            # left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
+            '''
+            left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
             left_images = ImageList.from_tensors(left_images, size_divisibility)
             left_features = self.backbone(left_images.tensor)
 
@@ -184,12 +187,14 @@ class JointEstimation(nn.Module):
 
             # load right images
             right_images = [x["right_image"].to(self.device) for x in batched_inputs]
+            '''
             normal_mean_var = {'mean': [0.485, 0.456, 0.406],
                                'std': [0.229, 0.224, 0.225]}
             infer_transform = transforms.Normalize(**normal_mean_var)
             right_images = [infer_transform(x) for x in right_images]
+            '''
 
-            # right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+            right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
             right_images = ImageList.from_tensors(right_images, size_divisibility)
             right_features = self.backbone(right_images.tensor)
 
@@ -241,21 +246,25 @@ class JointEstimation(nn.Module):
             assert not self.feature_fusion, "only disparity branch, can not feature fusion"
             # load left images
             left_images = [x["image"].to(self.device) for x in batched_inputs]
+            '''
             normal_mean_var = {'mean': [0.485, 0.456, 0.406],
                                'std': [0.229, 0.224, 0.225]}
             infer_transform = transforms.Normalize(**normal_mean_var)
             left_images = [infer_transform(x) for x in left_images]
-            # left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
+            '''
+            left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
             left_images = ImageList.from_tensors(left_images, size_divisibility)
             left_features = self.backbone(left_images.tensor)
 
             # load right images
             right_images = [x["right_image"].to(self.device) for x in batched_inputs]
+            '''
             normal_mean_var = {'mean': [0.485, 0.456, 0.406],
                                'std': [0.229, 0.224, 0.225]}
             infer_transform = transforms.Normalize(**normal_mean_var)
             right_images = [infer_transform(x) for x in right_images]
-            # right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+            '''
+            right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
             right_images = ImageList.from_tensors(right_images, size_divisibility)
             right_features = self.backbone(right_images.tensor)
 
@@ -289,7 +298,28 @@ class JointEstimation(nn.Module):
                                                               dis_targets=dis_targets,
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
+
+            '''
             print("tmp")
+
+            dis_est = dis_results[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
+            tmp = np.all(dis_est==0.0)
+            # dis_est = dis_est.numpy()
+            dis_est = (dis_est * 256).astype('uint16')
+            tmp2 = np.all(dis_est == 0)
+            tmp3 = np.all(dis_est == 256)
+            dis_img = Image.fromarray(dis_est)
+            dis_img.save('output/000153_10_dis.png')
+
+
+            dis_targets = dis_targets.squeeze(0).cpu().numpy()
+            # dis_est = dis_est.numpy()
+            dis_targets = (dis_targets * 256).astype('uint16')
+            dis_targets = Image.fromarray(dis_targets)
+            dis_targets.save('output/000153_10_gt.png')
+            '''
+
+
             losses.update(dis_embed_loss)
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
