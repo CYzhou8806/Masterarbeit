@@ -3,7 +3,6 @@ import glob
 import os
 import shutil
 
-import numpy as np
 import tqdm
 import time
 import cv2
@@ -67,7 +66,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'output/model_0249999.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_0194999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -137,32 +136,7 @@ def main(args):
                 )
             )
             dis_est = predictions['dis_est']
-
-            '''
-            # TODO:debug
-            dis_gt = Image.open("datasets/kitti_2015/data_scene_flow/training/disp_occ_0/000004_10.png")
-            dis_gt = np.array(dis_gt)
-            print(dis_gt.shape)
-            dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
-            dis_gt = dis_gt.astype(float)
-            mask = dis_gt_with_mask[0] == 0.0
-            dis_gt[mask] = dis_gt[mask] / 256
-            dis_gt_with_mask[0, :, :] = dis_gt
-            dis_gt_with_mask[1][mask] = 1
-            valid_dis = dis_gt_with_mask[1, :, :]  # get mask
-            valid_dis_mask = valid_dis == 1.0
-            mask_max_disp = dis_gt_with_mask[0, :, :] < 192
-            mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
-            dis_est[mask_disp] = dis_gt_with_mask[0, :, :][mask_disp]
-            '''
-
             dis_est = (dis_est * 256).astype('uint16')
-
-
-
-
-            # raise RuntimeError("excepted stop")
-
             dis_img = Image.fromarray(dis_est)
 
             if args.output:
