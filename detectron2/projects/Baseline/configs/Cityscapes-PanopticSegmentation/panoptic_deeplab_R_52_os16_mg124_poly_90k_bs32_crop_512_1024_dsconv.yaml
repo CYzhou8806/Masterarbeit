@@ -34,10 +34,10 @@ MODEL:
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 4
+  IMS_PER_BATCH: 1
   LR_SCHEDULER_NAME: "WarmupCosineLR"  # WarmupCosineLR or WarmupPolyLR
   # BASE_LR: 0.0001
-  FREEZE_BACKBONE: False
+  FREEZE_BACKBONE: True
   FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
 DATASETS:
