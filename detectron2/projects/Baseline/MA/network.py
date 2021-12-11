@@ -289,6 +289,7 @@ class JointEstimation(nn.Module):
                                                               dis_targets=dis_targets,
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
+            print("tmp")
             losses.update(dis_embed_loss)
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
@@ -1102,6 +1103,29 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_targets = torch.unsqueeze(dis_targets, 1)
         dis_mask_bool = dis_mask == 1.0
         dis_mask_bool.detach_()
+
+        '''
+        print(dis_targets.shape)
+        count = 0
+        for j in dis_mask_bool[0][0]:
+            for i in j:
+                if i:
+                    count+=1
+        print(count)
+
+        dis_mask_no = ~dis_mask_bool
+
+        print((predictions[-1][-1]<0.0).any())
+
+        predictions[-1][-1][dis_mask_no] = 0.0
+        print((predictions[-1][-1]<0.0).any())
+        tmp = torch.sum(torch.abs(predictions[-1][-1][dis_mask_bool] - dis_targets[dis_mask_bool]))
+        print((dis_targets < 0.0).any())
+
+        print(torch.max(dis_targets))
+        print(torch.max(predictions[0][-1]))
+        '''
+
 
         if self.loss_type == "panoptic_guided":
             assert pan_guided is not None, "if use loss 'panoptic_guided',the label must exist"
