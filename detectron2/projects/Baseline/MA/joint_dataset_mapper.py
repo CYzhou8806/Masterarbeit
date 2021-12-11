@@ -230,8 +230,8 @@ class JointDeeplabDatasetMapper:
         # Pytorch's dataloader is efficient on torch.Tensor due to shared-memory,
         # but not efficient on large generic data structures due to the use of pickle & mp.Queue.
         # Therefore it's important to use torch.Tensor.
-        dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)))
-        dataset_dict["right_image"] = torch.as_tensor(np.ascontiguousarray(right_image.transpose(2, 0, 1)))
+        dataset_dict["image"] = torch.as_tensor(np.ascontiguousarray(image.transpose(2, 0, 1)), dtype=torch.float32)
+        dataset_dict["right_image"] = torch.as_tensor(np.ascontiguousarray(right_image.transpose(2, 0, 1)), dtype=torch.float32)
 
         if self.panoptic_branch:
             # Generates training targets for Panoptic-DeepLab.
