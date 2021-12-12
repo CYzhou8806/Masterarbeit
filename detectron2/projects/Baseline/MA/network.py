@@ -291,9 +291,8 @@ class JointEstimation(nn.Module):
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
 
-            '''
+
             print("tmp")
-            
             dis_est = dis_results[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
             tmp = np.all(dis_est==0.0)
             # dis_est = dis_est.numpy()
@@ -303,13 +302,12 @@ class JointEstimation(nn.Module):
             dis_img = Image.fromarray(dis_est)
             dis_img.save('output/000153_10_dis.png')
 
-
             dis_targets = dis_targets.squeeze(0).cpu().numpy()
             # dis_est = dis_est.numpy()
             dis_targets = (dis_targets * 256).astype('uint16')
             dis_targets = Image.fromarray(dis_targets)
             dis_targets.save('output/000153_10_gt.png')
-            '''
+            raise RuntimeError("excepted stop")
 
 
             losses.update(dis_embed_loss)
