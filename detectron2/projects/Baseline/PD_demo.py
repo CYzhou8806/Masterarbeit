@@ -37,17 +37,15 @@ def get_parser():
     parser.add_argument(
         "--input",
         default=[
-            "datasets/kitti_2015/data_scene_flow/training/image_2/000004_10_crop.png"],
+            "datasets/kitti_2015/data_scene_flow/training/image_2/000121_10.png"],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
-    # /bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015
-    # /home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png
-    # /home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes/rightImg8bit/train/aachen/aachen_000000_000019_rightImg8bit.png"
+    # 000004_10_crop
     parser.add_argument(
         "--input_right",
         default=
-            "datasets/kitti_2015/data_scene_flow/training/image_3/000004_10_crop.png",
+            "datasets/kitti_2015/data_scene_flow/training/image_3/000121_10.png",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
