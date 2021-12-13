@@ -287,9 +287,9 @@ class JointEstimation(nn.Module):
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
 
-
-            print("tmp")
             '''
+            print("tmp")
+            
             dis_est = dis_results[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
             tmp = np.all(dis_est==0.0)
             # dis_est = dis_est.numpy()

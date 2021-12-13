@@ -201,7 +201,7 @@ class JointDeeplabDatasetMapper:
         if self.do_aug or self.do_crop:
             # Reuses crop and transform for dataset.
             aug_input = AugInputJointEstimation(image, right_img=right_image, sem_seg=pan_seg_gt,
-                                                dis_gt=dis_gt, pan_guid=pan_guided_raw)
+                                                dis_gt=dis_gt.astype(float), pan_guid=pan_guided_raw)
             _ = self.augmentations(aug_input)
             image, pan_seg_gt = aug_input.image, aug_input.sem_seg
             right_image, dis_gt = aug_input.right_img, aug_input.dis_gt
