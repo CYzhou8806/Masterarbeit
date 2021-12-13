@@ -138,7 +138,6 @@ class JointEstimation(nn.Module):
         infer_transform = transforms.Normalize(**normal_mean_var)
         left_images = [infer_transform(x) for x in left_images]
         '''
-
         if self.training:
             left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
         left_images = ImageList.from_tensors(left_images, size_divisibility)
@@ -291,8 +290,9 @@ class JointEstimation(nn.Module):
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
 
-            '''
+
             print("tmp")
+            '''
             dis_est = dis_results[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
             tmp = np.all(dis_est==0.0)
             # dis_est = dis_est.numpy()

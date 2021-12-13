@@ -108,8 +108,8 @@ class JointPredictor:
             print(torch.max(imgL))
             print(imgL)
 
-            normal_mean_var = {'mean': [0.485, 0.456, 0.406],
-                               'std': [0.229, 0.224, 0.225]}
+            normal_mean_var = {'mean': [123.675, 116.280, 103.530],
+                               'std': [58.395, 57.120, 57.375]}
             infer_transform = transforms.Normalize(**normal_mean_var)
             imgL = infer_transform(imgL)
             imgR = infer_transform(imgR)
