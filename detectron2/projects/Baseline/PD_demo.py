@@ -198,7 +198,7 @@ def demo_series_input(source_input_gt_root, output_root):
             args = get_parser_diy(left_img, output_root, right_img).parse_args()
             main(args)
             torch.cuda.empty_cache()
-
+    
 
 if __name__ == "__main__":
     demo_single_input()
