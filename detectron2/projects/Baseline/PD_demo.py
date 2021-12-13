@@ -70,7 +70,7 @@ def get_parser():
     return parser
 
 
-def get_parser_diy(input_diy, output_diy):
+def get_parser_diy(input_diy, output_diy, input_right):
     parser = argparse.ArgumentParser(description="Detectron2 demo for builtin configs")
     parser.add_argument(
         "--config-file",
@@ -83,6 +83,13 @@ def get_parser_diy(input_diy, output_diy):
     parser.add_argument(
         "--input",
         default=[input_diy],
+        help="A list of space separated input images; "
+             "or a single glob pattern such as 'directory/*.jpg'",
+    )
+    parser.add_argument(
+        "--input_right",
+        default=
+        input_right,
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -141,7 +148,7 @@ def main(args):
                 if os.path.isdir(args.output):
                     assert os.path.isdir(args.output), args.output
                     out_filename = os.path.join(args.output, os.path.basename(path))
-                    out_disp_name = os.path.join(args.output, os.path.basename(path)).replace('seg', 'dis')
+                    out_disp_name = os.path.join(args.output, os.path.basename(path))
                 else:
                     assert len(args.input) == 1, "Please specify a directory with args.output"
                     out_filename = args.output
@@ -173,27 +180,30 @@ def demo_single_input():
     main(args)
 
 
-def demo_series_input(temple_result_root, source_input_root, output_root):
+def demo_series_input(source_input_gt_root, output_root):
     if os.path.exists(output_root):
         shutil.rmtree(output_root)
     os.makedirs(output_root)
 
     # get all inputs from depth result
-    for root, dirs, files in os.walk(temple_result_root):
+    for root, dirs, files in os.walk(source_input_gt_root):
         for file in files:
-            input_diy = os.path.join(source_input_root, file)
-            output_diy_name = os.path.splitext(file)[0] + '_seg' + '.png'
-            output_diy = os.path.join(output_root, output_diy_name)
-            args = get_parser_diy(input_diy, output_diy).parse_args()
+            file_path = os.path.join(root, file)
+            left_img = file_path.replace("disp_occ_0", "image_2")
+            right_img = file_path.replace("disp_occ_0", "image_3")
+
+            #output_diy_name = os.path.splitext(file)[0] + '_seg' + '.png'
+            #output_diy = os.path.join(output_root, output_diy_name)
+            args = get_parser_diy(left_img, output_root, right_img).parse_args()
             main(args)
             torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":
-    demo_single_input()
+    # demo_single_input()
 
-    depth_result_root = "/bigwork/nhgnycao/Masterarbeit/datasets/data_scene_flow/kitti_worse_20"
-    series_input_root = "/bigwork/nhgnycao/Masterarbeit/datasets/data_scene_flow/training/image_2"
-    output_dir = "/bigwork/nhgnycao/share/kitti2015_worth20_segments"
+    depth_result_root = "datasets/data_scene_flow/kitti_worse_20"
+    series_input_gt_root = "datasets/data_scene_flow/training/disp_occ_0"
+    output_dir = "output/predictions"
 
-    # demo_series_input(depth_result_root, series_input_root, output_dir)
+    demo_series_input(series_input_gt_root, output_dir)
