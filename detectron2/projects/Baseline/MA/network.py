@@ -119,7 +119,6 @@ class JointEstimation(nn.Module):
                 * "instances": available if ``predict_instances is True``. see documentation
                     :doc:`/tutorials/models` for the standard output format
         """
-
         # To avoid error in ASPP layer when input has different size.
         size_divisibility = (
             self.size_divisibility
@@ -143,7 +142,6 @@ class JointEstimation(nn.Module):
         left_features = self.backbone(left_images.tensor)
 
         if self.panotic_branch and self.disparity_branch:  # both in work
-
             # semantic branch
             if "sem_seg" in batched_inputs[0]:
                 targets = [x["sem_seg"].to(self.device) for x in batched_inputs]
@@ -286,7 +284,6 @@ class JointEstimation(nn.Module):
                                                               dis_targets=dis_targets,
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
-
             '''
             print("tmp")
             
@@ -306,7 +303,6 @@ class JointEstimation(nn.Module):
             dis_targets.save('output/000153_10_gt.png')
             raise RuntimeError("excepted stop")
             '''
-
             losses.update(dis_embed_loss)
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
