@@ -1,0 +1,3 @@
+[gui_scripts]
+kitti360Viewer = kitti360scripts.viewer.kitti360Viewer:main
+

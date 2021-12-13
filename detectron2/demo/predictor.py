@@ -101,19 +101,14 @@ class JointPredictor:
             else:
                 top_pad = 0
 
-            print(torch.max(imgL))
-            print(imgL)
             imgL = F.pad(imgL, (0, right_pad, top_pad, 0))
             imgR = F.pad(imgR, (0, right_pad, top_pad, 0))
-            print(torch.max(imgL))
-            print(imgL)
 
-            normal_mean_var = {'mean': [123.675, 116.280, 103.530],
-                               'std': [58.395, 57.120, 57.375]}
-            infer_transform = transforms.Normalize(**normal_mean_var)
-            imgL = infer_transform(imgL)
-            imgR = infer_transform(imgR)
-
+            #normal_mean_var = {'mean': [123.675, 116.280, 103.530],
+            #                   'std': [58.395, 57.120, 57.375]}
+            #infer_transform = transforms.Normalize(**normal_mean_var)
+            #imgL = infer_transform(imgL)
+            #imgR = infer_transform(imgR)
 
             inputs = {"image": imgL, "right_image": imgR, "height": height, "width": width}
             predictions = self.model([inputs])[0]

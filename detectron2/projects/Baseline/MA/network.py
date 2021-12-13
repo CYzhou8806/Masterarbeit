@@ -138,8 +138,7 @@ class JointEstimation(nn.Module):
         infer_transform = transforms.Normalize(**normal_mean_var)
         left_images = [infer_transform(x) for x in left_images]
         '''
-        if self.training:
-            left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
+        left_images = [(x - self.pixel_mean) / self.pixel_std for x in left_images]
         left_images = ImageList.from_tensors(left_images, size_divisibility)
         left_features = self.backbone(left_images.tensor)
 
@@ -195,8 +194,7 @@ class JointEstimation(nn.Module):
             infer_transform = transforms.Normalize(**normal_mean_var)
             right_images = [infer_transform(x) for x in right_images]
             '''
-            if self.training:
-                right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+            right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
             right_images = ImageList.from_tensors(right_images, size_divisibility)
             right_features = self.backbone(right_images.tensor)
 
@@ -254,8 +252,7 @@ class JointEstimation(nn.Module):
             infer_transform = transforms.Normalize(**normal_mean_var)
             right_images = [infer_transform(x) for x in right_images]
             '''
-            if self.training:
-                right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
+            right_images = [(x - self.pixel_mean) / self.pixel_std for x in right_images]
             right_images = ImageList.from_tensors(right_images, size_divisibility)
             right_features = self.backbone(right_images.tensor)
 
