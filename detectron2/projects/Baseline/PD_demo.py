@@ -125,7 +125,8 @@ def main(args):
     if args.input_dir:
         for root, dirs, files in os.walk(args.input_dir):
             for file in tqdm(files):
-                if os.path.splitext(file)[0][-1] != '1':
+                # if os.path.splitext(file)[0][-1] != '1':
+                if True:
                     path = os.path.join(root, file)
                     # use PIL, to be consistent with evaluation
                     img = read_image(path, format="BGR")

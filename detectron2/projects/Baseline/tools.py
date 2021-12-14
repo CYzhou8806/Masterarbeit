@@ -59,12 +59,29 @@ if __name__ == "__main__":
     model.state_dict()
     for name, para in model.state_dict().items():
         break
-    model.load_state_dict(torch.load('init_panoptic_cityscapes_weights.pth'))
+    model.load_state_dict(torch.load('model/re_init_panoptic_cityscapes_weights.pth'))
 
-    #checkpointer = DetectionCheckpointer(model)
-    #checkpointer_5999 = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/model_0059999.pth"
-    #checkpointer.load(checkpointer_5999)
 
+    to_init = {}
+    for name, para in model.state_dict().items():
+        branch = name.split('.')[0]
+        if branch == 'sem_seg_head':
+            to_init[name.replace('sem_seg_head', 'dis_embed_head')] = para
+
+    # model.load_state_dict(torch.load('model/model_0139999.pth'))
+    checkpointer = DetectionCheckpointer(model)
+    checkpointer_5999 = "model/model_0139999.pth"
+    checkpointer.load(checkpointer_5999)
+
+    model_dict = model.state_dict()
+    state_dict = {k: v for k, v in to_init.items() if k in model_dict.keys()}
+    model_dict.update(state_dict)
+    model.load_state_dict(model_dict)
+
+    torch.save(model.state_dict(), 're_re_init_panoptic_cityscapes_weights.pth')
+
+
+    '''
     path_panoptic_model_dict = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/original_panoptic_dict.pth"
     panoptic_model_dict = torch.load(path_panoptic_model_dict)
     panoptic_dict_name = list(panoptic_model_dict)
@@ -85,6 +102,7 @@ if __name__ == "__main__":
 
     print(sum_p.index('ins_embed_head'))
     print(sum_p.index('dis_embed_head'))
+    '''
 
 
     '''
