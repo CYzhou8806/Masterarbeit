@@ -59,11 +59,11 @@ if __name__ == "__main__":
     model.state_dict()
     for name, para in model.state_dict().items():
         break
-    # model.load_state_dict(torch.load('init_panoptic_cityscapes_weights.pth'))
+    model.load_state_dict(torch.load('init_panoptic_cityscapes_weights.pth'))
 
-    checkpointer = DetectionCheckpointer(model)
-    checkpointer_5999 = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/model_0059999.pth"
-    checkpointer.load(checkpointer_5999)
+    #checkpointer = DetectionCheckpointer(model)
+    #checkpointer_5999 = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/model_0059999.pth"
+    #checkpointer.load(checkpointer_5999)
 
     path_panoptic_model_dict = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/original_panoptic_dict.pth"
     panoptic_model_dict = torch.load(path_panoptic_model_dict)
