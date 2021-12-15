@@ -20,6 +20,7 @@ import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
+from l1norm_loss import l1_norm_loss
 
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
@@ -1275,6 +1276,29 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
             # assert smooth_l1
             loss = smooth_l1
+
+        elif self.loss_type == "l1_norm":
+            l1_norm = None
+            for i in range(len(predictions)):  # for each pyramid
+                if l1_norm:
+                    l1_norm = l1_norm + self.internal_loss_weight[i] * \
+                                (self.hourglass_loss_weight[0] *
+                                 l1_norm_loss(predictions[i][0], dis_targets, dis_mask_bool) +
+                                 self.hourglass_loss_weight[1] *
+                                 l1_norm_loss(predictions[i][1], dis_targets, dis_mask_bool) +
+                                 self.hourglass_loss_weight[2] *
+                                 l1_norm_loss(predictions[i][2], dis_targets, dis_mask_bool))
+                else:
+                    l1_norm = self.internal_loss_weight[i] * \
+                                (self.hourglass_loss_weight[0] *
+                                 l1_norm_loss(predictions[i][0], dis_targets, dis_mask_bool) +
+                                 self.hourglass_loss_weight[1] *
+                                 l1_norm_loss(predictions[i][1], dis_targets, dis_mask_bool) +
+                                 self.hourglass_loss_weight[2] *
+                                 l1_norm_loss(predictions[i][2], dis_targets, dis_mask_bool))
+            # assert l1_norm
+            loss = l1_norm
+
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
 
