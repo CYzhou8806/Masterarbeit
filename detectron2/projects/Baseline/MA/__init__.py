@@ -25,3 +25,4 @@ from .cityscapes_jointestamation import register_all_cityscapes_joint
 from .joint_dataset_mapper import JointDeeplabDatasetMapper
 from .sceneflow_driving_dispar import register_all_sceneflow
 from .kitti_2015_dispar import register_all_kitti_2015
+# from l1norm_loss import l1_norm_loss

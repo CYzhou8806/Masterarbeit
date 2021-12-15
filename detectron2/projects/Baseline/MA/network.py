@@ -20,7 +20,7 @@ import fvcore.nn.weight_init as weight_init
 import torch
 from torch import nn
 from torch.nn import functional as F
-from l1norm_loss import l1_norm_loss
+# from l1norm_loss import l1_norm_loss
 
 from detectron2.config import configurable
 from detectron2.data import MetadataCatalog
@@ -56,6 +56,15 @@ Registry for disparity embedding branches, which make disparity embedding
 predictions from feature maps.
 """
 
+
+def l1_norm_loss(prediction, gt, mask):
+    diff = torch.abs(prediction - gt)
+    diff_nz = diff[mask]
+
+    if len(diff_nz) == 0:
+        return torch.tensor(0.0)
+    else:
+        return torch.mean(diff_nz)
 
 @META_ARCH_REGISTRY.register()
 class JointEstimation(nn.Module):
