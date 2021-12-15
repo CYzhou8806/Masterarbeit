@@ -1292,19 +1292,19 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 if l1_norm:
                     l1_norm = l1_norm + self.internal_loss_weight[i] * \
                                 (self.hourglass_loss_weight[0] *
-                                 l1_norm_loss(predictions[i][0], dis_targets, dis_mask_bool) +
+                                 F.l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool]) +
                                  self.hourglass_loss_weight[1] *
-                                 l1_norm_loss(predictions[i][1], dis_targets, dis_mask_bool) +
+                                 F.l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool]) +
                                  self.hourglass_loss_weight[2] *
-                                 l1_norm_loss(predictions[i][2], dis_targets, dis_mask_bool))
+                                 F.l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
                 else:
                     l1_norm = self.internal_loss_weight[i] * \
                                 (self.hourglass_loss_weight[0] *
-                                 l1_norm_loss(predictions[i][0], dis_targets, dis_mask_bool) +
+                                 F.l1_loss(predictions[i][0][dis_mask_bool], dis_targets[dis_mask_bool]) +
                                  self.hourglass_loss_weight[1] *
-                                 l1_norm_loss(predictions[i][1], dis_targets, dis_mask_bool) +
+                                 F.l1_loss(predictions[i][1][dis_mask_bool], dis_targets[dis_mask_bool]) +
                                  self.hourglass_loss_weight[2] *
-                                 l1_norm_loss(predictions[i][2], dis_targets, dis_mask_bool))
+                                 F.l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
             # assert l1_norm
             loss = l1_norm
 
