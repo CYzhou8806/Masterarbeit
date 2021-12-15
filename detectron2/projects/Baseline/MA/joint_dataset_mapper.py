@@ -19,8 +19,10 @@ from detectron2.data import MetadataCatalog
 from detectron2.data import detection_utils as utils
 from detectron2.data import transforms as T
 from detectron2.data.transforms.augmentation import _transform_to_aug
-from PIL import Image
+from PIL import Image, ImageFilter
 from .target_generator import PanopticDeepLabTargetGenerator
+
+
 
 __all__ = ["JointDeeplabDatasetMapper"]
 
@@ -179,6 +181,9 @@ class JointDeeplabDatasetMapper:
         pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB") if self.panoptic_branch else None
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
 
+
+
+
         cityscapes = False
         kitti_2015 = False
         scene_flow = False
@@ -193,6 +198,29 @@ class JointDeeplabDatasetMapper:
             kitti_2015 = True
             dis_gt = Image.open(dataset_dict.pop("disparity_file_name_kitti_2015"))
             dis_gt = np.array(dis_gt)
+            '''
+            dis_tmp = np.zeros((dis_gt.shape[0], dis_gt.shape[1],3))
+            for i in range(3):
+                dis_tmp[:, :, i] = dis_gt
+
+            def numpy2pil(np_array: np.ndarray) -> Image:
+                """
+                 Convert an HxWx3 numpy array into an RGB Image
+                """
+
+                assert_msg = 'Input shall be a HxWx3 ndarray'
+                assert isinstance(np_array, np.ndarray), assert_msg
+                assert len(np_array.shape) == 3, assert_msg
+                assert np_array.shape[2] == 3, assert_msg
+
+                img = Image.fromarray(np_array, 'RGB')
+                return img
+
+            dis_tmp = numpy2pil(dis_tmp)
+            dis_gt = dis_tmp.filter(ImageFilter.GaussianBlur(radius=2))
+            dis_gt = np.array(dis_gt)[:,:,0]
+            '''
+
         else:
             raise TypeError("unexcepted form of disparity ground truth.")
 
@@ -217,9 +245,10 @@ class JointDeeplabDatasetMapper:
             dis_gt[mask] = dis_gt[mask] / 256
         dis_gt_with_mask[0, :, :] = dis_gt
 
+        # TODO:debug_tmp
         neighbor = 1
         size = neighbor * 2
-        h, w = dis_gt_with_mask[0].size
+        h, w = dis_gt_with_mask[0].shape
         for i in range(neighbor, h - neighbor, size):
             for j in range(neighbor, w - neighbor, size):
                 local = []
@@ -255,16 +284,24 @@ class JointDeeplabDatasetMapper:
                             local.append(dis_gt_with_mask[0][i, j])
                             way.append([i, j])
                             break
-                if local.count(0.0) > len(local) // 3:
+                tmp = len(local)
+                if local.count(0.0) >=1:
+                # if 1:
                     local_max = max(local)
+                    '''
                     for [x, y] in way:
                         dis_gt_with_mask[0][x, y] = local_max
+                    '''
+                    if dis_gt_with_mask[0][i, j] == 0.0:
+                        dis_gt_with_mask[0][i, j] = local_max
+
 
         dis_gt_with_mask[1][mask] = 1
         valid_dis = dis_gt_with_mask[1, :, :]  # get mask
         valid_dis_mask = valid_dis == 1.0
         mask_max_disp = dis_gt_with_mask[0, :, :] < self.max_disp
         mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
+        #print(np.sum(dis_gt_with_mask[0, :, :]>0))
 
         if self.guided_loss:
             pan_guided_raw = pan_guided_raw[:, :, :2]
