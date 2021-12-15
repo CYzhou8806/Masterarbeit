@@ -34,10 +34,10 @@ MODEL:
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 2
-  LR_SCHEDULER_NAME: "WarmupCosineLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.00001
-  FREEZE_BACKBONE: True
+  IMS_PER_BATCH: 4
+  LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
+  # BASE_LR: 0.00001
+  FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
 DATASETS:
@@ -52,4 +52,4 @@ INPUT:
   IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti) or 1024,2048 (cityscapes)
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
-RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
+RESUME: True  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.

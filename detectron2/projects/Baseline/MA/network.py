@@ -285,7 +285,7 @@ class JointEstimation(nn.Module):
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
             '''
-            print("tmp")
+            # print("tmp")
             
             dis_est = dis_results[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
             tmp = np.all(dis_est==0.0)
@@ -296,13 +296,16 @@ class JointEstimation(nn.Module):
             dis_img = Image.fromarray(dis_est)
             dis_img.save('output/000153_10_dis.png')
 
+
             dis_targets = dis_targets.squeeze(0).cpu().numpy()
             # dis_est = dis_est.numpy()
             dis_targets = (dis_targets * 256).astype('uint16')
             dis_targets = Image.fromarray(dis_targets)
             dis_targets.save('output/000153_10_gt.png')
+
             raise RuntimeError("excepted stop")
             '''
+
 
             losses.update(dis_embed_loss)
         else:
@@ -1116,6 +1119,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_mask_bool = dis_mask == 1.0
         dis_mask_bool.detach_()
 
+        '''
         for i in range(3):
             for j in range(3):
                 gaosi = (0.1**0.5)*torch.randn(dis_targets.shape[0], dis_targets.shape[1], dis_targets.shape[2], dis_targets.shape[3]).cuda()
@@ -1123,11 +1127,14 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 tmp0 = predictions[i][j][dis_mask_bool]
                 tmp = gaosi[dis_mask_bool]
                 # predictions[i][j][dis_mask_bool] = gaosi[dis_mask_bool]
+        '''
 
+        '''
         dis_est = predictions[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
         dis_est = (dis_est * 256).astype('uint16')
         dis_img = Image.fromarray(dis_est)
         dis_img.save('output/000153_10_pred.png')
+        '''
 
 
 
