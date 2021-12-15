@@ -30,6 +30,7 @@ from kitti360scripts.helpers.csHelpers import printError
 from kitti360scripts.helpers.labels import id2label, labels
 
 
+
 # The main method
 def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, setNames=["val", "train", "test"]):
     # Where to look for Cityscapes
