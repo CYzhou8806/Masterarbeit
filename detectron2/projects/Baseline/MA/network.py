@@ -303,6 +303,7 @@ class JointEstimation(nn.Module):
             dis_targets.save('output/000153_10_gt.png')
             raise RuntimeError("excepted stop")
             '''
+
             losses.update(dis_embed_loss)
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
@@ -1106,16 +1107,30 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
     def losses(self, predictions, dis_targets=None, dis_mask=None, weights=None,
                pan_guided=None, pan_mask=None):
-
         # assert not torch.isnan(dis_targets).any
         # assert not torch.isnan(dis_mask).any
         # assert not torch.isnan(pan_guided).any
         # assert not torch.isnan(pan_mask).any
-
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_targets = torch.unsqueeze(dis_targets, 1)
         dis_mask_bool = dis_mask == 1.0
         dis_mask_bool.detach_()
+
+        for i in range(3):
+            for j in range(3):
+                gaosi = (0.1**0.5)*torch.randn(dis_targets.shape[0], dis_targets.shape[1], dis_targets.shape[2], dis_targets.shape[3]).cuda()
+                predictions[i][j][dis_mask_bool] = dis_targets[dis_mask_bool]
+                tmp0 = predictions[i][j][dis_mask_bool]
+                tmp = gaosi[dis_mask_bool]
+                # predictions[i][j][dis_mask_bool] = gaosi[dis_mask_bool]
+
+        '''
+        dis_est = predictions[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
+        dis_est = (dis_est * 256).astype('uint16')
+        dis_img = Image.fromarray(dis_est)
+        dis_img.save('output/000153_10_pred.png')
+        '''
+
 
         '''
         print(dis_targets.shape)
@@ -1138,7 +1153,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         print(torch.max(dis_targets))
         print(torch.max(predictions[0][-1]))
         '''
-
 
         if self.loss_type == "panoptic_guided":
             assert pan_guided is not None, "if use loss 'panoptic_guided',the label must exist"
