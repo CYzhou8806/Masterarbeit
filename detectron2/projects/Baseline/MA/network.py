@@ -1124,12 +1124,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 tmp = gaosi[dis_mask_bool]
                 # predictions[i][j][dis_mask_bool] = gaosi[dis_mask_bool]
 
-        '''
         dis_est = predictions[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
         dis_est = (dis_est * 256).astype('uint16')
         dis_img = Image.fromarray(dis_est)
         dis_img.save('output/000153_10_pred.png')
-        '''
+
 
 
         '''
