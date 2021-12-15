@@ -1260,6 +1260,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
                    self.guided_loss_weight[2] * smooth_l1
 
+            losses = {"loss_dis_guided": loss * self.loss_weight}
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
             for i in range(len(predictions)):  # for each pyramid
@@ -1285,6 +1286,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
             # assert smooth_l1
             loss = smooth_l1
+            losses = {"loss_dis_smoothL1": loss * self.loss_weight}
 
         elif self.loss_type == "l1_norm":
             l1_norm = None
@@ -1325,11 +1327,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 '''
             # assert l1_norm
             loss = l1_norm
-
+            losses = {"loss_dis_L1Norm": loss * self.loss_weight}
         else:
             raise ValueError("Unexpected loss type: %s" % self.loss_type)
 
-        losses = {"loss_dis": loss * self.loss_weight}
         return losses
 
 
