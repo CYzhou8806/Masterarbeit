@@ -245,7 +245,7 @@ class JointDeeplabDatasetMapper:
             dis_gt[mask] = dis_gt[mask] / 256
         dis_gt_with_mask[0, :, :] = dis_gt
 
-        '''
+
         # TODO:debug_tmp
         neighbor = 1
         size = neighbor * 2
@@ -295,7 +295,7 @@ class JointDeeplabDatasetMapper:
                     
                     if dis_gt_with_mask[0][i, j] == 0.0:
                         dis_gt_with_mask[0][i, j] = local_max
-        '''
+
 
         dis_gt_with_mask[1][mask] = 1
         valid_dis = dis_gt_with_mask[1, :, :]  # get mask
