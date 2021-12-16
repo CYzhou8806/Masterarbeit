@@ -29,20 +29,21 @@ from PIL import Image
 from kitti360scripts.helpers.csHelpers import printError
 from kitti360scripts.helpers.labels import id2label, labels
 
+os.environ['KITTI360_DATASET'] = r"D:\Masterarbeit\dataset\kitti_360"
 
 
 # The main method
-def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, setNames=["val", "train", "test"]):
-    # Where to look for Cityscapes
-    if cityscapesPath is None:
-        if 'CITYSCAPES_DATASET' in os.environ:
-            cityscapesPath = os.environ['CITYSCAPES_DATASET']
+def convert2panoptic(kitti360Path=None, outputFolder=None, useTrainId=False, setNames=["val", "train", "test"]):
+    # Where to look for kitti360
+    if kitti360Path is None:
+        if 'KITTI360_DATASET' in os.environ:
+            kitti360Path = os.environ['KITTI360_DATASET']
         else:
-            cityscapesPath = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
-        cityscapesPath = os.path.join(cityscapesPath, "gtFine")
+            kitti360Path = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
+        kitti360Path = os.path.join(kitti360Path, "data_2d_semantics")  # to the path of data_2d_semantics
 
     if outputFolder is None:
-        outputFolder = cityscapesPath
+        outputFolder = kitti360Path
 
     categories = []
     for label in labels:
@@ -55,8 +56,14 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
                            'isthing': 1 if label.hasInstances else 0})
 
     for setName in setNames:
+        '''
+        for root, dir, files in os.walk(os.path.join(kitti360Path, setName)):
+            for file in files:
+                if os.path.splitext(file)[-1] == '.png' and root.split('/')[-1] == 'semantic':
+        '''
+
         # how to search for all ground truth
-        searchFine   = os.path.join(cityscapesPath, setName, "*", "*_instanceIds.png")
+        searchFine   = os.path.join(kitti360Path, setName, "*", "image_00", "instance", "*.png")
         # search files
         filesFine = glob.glob(searchFine)
         filesFine.sort()
@@ -71,7 +78,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
         print("Converting {} annotation files for {} set.".format(len(files), setName))
 
         trainIfSuffix = "_trainId" if useTrainId else ""
-        outputBaseFile = "cityscapes_panoptic_{}{}".format(setName, trainIfSuffix)
+        outputBaseFile = "kitti360_panoptic_{}{}".format(setName, trainIfSuffix)
         outFile = os.path.join(outputFolder, "{}.json".format(outputBaseFile))
         print("Json file with the annotations in panoptic format will be saved in {}".format(outFile))
         panopticFolder = os.path.join(outputFolder, outputBaseFile)
@@ -85,11 +92,12 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
         for progress, f in enumerate(files):
 
             originalFormat = np.array(Image.open(f))
-
+            seq = os.path.split(os.path.split(os.path.split(os.path.split(f)[0])[0])[0])[-1]
             fileName = os.path.basename(f)
-            imageId = fileName.replace("_gtFine_instanceIds.png", "")
-            inputFileName = fileName.replace("_instanceIds.png", "_leftImg8bit.png")
-            outputFileName = fileName.replace("_instanceIds.png", "_panoptic.png")
+            imageId = seq+'_'+fileName.replace(".png", "")
+
+            inputFileName = seq+'_'+fileName
+            outputFileName = seq+'_'+fileName.replace(".png", "_panoptic.png")
             # image entry, id for image is its filename without extension
             images.append({"id": imageId,
                            "width": int(originalFormat.shape[1]),
@@ -159,8 +167,8 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-folder",
-                        dest="cityscapesPath",
-                        help="path to the Cityscapes dataset 'gtFine' folder",
+                        dest="kitti360Path",
+                        help="path to the kitti360 dataset 'gtFine' folder",
                         default=None,
                         type=str)
     parser.add_argument("--output-folder",
@@ -168,16 +176,16 @@ def main():
                         help="path to the output folder.",
                         default=None,
                         type=str)
-    parser.add_argument("--use-train-id", action="store_true", dest="useTrainId")
+    parser.add_argument("--use-train-id", action="store_true", dest="useTrainId", default=False)
     parser.add_argument("--set-names",
                         dest="setNames",
                         help="set names to which apply the function to",
                         nargs='+',
-                        default=["val", "train", "test"],
+                        default=["train"],
                         type=str)
     args = parser.parse_args()
 
-    convert2panoptic(args.cityscapesPath, args.outputFolder, args.useTrainId, args.setNames)
+    convert2panoptic(args.kitti360Path, args.outputFolder, args.useTrainId, args.setNames)
 
 
 # call the main
