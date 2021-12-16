@@ -1144,7 +1144,9 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_est = (dis_est * 256).astype('uint16')
         dis_img = Image.fromarray(dis_est)
         dis_img.save('output/000153_10_pred.png')
+        raise RuntimeError("stop")
         '''
+
 
 
 

@@ -52,7 +52,7 @@ def get_parser():
 
     parser.add_argument(
         "--output",
-        default="output/predictions",
+        default="output/prediction",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -63,7 +63,7 @@ def get_parser():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_0044999.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_0009999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
