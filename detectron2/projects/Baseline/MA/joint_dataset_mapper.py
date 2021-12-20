@@ -198,6 +198,9 @@ class JointDeeplabDatasetMapper:
             kitti_2015 = True
             dis_gt = Image.open(dataset_dict.pop("disparity_file_name_kitti_2015"))
             dis_gt = np.array(dis_gt)
+            # mask_tmp = dis_gt !=0
+            # print(np.sum(dis_gt !=0.0))
+
             '''
             dis_tmp = np.zeros((dis_gt.shape[0], dis_gt.shape[1],3))
             for i in range(3):
@@ -237,15 +240,28 @@ class JointDeeplabDatasetMapper:
 
         dis_gt_with_mask = np.zeros((2, dis_gt.shape[0], dis_gt.shape[1]), dtype=np.float)
         dis_gt = dis_gt.astype(float)
-        mask = dis_gt_with_mask[0] == 0.0
+        '''
+        mask = dis_gt_with_mask[0] == 0.0   # all position, redundant/useless
+        print(np.sum(mask))
 
         if cityscapes:  # only for cityscapes datasets
             dis_gt[mask] = (dis_gt[mask] - 1.) / 256
         if kitti_2015:  # only for kitti 2015 datasets
             dis_gt[mask] = dis_gt[mask] / 256
+        '''
+        if cityscapes:  # only for cityscapes datasets
+            dis_gt = (dis_gt - 1.) / 256
+        if kitti_2015:  # only for kitti 2015 datasets
+            dis_gt = dis_gt / 256
+        '''
+        print(np.sum(dis_gt>0))
+        print(np.sum(dis_gt != 0))
+        print(np.sum(dis_gt > 0.0))
+        print(np.sum(dis_gt != 0.0))
+        '''
         dis_gt_with_mask[0, :, :] = dis_gt
 
-
+        '''
         # TODO:debug_tmp
         neighbor = 1
         size = neighbor * 2
@@ -295,14 +311,23 @@ class JointDeeplabDatasetMapper:
                     
                     if dis_gt_with_mask[0][i, j] == 0.0:
                         dis_gt_with_mask[0][i, j] = local_max
-
-
-        dis_gt_with_mask[1][mask] = 1
+        '''
+        '''
+        dis_gt_with_mask[1] = 1.0
         valid_dis = dis_gt_with_mask[1, :, :]  # get mask
         valid_dis_mask = valid_dis == 1.0
+        '''
         mask_max_disp = dis_gt_with_mask[0, :, :] < self.max_disp
-        mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
-        #print(np.sum(dis_gt_with_mask[0, :, :]>0))
+        dis_gt_with_mask[1][mask_max_disp] = 1.0
+        '''
+        print(np.sum(mask_max_disp))
+        print(np.sum(dis_gt_with_mask[1]==1.0))
+        
+        print(np.sum(dis_gt_with_mask[0] > 0.0))
+        '''
+        mask_disp = mask_max_disp
+        # mask_disp = np.logical_and(valid_dis_mask, mask_max_disp)
+        # print(np.sum(dis_gt_with_mask[0, :, :]>0))
 
         if self.guided_loss:
             pan_guided_raw = pan_guided_raw[:, :, :2]

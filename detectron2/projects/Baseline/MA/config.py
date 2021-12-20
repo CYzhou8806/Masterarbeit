@@ -72,6 +72,8 @@ def add_joint_estimation_config(cfg):
     cfg.MODEL.DIS_EMBED_HEAD.HOURGLASS_TYPE = "hourglass_2D"
     cfg.MODEL.DIS_EMBED_HEAD.RESOL_DISP_ADAPT = False
     cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE = "sobel"
+    cfg.MODEL.DIS_EMBED_HEAD.ZERO_DIS_CONSIDERED = True
+
     # Panoptic-DeepLab post-processing setting.
     cfg.MODEL.PANOPTIC_DEEPLAB = CN()
     # Stuff area limit, ignore stuff region below this number.

@@ -850,6 +850,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             hourglass_type: str,
             resol_disp_adapt: bool,
             gradient_type: str,
+            zero_dis_considered: bool,
             # num_classes=None,
             **kwargs,
     ):
@@ -892,6 +893,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.predictor = nn.ModuleDict()
         self.hourglass_inplanes = hourglass_inplanes
         self.regression_inplanes = regression_inplanes
+        self.zero_dis_considered = zero_dis_considered
 
         if img_size is None:
             self.img_size = [1024, 2048]  # h, w
@@ -967,6 +969,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["gradient_type"] = cfg.MODEL.DIS_EMBED_HEAD.GRADIENT_TYPE
         ret["img_size"] = cfg.INPUT.CROP.SIZE if cfg.INPUT.CROP.ENABLED else cfg.INPUT.IMG_SIZE
         ret["num_classes"] = cfg.MODEL.DIS_EMBED_HEAD.NUM_CLASSES
+        ret["zero_dis_considered"] = cfg.MODEL.DIS_EMBED_HEAD.ZERO_DIS_CONSIDERED
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,
@@ -1127,6 +1130,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_targets = torch.unsqueeze(dis_targets, 1)
         dis_mask_bool = dis_mask == 1.0
+        # print(torch.sum(dis_mask == 1.0))
+        if not self.zero_dis_considered:
+            mask_no_zero = dis_targets > 0.0
+            dis_mask_bool = dis_mask_bool & mask_no_zero
+        # print(torch.sum(mask_no_zero))
         dis_mask_bool.detach_()
 
         '''
@@ -1146,9 +1154,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_img.save('output/000153_10_pred.png')
         raise RuntimeError("stop")
         '''
-
-
-
 
         '''
         print(dis_targets.shape)
