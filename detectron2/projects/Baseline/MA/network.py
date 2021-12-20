@@ -1145,7 +1145,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 for j in range(neighbor, w - neighbor, size):
                     local = []
                     way = []
-                    for p in range(neighbor + 1):
+                    for p in range(0, neighbor + 1, 2):
                         for q in range(p + 1):
                             if p != 0:
                                 if [i + p, j + q] not in way:
