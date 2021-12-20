@@ -1130,12 +1130,65 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_targets = torch.unsqueeze(dis_targets, 1)
         dis_mask_bool = dis_mask == 1.0
-        # print(torch.sum(dis_mask == 1.0))
+        #print(torch.sum(dis_mask_bool))
         if not self.zero_dis_considered:
             mask_no_zero = dis_targets > 0.0
             dis_mask_bool = dis_mask_bool & mask_no_zero
-        # print(torch.sum(mask_no_zero))
+        #print(torch.sum(dis_mask_bool))
+
+        # TODO:debug_tmp
+        neighbor = 8
+        size = neighbor * 2
+        h, w = dis_targets[0, 0].shape
+        for b in range(dis_targets.shape[0]):
+            for i in range(neighbor, h - neighbor, size):
+                for j in range(neighbor, w - neighbor, size):
+                    local = []
+                    way = []
+                    for p in range(neighbor + 1):
+                        for q in range(p + 1):
+                            if p != 0:
+                                if [i + p, j + q] not in way:
+                                    local.append(dis_targets[b][0][i + p, j + q])
+                                    way.append([i + p, j + q])
+                                if [i + p, j - q] not in way:
+                                    local.append(dis_targets[b][0][i + p, j - q])
+                                    way.append([i + p, j - q])
+                                if [i - p, j + q] not in way:
+                                    local.append(dis_targets[b][0][i - p, j + q])
+                                    way.append([i - p, j + q])
+                                if [i - p, j - q] not in way:
+                                    local.append(dis_targets[b][0][i - p, j - q])
+                                    way.append([i - p, j - q])
+                                if [i + q, j + p] not in way:
+                                    local.append(dis_targets[b][0][i + q, j + p])
+                                    way.append([i + q, j + p])
+                                if [i + q, j - p] not in way:
+                                    local.append(dis_targets[b][0][i + q, j - p])
+                                    way.append([i + q, j - p])
+                                if [i - q, j + p] not in way:
+                                    local.append(dis_targets[b][0][i - q, j + p])
+                                    way.append([i - q, j + p])
+                                if [i - q, j - p] not in way:
+                                    local.append(dis_targets[b][0][i - q, j - p])
+                                    way.append([i - q, j - p])
+                            else:
+                                local.append(dis_targets[b][0][i, j])
+                                way.append([i, j])
+                                break
+                    if max(local) == 0.0:
+                        count = 0
+                        for [x,y] in way:
+                            if count > 3:
+                                dis_mask_bool[b][0][x,y] = True
+                                count=0
+                            else:
+                                count+=1
+
+
+        #print(torch.sum(dis_mask_bool))
         dis_mask_bool.detach_()
+
 
         '''
         for i in range(3):
