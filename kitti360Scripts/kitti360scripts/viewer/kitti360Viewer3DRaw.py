@@ -26,7 +26,7 @@ import shutil
 from tqdm import tqdm
 
 # os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
-os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
+os.environ["KITTI360_DATASET"] = "/project/NHGN20600/nhgnycao/kitti360/KITTI-360"
 
 
 # the main class that loads raw 3D scans
