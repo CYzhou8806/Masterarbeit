@@ -15,7 +15,7 @@ import copy
 # numpy
 import numpy as np
 # open3d
-import open3d
+# import open3d
 # matplotlib for colormaps
 import matplotlib.cm
 import matplotlib.pyplot as plt
@@ -25,7 +25,8 @@ import struct
 import shutil
 from tqdm import tqdm
 
-os.environ["KITTI360_DATASET"] = r"D:\Masterarbeit\dataset\kitti_360"
+# os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
+os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
 
 
 # the main class that loads raw 3D scans
@@ -68,7 +69,7 @@ class Kitti360Viewer3DRaw(object):
         return pcd
 
 
-def projectVeloToImage(cam_id=0, seq=0):
+def projectVeloToImage(output_root, cam_id=0, seq=0):
     from kitti360scripts.devkits.commons.loadCalibration import loadCalibrationCameraToPose, loadCalibrationRigid
     from kitti360scripts.helpers.project import CameraPerspective, CameraFisheye
     from PIL import Image
@@ -80,8 +81,30 @@ def projectVeloToImage(cam_id=0, seq=0):
         kitti360Path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), '..', '..')
 
+    disp_gt_save_dir = os.path.join(output_root, "disparity")
+    left_save_dir = os.path.join(output_root, "left_image")
+    right_save_dir = os.path.join(output_root, "right_image")
+    if not os.path.exists(disp_gt_save_dir):
+        os.makedirs(disp_gt_save_dir)
+    if not os.path.exists(left_save_dir):
+        os.makedirs(left_save_dir)
+    if not os.path.exists(right_save_dir):
+        os.makedirs(right_save_dir)
+
+
+    baseline = 600.0  # 0.60 m
+    # take fx of the to projected image
+    if cam_id == 0:
+        f = 788.629315
+    elif cam_id == 1:
+        f = 785.134093
+    else:
+        raise ValueError("Up to now only Perspective Camera supported")
+    depth_disp_konst = baseline * f
+
     sequence = '2013_05_28_drive_%04d_sync' % seq
 
+    '''
     output_root = os.path.join(kitti360Path, "disparity")
     if not os.path.exists(output_root):
         os.makedirs(output_root)
@@ -90,6 +113,7 @@ def projectVeloToImage(cam_id=0, seq=0):
         shutil.rmtree(output_root)  # 递归删除文件夹
         os.makedirs(output_root)
         print("---  del old and create new folder...  ---")
+    '''
 
     # perspective camera
     if cam_id in [0, 1]:
@@ -156,11 +180,26 @@ def projectVeloToImage(cam_id=0, seq=0):
                                  '%010d.png' % frame)
         if not os.path.isfile(imagePath):
             raise RuntimeError('Image file %s does not exist!' % imagePath)
+
         img_name = os.path.basename(imagePath)
-        # dis_name = os.path.splitext(img_name)[0]+".tiff"
-        gt = Image.fromarray(depthMap)
-        gt = gt.convert('RGB')
-        gt.save(os.path.join(output_root, img_name))
+
+        # depth to disparity
+        mask_nozero = depthMap != 0
+        dispMap = np.zeros_like(depthMap)
+        dispMap[mask_nozero] = depth_disp_konst / (depthMap[mask_nozero] * 1000)
+        gt = Image.fromarray(dispMap)
+
+        new_name_disp_gt = sequence + '_' + os.path.splitext(img_name)[0] + '_disparity.tiff'
+        gt.save(os.path.join(disp_gt_save_dir, new_name_disp_gt))
+
+        # copy raw 2D
+        left_img_path = imagePath
+        right_img_path = left_img_path.replace('image_00', 'image_01')
+        new_name_left_img = sequence + '_' + os.path.splitext(img_name)[0] + '_left.png'
+        new_name_right_img = sequence + '_' + os.path.splitext(img_name)[0] + '_right.png'
+        shutil.copyfile(left_img_path, os.path.join(left_save_dir, new_name_left_img))
+        shutil.copyfile(right_img_path, os.path.join(right_save_dir, new_name_right_img))
+
         continue
 
         '''
@@ -189,6 +228,20 @@ def projectVeloToImage(cam_id=0, seq=0):
 
 
 if __name__ == '__main__':
+    if 'KITTI360_DATASET' in os.environ:
+        kitti360Path = os.environ['KITTI360_DATASET']
+    else:
+        kitti360Path = os.path.join(os.path.dirname(
+            os.path.realpath(__file__)), '..', '..')
+
+    output_root = os.path.join(kitti360Path, "kitti_360")
+    if not os.path.exists(output_root):
+        os.makedirs(output_root)
+        print("---  create new folder...  ---")
+    else:
+        shutil.rmtree(output_root)  # 递归删除文件夹
+        os.makedirs(output_root)
+        print("---  del old and create new folder...  ---")
 
     visualizeIn2D = True
     # sequence index
@@ -196,22 +249,24 @@ if __name__ == '__main__':
     # set it to 0 or 1 for projection to perspective images
     #           2 or 3 for projecting to fisheye images
     cam_id = 0
+    for seq in [0, 2, 3, 4, 5, 6, 7, 9, 10]:
+        # visualize raw 3D velodyne scans in 2D
+        if visualizeIn2D:
+            projectVeloToImage(output_root, seq=seq, cam_id=cam_id)
 
-    # visualize raw 3D velodyne scans in 2D
-    if visualizeIn2D:
-        projectVeloToImage(seq=seq, cam_id=cam_id)
-
-    # visualize raw 3D scans in 3D
-    else:
-        mode = 'sick'
-        frame = 1000
-
-        v = Kitti360Viewer3DRaw(mode=mode)
-        if mode == 'velodyne':
-            points = v.loadVelodyneData(frame)
-        elif mode == 'sick':
-            points = v.loadSickData(frame)
-        pcd = open3d.geometry.PointCloud()
-        pcd.points = open3d.utility.Vector3dVector(points[:, :3])
-
-        open3d.visualization.draw_geometries([pcd])
+        '''
+        # visualize raw 3D scans in 3D
+        else:
+            mode = 'sick'
+            frame = 1000
+    
+            v = Kitti360Viewer3DRaw(mode=mode)
+            if mode == 'velodyne':
+                points = v.loadVelodyneData(frame)
+            elif mode == 'sick':
+                points = v.loadSickData(frame)
+            pcd = open3d.geometry.PointCloud()
+            pcd.points = open3d.utility.Vector3dVector(points[:, :3])
+    
+            open3d.visualization.draw_geometries([pcd])
+        '''
