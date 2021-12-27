@@ -256,11 +256,13 @@ if __name__ == '__main__':
     # set it to 0 or 1 for projection to perspective images
     #           2 or 3 for projecting to fisheye images
     cam_id = 0
-    for seq in [0, 2, 3, 4, 5, 6, 7, 9, 10]:
+
+    train_dir = os.path.join(output_root, "train")
+    os.makedirs(train_dir)
+    for seq in [0, 3, 5, 6, 7, 10]:
         # visualize raw 3D velodyne scans in 2D
         if visualizeIn2D:
-            projectVeloToImage(output_root, seq=seq, cam_id=cam_id)
-
+            projectVeloToImage(train_dir, seq=seq, cam_id=cam_id)
         '''
         # visualize raw 3D scans in 3D
         else:
@@ -277,3 +279,11 @@ if __name__ == '__main__':
     
             open3d.visualization.draw_geometries([pcd])
         '''
+
+    test_dir = os.path.join(output_root, "test")
+    os.makedirs(test_dir)
+    for seq in [2, 4, 9]:
+        # visualize raw 3D velodyne scans in 2D
+        if visualizeIn2D:
+            projectVeloToImage(test_dir, seq=seq, cam_id=cam_id)
+
