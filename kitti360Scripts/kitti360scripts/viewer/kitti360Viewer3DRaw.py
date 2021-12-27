@@ -240,7 +240,8 @@ if __name__ == '__main__':
         kitti360Path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), '..', '..')
 
-    output_root = os.path.join(kitti360Path, "kitti_360")
+    # output_root = os.path.join(kitti360Path, "kitti_360")
+    output_root = os.path.join("/bigwork/nhgnycao/datasets", "kitti_360")
     if not os.path.exists(output_root):
         os.makedirs(output_root)
         print("---  create new folder...  ---")
