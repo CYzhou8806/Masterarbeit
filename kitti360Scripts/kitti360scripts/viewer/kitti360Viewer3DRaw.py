@@ -27,6 +27,7 @@ from tqdm import tqdm
 
 # os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
 os.environ["KITTI360_DATASET"] = "/project/NHGN20600/nhgnycao/kitti360/KITTI-360"
+# os.environ["KITTI360_DATASET"] = r"D:\Masterarbeit\dataset\kitti_360"
 
 
 # the main class that loads raw 3D scans
@@ -155,76 +156,81 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
 
     # visualize a set of frame
     # for each frame, load the raw 3D scan and project to image plane
-    for frame in tqdm(range(0, 1000, 2)):
-        points = velo.loadVelodyneData(frame)
-        points[:, 3] = 1
+    # for frame in tqdm(range(0, 1000, 2)):
+    sub_dir = 'data_rect' if cam_id in [0, 1] else 'data_rgb'
+    for root, dirs, files in os.walk(os.path.join(kitti360Path, 'data_2d_raw', sequence, 'image_%02d' % cam_id, sub_dir)):
+        for file in tqdm(files):
+            if os.path.splitext(file)[-1] == '.png':
+                frame = int(os.path.splitext(file)[0])
 
-        # transfrom velodyne points to camera coordinate
-        pointsCam = np.matmul(TrVeloToRect, points.T).T
-        pointsCam = pointsCam[:, :3]
-        # project to image space
-        u, v, depth = camera.cam2image(pointsCam.T)
-        u = u.astype(np.int64)
-        v = v.astype(np.int64)
+                points = velo.loadVelodyneData(frame)
+                points[:, 3] = 1
 
-        # prepare depth map for visualization
-        depthMap = np.zeros((camera.height, camera.width))
-        depthImage = np.zeros((camera.height, camera.width, 3))
-        mask = np.logical_and(np.logical_and(np.logical_and(u >= 0, u < camera.width), v >= 0), v < camera.height)
-        # visualize points within 30 meters
-        mask = np.logical_and(np.logical_and(mask, depth > 0), depth < 99999)
-        depthMap[v[mask], u[mask]] = depth[mask]
+                # transfrom velodyne points to camera coordinate
+                pointsCam = np.matmul(TrVeloToRect, points.T).T
+                pointsCam = pointsCam[:, :3]
+                # project to image space
+                u, v, depth = camera.cam2image(pointsCam.T)
+                u = u.astype(np.int64)
+                v = v.astype(np.int64)
 
-        sub_dir = 'data_rect' if cam_id in [0, 1] else 'data_rgb'
-        imagePath = os.path.join(kitti360Path, 'data_2d_raw', sequence, 'image_%02d' % cam_id, sub_dir,
-                                 '%010d.png' % frame)
-        if not os.path.isfile(imagePath):
-            raise RuntimeError('Image file %s does not exist!' % imagePath)
+                # prepare depth map for visualization
+                depthMap = np.zeros((camera.height, camera.width))
+                depthImage = np.zeros((camera.height, camera.width, 3))
+                mask = np.logical_and(np.logical_and(np.logical_and(u >= 0, u < camera.width), v >= 0), v < camera.height)
+                # visualize points within 30 meters
+                mask = np.logical_and(np.logical_and(mask, depth > 0), depth < 99999)
+                depthMap[v[mask], u[mask]] = depth[mask]
 
-        img_name = os.path.basename(imagePath)
+                sub_dir = 'data_rect' if cam_id in [0, 1] else 'data_rgb'
+                imagePath = os.path.join(kitti360Path, 'data_2d_raw', sequence, 'image_%02d' % cam_id, sub_dir,
+                                         '%010d.png' % frame)
+                if not os.path.isfile(imagePath):
+                    raise RuntimeError('Image file %s does not exist!' % imagePath)
 
-        # depth to disparity
-        mask_nozero = depthMap != 0
-        dispMap = np.zeros_like(depthMap)
-        dispMap[mask_nozero] = depth_disp_konst / (depthMap[mask_nozero] * 1000)
-        gt = Image.fromarray(dispMap)
+                img_name = os.path.basename(imagePath)
 
-        new_name_disp_gt = sequence + '_' + os.path.splitext(img_name)[0] + '_disparity.tiff'
-        gt.save(os.path.join(disp_gt_save_dir, new_name_disp_gt))
+                # depth to disparity
+                mask_nozero = depthMap != 0
+                dispMap = np.zeros_like(depthMap)
+                dispMap[mask_nozero] = depth_disp_konst / (depthMap[mask_nozero] * 1000)
+                gt = Image.fromarray(dispMap)
 
-        # copy raw 2D
-        left_img_path = imagePath
-        right_img_path = left_img_path.replace('image_00', 'image_01')
-        new_name_left_img = sequence + '_' + os.path.splitext(img_name)[0] + '_left.png'
-        new_name_right_img = sequence + '_' + os.path.splitext(img_name)[0] + '_right.png'
-        shutil.copyfile(left_img_path, os.path.join(left_save_dir, new_name_left_img))
-        shutil.copyfile(right_img_path, os.path.join(right_save_dir, new_name_right_img))
+                new_name_disp_gt = sequence + '_' + os.path.splitext(img_name)[0] + '_disparity.tiff'
+                gt.save(os.path.join(disp_gt_save_dir, new_name_disp_gt))
 
-        continue
+                # copy raw 2D
+                left_img_path = imagePath
+                right_img_path = left_img_path.replace('image_00', 'image_01')
+                new_name_left_img = sequence + '_' + os.path.splitext(img_name)[0] + '_left.png'
+                new_name_right_img = sequence + '_' + os.path.splitext(img_name)[0] + '_right.png'
+                shutil.copyfile(left_img_path, os.path.join(left_save_dir, new_name_left_img))
+                shutil.copyfile(right_img_path, os.path.join(right_save_dir, new_name_right_img))
 
-        '''
-        layout = (2,1) if cam_id in [0,1] else (1,2)
-        sub_dir = 'data_rect' if cam_id in [0,1] else 'data_rgb'
-        fig, axs = plt.subplots(*layout, figsize=(18,12))
-
-        # load RGB image for visualization
-        imagePath = os.path.join(kitti360Path, 'data_2d_raw', sequence, 'image_%02d' % cam_id, sub_dir, '%010d.png' % frame)
-        if not os.path.isfile(imagePath):
-            raise RuntimeError('Image file %s does not exist!' % imagePath)
-
-        colorImage = np.array(Image.open(imagePath)) / 255.
-        depthImage = cm(depthMap/depthMap.max())[...,:3]
-        colorImage[depthMap>0] = depthImage[depthMap>0]
-
-        axs[0].imshow(depthMap, cmap='jet')
-        axs[0].title.set_text('Projected Depth')
-        axs[0].axis('off')
-        axs[1].imshow(colorImage)
-        axs[1].title.set_text('Projected Depth Overlaid on Image')
-        axs[1].axis('off')
-        plt.suptitle('Sequence %04d, Camera %02d, Frame %010d' % (seq, cam_id, frame))
-        plt.show()
-        '''
+                continue
+                '''
+                layout = (2,1) if cam_id in [0,1] else (1,2)
+                sub_dir = 'data_rect' if cam_id in [0,1] else 'data_rgb'
+                fig, axs = plt.subplots(*layout, figsize=(18,12))
+        
+                # load RGB image for visualization
+                imagePath = os.path.join(kitti360Path, 'data_2d_raw', sequence, 'image_%02d' % cam_id, sub_dir, '%010d.png' % frame)
+                if not os.path.isfile(imagePath):
+                    raise RuntimeError('Image file %s does not exist!' % imagePath)
+        
+                colorImage = np.array(Image.open(imagePath)) / 255.
+                depthImage = cm(depthMap/depthMap.max())[...,:3]
+                colorImage[depthMap>0] = depthImage[depthMap>0]
+        
+                axs[0].imshow(depthMap, cmap='jet')
+                axs[0].title.set_text('Projected Depth')
+                axs[0].axis('off')
+                axs[1].imshow(colorImage)
+                axs[1].title.set_text('Projected Depth Overlaid on Image')
+                axs[1].axis('off')
+                plt.suptitle('Sequence %04d, Camera %02d, Frame %010d' % (seq, cam_id, frame))
+                plt.show()
+                '''
 
 
 if __name__ == '__main__':
