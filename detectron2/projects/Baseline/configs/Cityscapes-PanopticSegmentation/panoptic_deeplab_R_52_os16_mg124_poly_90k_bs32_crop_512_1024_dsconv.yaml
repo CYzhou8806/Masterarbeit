@@ -41,7 +41,7 @@ SOLVER:
   FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
-  CHECKPOINT_PERIOD: 500
+  CHECKPOINT_PERIOD: 5000
 DATASETS:
   TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train
   TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train
