@@ -1134,8 +1134,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         if not self.zero_dis_considered:
             mask_no_zero = dis_targets > 0.0
             dis_mask_bool = dis_mask_bool & mask_no_zero
+        else:
+            mask_no_zero = dis_targets >= 0.0
+            dis_mask_bool = dis_mask_bool & mask_no_zero
         #print(torch.sum(dis_mask_bool))
 
+        '''
         # TODO:debug_tmp
         neighbor = 16
         size = neighbor * 2
@@ -1180,14 +1184,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         # count = 0
                         for [x,y] in way:
                             dis_mask_bool[b][0][x, y] = True
-                            '''
-                            if count > 2:
-                                dis_mask_bool[b][0][x,y] = True
-                                count=0
-                            else:
-                                count+=1
-                            '''
-
+                           
+        '''
 
         #print(torch.sum(dis_mask_bool))
         dis_mask_bool.detach_()

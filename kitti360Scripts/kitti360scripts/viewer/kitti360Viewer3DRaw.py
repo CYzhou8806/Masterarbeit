@@ -83,8 +83,8 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
             os.path.realpath(__file__)), '..', '..')
 
     disp_gt_save_dir = os.path.join(output_root, "disparity")
-    left_save_dir = os.path.join(output_root, "left_image")
-    right_save_dir = os.path.join(output_root, "right_image")
+    left_save_dir = os.path.join(output_root, "left")
+    right_save_dir = os.path.join(output_root, "right")
     if not os.path.exists(disp_gt_save_dir):
         os.makedirs(disp_gt_save_dir)
     if not os.path.exists(left_save_dir):

@@ -18,7 +18,7 @@ MODEL:
     USE_DEPTHWISE_SEPARABLE_CONV: True
   DIS_EMBED_HEAD:
     MAX_DISP: 192
-    LOSS_TYPE: "l1_norm"  # "smoothL1_only" or "panoptic_guided" or "l1_norm"
+    LOSS_TYPE: "smoothL1_only"  # "smoothL1_only" or "panoptic_guided" or "l1_norm"
     HOURGLASS_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]
     INTERNAL_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # loss weight for pyramids
     GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
@@ -43,15 +43,15 @@ SOLVER:
   FREEZE_DISPARITY: False
   CHECKPOINT_PERIOD: 5000
 DATASETS:
-  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train
-  TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train
+  TRAIN: ("sceneflow_driving_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train
+  TEST: ("sceneflow_driving_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train
 INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (256, 512)
     ENABLED: True
     TYPE: "absolute"
-  IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti) or 1024,2048 (cityscapes)
+  IMG_SIZE: [540,960]  # h, w  540,960 (sceneflow) or 375,1242 (kitti) or 1024,2048 (cityscapes)
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
-RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
+RESUME: True  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
