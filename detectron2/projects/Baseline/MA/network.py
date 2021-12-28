@@ -900,7 +900,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         else:
             self.img_size = img_size
 
-        self.warp = Warper2d(direction_str='r2l', pad_mode="zeros")
+        #self.warp = Warper2d(direction_str='r2l', pad_mode="zeros")
+        self.warp = Warper2d(direction_str='l2r', pad_mode="zeros")
 
         if self.hourglass_type == "hourglass_2D":
             zoom = [16, 8, 4]
@@ -1000,16 +1001,16 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     dis = disparity[-1][-1]
                     seg_cost_volume = build_correlation_cost_volume(
                         max_dis,
-                        pyramid_features[scale][0][0],
-                        self.warp(dis, pyramid_features[scale][0][1], scale), )
+                        self.warp(dis, pyramid_features[scale][0][0], scale),
+                        pyramid_features[scale][0][1],)
                     ins_cost_volume = build_correlation_cost_volume(
                         max_dis,
-                        pyramid_features[scale][1][0],
-                        self.warp(dis, pyramid_features[scale][1][1], scale))
+                        self.warp(dis, pyramid_features[scale][1][0], scale),
+                        pyramid_features[scale][1][1], )
                     dis_cost_volume = build_correlation_cost_volume(
                         max_dis,
-                        pyramid_features[scale][2][0],
-                        self.warp(dis, pyramid_features[scale][2][1], scale))
+                        self.warp(dis, pyramid_features[scale][2][0], scale),
+                        pyramid_features[scale][2][1], )
                 cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
             else:
                 if not len(disparity):
@@ -1019,8 +1020,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     dis = disparity[-1][-1]
                     dis_cost_volume = build_correlation_cost_volume(
                         max_dis,
-                        pyramid_features[scale][-1][0],
-                        self.warp(dis, pyramid_features[scale][-1][1], scale))
+                        self.warp(dis, pyramid_features[scale][-1][0], scale),
+                        pyramid_features[scale][-1][1], )
                 cost_volume = dis_cost_volume
 
             cost0 = self.predictor[scale]['dres0'](cost_volume)
@@ -1413,7 +1414,7 @@ def warping_old(disp, feature):  # TODO: to add operations
 
 # TODO: transform to function
 class Warper2d(nn.Module):
-    def __init__(self, direction_str='r2l', pad_mode="zeros"):
+    def __init__(self, direction_str='l2r', pad_mode="zeros"):
         super().__init__()
 
         if direction_str == 'r2l':
