@@ -28,6 +28,7 @@ from detectron2.projects.MA import (
     register_all_cityscapes_joint,
     register_all_sceneflow,
     register_all_kitti_2015,
+    register_all_kitti360,
     JointDeeplabDatasetMapper,
 )
 from detectron2.solver import get_default_optimizer_params
