@@ -181,9 +181,6 @@ class JointDeeplabDatasetMapper:
         pan_seg_gt = utils.read_image(dataset_dict.pop("pan_seg_file_name"), "RGB") if self.panoptic_branch else None
         right_image = utils.read_image(dataset_dict["right_file_name"], format=self.image_format)
 
-
-
-
         cityscapes = False
         kitti_2015 = False
         scene_flow = False

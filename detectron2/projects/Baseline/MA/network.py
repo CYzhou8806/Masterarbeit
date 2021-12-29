@@ -66,6 +66,7 @@ def l1_norm_loss(prediction, gt, mask):
     else:
         return torch.mean(diff_nz)
 
+
 @META_ARCH_REGISTRY.register()
 class JointEstimation(nn.Module):
     """
@@ -1316,7 +1317,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                   reduction='mean') +
                                  self.hourglass_loss_weight[2] *
                                  F.smooth_l1_loss(predictions[i][2][dis_mask_bool], dis_targets[dis_mask_bool]))
-            assert smooth_l1
+            # assert smooth_l1
             # print(sm_loss, bdry_loss, smooth_l1)
 
             loss = self.guided_loss_weight[0] * sm_loss + self.guided_loss_weight[1] * bdry_loss + \
@@ -1454,7 +1455,10 @@ class Warper2d(nn.Module):
         # disp = torch.unsqueeze(disp, 1)  # (b,1, h,w)
         assert len(disp.shape) == 4
         scale_factor = self.scale[scale]
+
+        # TODO: check the difference
         disp = F.interpolate(disp, scale_factor=scale_factor)
+        # disp = F.interpolate(disp, scale_factor=scale_factor, recompute_scale_factor=True)
 
         vgrid = grid + disp * self.direction
         vgrid[:, 1, :, :] = grid[:, 1, :, :]

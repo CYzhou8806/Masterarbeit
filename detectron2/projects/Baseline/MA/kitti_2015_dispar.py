@@ -36,7 +36,7 @@ def load_kitti_2015(gt_dir):
             {
                 "file_name": image_file,
                 "image_id": "_".join(
-                    os.path.splitext(os.path.basename(image_file))[0].split("_")[0]
+                    os.path.splitext(os.path.basename(image_file))[0].split("_")[:2]
                 ),
 
                 "right_file_name": right_image_file,

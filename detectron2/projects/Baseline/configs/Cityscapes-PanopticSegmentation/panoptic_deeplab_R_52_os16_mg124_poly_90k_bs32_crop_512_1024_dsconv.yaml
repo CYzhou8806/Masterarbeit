@@ -30,7 +30,7 @@ MODEL:
     GRADIENT_TYPE: "sobel"
     ZERO_DIS_CONSIDERED: False
   MODE:
-    PANOPTIC_BRANCH: False
+    PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
@@ -39,7 +39,7 @@ SOLVER:
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
   # BASE_LR: 0.00001
   FREEZE_BACKBONE: False
-  FREEZE_PANOPTIC: True
+  FREEZE_PANOPTIC: False
   FREEZE_DISPARITY: False
   CHECKPOINT_PERIOD: 5000
 DATASETS:

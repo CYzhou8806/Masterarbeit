@@ -17,10 +17,12 @@
 from __future__ import print_function, absolute_import, division, unicode_literals
 import os
 import glob
+import shutil
 import sys
 import argparse
 import json
 import numpy as np
+from tqdm import tqdm
 
 # Image processing
 from PIL import Image
@@ -29,12 +31,16 @@ from PIL import Image
 from kitti360scripts.helpers.csHelpers import printError
 from kitti360scripts.helpers.labels import id2label, labels
 
-os.environ['KITTI360_DATASET'] = r"D:\Masterarbeit\dataset\kitti_360"
+#os.environ['KITTI360_DATASET'] = r"D:\Masterarbeit\dataset\kitti_360"
+os.environ['KITTI360_DATASET'] = "/bigwork/nhgnycao/datasets/KITTI-360"
+#os.environ['KITTI360_DATASET'] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
 
 
 # The main method
-def convert2panoptic(kitti360Path=None, outputFolder=None, useTrainId=False, setNames=["val", "train", "test"]):
+def convert2panoptic(kitti360Path=None, outputRoot=None, useTrainId=False, setNames=None):
     # Where to look for kitti360
+    if setNames is None:
+        setNames = {"train": [0, 3, 5, 6, 7, 10], "test": [2, 4, 9]}
     if kitti360Path is None:
         if 'KITTI360_DATASET' in os.environ:
             kitti360Path = os.environ['KITTI360_DATASET']
@@ -42,8 +48,8 @@ def convert2panoptic(kitti360Path=None, outputFolder=None, useTrainId=False, set
             kitti360Path = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
         kitti360Path = os.path.join(kitti360Path, "data_2d_semantics")  # to the path of data_2d_semantics
 
-    if outputFolder is None:
-        outputFolder = kitti360Path
+    if outputRoot is None:
+        outputRoot = kitti360Path
 
     categories = []
     for label in labels:
@@ -55,49 +61,63 @@ def convert2panoptic(kitti360Path=None, outputFolder=None, useTrainId=False, set
                            'supercategory': label.category,
                            'isthing': 1 if label.hasInstances else 0})
 
-    for setName in setNames:
-        '''
-        for root, dir, files in os.walk(os.path.join(kitti360Path, setName)):
-            for file in files:
-                if os.path.splitext(file)[-1] == '.png' and root.split('/')[-1] == 'semantic':
-        '''
+    files = []
+    for setName, seqs in setNames.items():
+        outputFolder = os.path.join(outputRoot, setName)
+        if not os.path.exists(outputFolder):
+            os.makedirs(outputFolder)
 
-        # how to search for all ground truth
-        searchFine   = os.path.join(kitti360Path, setName, "*", "image_00", "instance", "*.png")
-        # search files
-        filesFine = glob.glob(searchFine)
-        filesFine.sort()
+        for seq in seqs:
+            '''
+            for root, dir, files in os.walk(os.path.join(kitti360Path, setName)):
+                for file in files:
+                    if os.path.splitext(file)[-1] == '.png' and root.split('/')[-1] == 'semantic':
+            '''
 
-        files = filesFine
-        # quit if we did not find anything
-        if not files:
-            printError(
-                "Did not find any files for {} set using matching pattern {}. Please consult the README.".format(setName, searchFine)
-            )
+            sequence = '2013_05_28_drive_%04d_sync' % seq
+
+            # how to search for all ground truth
+            searchFine = os.path.join(kitti360Path, "*", sequence, "image_00", "instance", "*.png")
+            # search files
+            filesFine = glob.glob(searchFine)
+            filesFine.sort()
+
+            files.extend(filesFine)
+            # quit if we did not find anything
+            if not filesFine:
+                printError(
+                    "Did not find any files for {} set using matching pattern {}. Please consult the README.".format(
+                        sequence, searchFine)
+                )
         # a bit verbose
         print("Converting {} annotation files for {} set.".format(len(files), setName))
 
-        trainIfSuffix = "_trainId" if useTrainId else ""
-        outputBaseFile = "kitti360_panoptic_{}{}".format(setName, trainIfSuffix)
+        outputBaseFile = "panoptic"
         outFile = os.path.join(outputFolder, "{}.json".format(outputBaseFile))
-        print("Json file with the annotations in panoptic format will be saved in {}".format(outFile))
+
+        print("{} Json file with the annotations in panoptic format will be saved in {}".format(setName, outFile))
         panopticFolder = os.path.join(outputFolder, outputBaseFile)
-        if not os.path.isdir(panopticFolder):
-            print("Creating folder {} for panoptic segmentation PNGs".format(panopticFolder))
-            os.mkdir(panopticFolder)
-        print("Corresponding segmentations in .png format will be saved in {}".format(panopticFolder))
+        if not os.path.exists(panopticFolder):
+            print("Creating folder {} for {} panoptic segmentation PNGs".format(panopticFolder, setName))
+            os.makedirs(panopticFolder)
+        else:
+            shutil.rmtree(panopticFolder)
+            print("---  del old folder...  ---")
+            print("Creating folder {} for {} panoptic segmentation PNGs".format(panopticFolder, setName))
+            os.makedirs(panopticFolder)
+
+        print("Corresponding {} segmentations in .png format will be saved in {}".format(setName, panopticFolder))
 
         images = []
         annotations = []
         for progress, f in enumerate(files):
-
             originalFormat = np.array(Image.open(f))
             seq = os.path.split(os.path.split(os.path.split(os.path.split(f)[0])[0])[0])[-1]
             fileName = os.path.basename(f)
-            imageId = seq+'_'+fileName.replace(".png", "")
+            imageId = seq + '_' + fileName.replace(".png", "")
 
-            inputFileName = seq+'_'+fileName
-            outputFileName = seq+'_'+fileName.replace(".png", "_panoptic.png")
+            inputFileName = seq + '_' + fileName
+            outputFileName = seq + '_' + fileName.replace(".png", "_panoptic.png")
             # image entry, id for image is its filename without extension
             images.append({"id": imageId,
                            "width": int(originalFormat.shape[1]),
@@ -128,7 +148,7 @@ def convert2panoptic(kitti360Path=None, outputFolder=None, useTrainId=False, set
                 color = [segmentId % 256, segmentId // 256, segmentId // 256 // 256]
                 pan_format[mask] = color
 
-                area = np.sum(mask) # segment area computation
+                area = np.sum(mask)  # segment area computation
 
                 # bbox computation for a segment
                 hor = np.sum(mask, axis=0)
@@ -156,7 +176,7 @@ def convert2panoptic(kitti360Path=None, outputFolder=None, useTrainId=False, set
             print("\rProgress: {:>3.2f} %".format((progress + 1) * 100 / len(files)), end=' ')
             sys.stdout.flush()
 
-        print("\nSaving the json file {}".format(outFile))
+        print("\nSaving the {} json file {}".format(setName, outFile))
         d = {'images': images,
              'annotations': annotations,
              'categories': categories}
@@ -171,23 +191,58 @@ def main():
                         help="path to the kitti360 dataset 'gtFine' folder",
                         default=None,
                         type=str)
-    parser.add_argument("--output-folder",
-                        dest="outputFolder",
+    parser.add_argument("--output-root",
+                        dest="outputRoot",
                         help="path to the output folder.",
-                        default=None,
+                        # default=None,
+                        default=os.path.join("/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets", "kitti_360"),
+                        # default=os.path.join(os.environ['KITTI360_DATASET'], "kitti_360"),
                         type=str)
     parser.add_argument("--use-train-id", action="store_true", dest="useTrainId", default=False)
     parser.add_argument("--set-names",
                         dest="setNames",
                         help="set names to which apply the function to",
                         nargs='+',
-                        default=["train"],
+                        default={"train": [0, 3, 5, 6, 7, 10], "test": [2, 4, 9]},
+                        # default={"train": [0,], },
                         type=str)
     args = parser.parse_args()
 
-    convert2panoptic(args.kitti360Path, args.outputFolder, args.useTrainId, args.setNames)
+    convert2panoptic(args.kitti360Path, args.outputRoot, args.useTrainId, args.setNames)
+
+    searchFine = os.path.join(args.outputRoot, "*", "panoptic", "*.png")
+    files_panoptic = glob.glob(searchFine)
+    files_panoptic.sort()
+    if not files_panoptic:
+        printError(
+            "Did not find any files using matching pattern {}. Please consult the README.".format(
+                searchFine)
+        )
+
+    searchFine = os.path.join(args.outputRoot, "*", "left", "*.png")
+    files_left = glob.glob(searchFine)
+    files_left.sort()
+    if not files_left:
+        printError(
+            "Did not find any files using matching pattern {}. Please consult the README.".format(
+                searchFine)
+        )
+
+    for file_left in tqdm(files_left):
+        panoptic_tofind = file_left.replace('left', 'panoptic')
+        if panoptic_tofind not in files_panoptic:
+            file_right = file_left.replace('left', 'right')
+            file_disparity = file_left.replace('left', 'disparity')
+            file_disparity = file_disparity.replace('.png', '.tiff')
+
+            os.remove(file_right)
+            os.remove(file_disparity)
+            os.remove(file_left)
 
 
 # call the main
 if __name__ == "__main__":
     main()
+
+
+

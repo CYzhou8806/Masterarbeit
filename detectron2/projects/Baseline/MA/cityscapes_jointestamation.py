@@ -30,7 +30,7 @@ def get_cityscapes_panoptic_files(image_dir, gt_dir, json_info):
             assert basename.endswith(suffix), basename
             basename = os.path.basename(basename)[: -len(suffix)]
 
-            image_dict[basename] = image_file
+            image_dict[basename] = image_file  # dict about the name and path of the raw images
 
     for ann in json_info["annotations"]:
         image_file = image_dict.get(ann["image_id"], None)
