@@ -30,7 +30,7 @@ MODEL:
     GRADIENT_TYPE: "sobel"
     ZERO_DIS_CONSIDERED: False
   MODE:
-    PANOPTIC_BRANCH: True
+    PANOPTIC_BRANCH: False
     DISPARITY_BRANCH:  True
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
@@ -39,19 +39,19 @@ SOLVER:
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
   # BASE_LR: 0.00001
   FREEZE_BACKBONE: False
-  FREEZE_PANOPTIC: False
+  FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
   CHECKPOINT_PERIOD: 5000
 DATASETS:
-  TRAIN: ("kitti360_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
-  TEST: ("kitti360_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
+  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
+  TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
 INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (256, 512)
     ENABLED: True
     TYPE: "absolute"
-  IMG_SIZE: [376,1408]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
+  IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
