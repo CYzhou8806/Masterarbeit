@@ -208,7 +208,7 @@ def main():
                         type=str)
     args = parser.parse_args()
 
-    convert2panoptic(args.kitti360Path, args.outputRoot, args.useTrainId, args.setNames)
+    # convert2panoptic(args.kitti360Path, args.outputRoot, args.useTrainId, args.setNames)
 
     searchFine = os.path.join(args.outputRoot, "*", "panoptic", "*.png")
     files_panoptic = glob.glob(searchFine)
@@ -228,16 +228,26 @@ def main():
                 searchFine)
         )
 
-    for file_left in tqdm(files_left):
-        panoptic_tofind = file_left.replace('left', 'panoptic')
-        if panoptic_tofind not in files_panoptic:
-            file_right = file_left.replace('left', 'right')
-            file_disparity = file_left.replace('left', 'disparity')
-            file_disparity = file_disparity.replace('.png', '.tiff')
+    searchFine = os.path.join(args.outputRoot, "*", "disparity", "*.tiff")
+    files_disparity = glob.glob(searchFine)
+    files_disparity.sort()
+    if not files_disparity:
+        printError(
+            "Did not find any files using matching pattern {}. Please consult the README.".format(
+                searchFine)
+        )
 
-            os.remove(file_right)
+    for file_disparity in tqdm(files_disparity):
+        panoptic_tofind = file_disparity.replace('disparity', 'panoptic')
+        panoptic_tofind = panoptic_tofind.replace('.tiff', '.png')
+
+        if panoptic_tofind not in files_panoptic:
+            file_right = panoptic_tofind.replace('panoptic', 'right')
+            file_left = panoptic_tofind.replace('panoptic', 'left')
+
+            #os.remove(file_right)
             os.remove(file_disparity)
-            os.remove(file_left)
+            #os.remove(file_left)
 
 
 # call the main
