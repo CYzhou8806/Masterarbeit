@@ -18,6 +18,8 @@ from detectron2.checkpoint import DetectionCheckpointer
 from detectron2.utils.logger import setup_logger
 from demo.predictor import JointVisualizationDemo
 from PIL import Image
+from PIL import ImageFile
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 import detectron2.data.transforms as T
 
 # constants

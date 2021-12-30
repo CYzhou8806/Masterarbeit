@@ -25,7 +25,7 @@ import struct
 import shutil
 from tqdm import tqdm
 
-# os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
+#os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
 os.environ["KITTI360_DATASET"] = "/bigwork/nhgnycao/datasets/KITTI-360"
 # os.environ["KITTI360_DATASET"] = r"D:\Masterarbeit\dataset\kitti_360"
 
@@ -96,7 +96,7 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
     baseline = 600.0  # 0.60 m
     # take fx of the to projected image
     if cam_id == 0:
-        f = 788.629315
+        f = 785.134093  # f = 788.629315
     elif cam_id == 1:
         f = 785.134093
     else:
@@ -127,10 +127,15 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
 
     # object for parsing 3d raw data 
     velo = Kitti360Viewer3DRaw(mode='velodyne', seq=seq)
+    sick = Kitti360Viewer3DRaw(mode='sick', seq=seq)
 
     # cam_0 to velo
     fileCameraToVelo = os.path.join(kitti360Path, 'calibration', 'calib_cam_to_velo.txt')
     TrCam0ToVelo = loadCalibrationRigid(fileCameraToVelo)
+
+    # sick to velo
+    fileSickToVelo = os.path.join(kitti360Path, 'calibration', 'calib_sick_to_velo.txt')
+    TrSickToVelo = loadCalibrationRigid(fileSickToVelo)
 
     # all cameras to system center 
     fileCameraToPose = os.path.join(kitti360Path, 'calibration', 'calib_cam_to_pose.txt')
@@ -138,6 +143,7 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
 
     # velodyne to all cameras
     TrVeloToCam = {}
+    TrSickToCam = {}
     for k, v in TrCamToPose.items():
         # Tr(cam_k -> velo) = Tr(cam_k -> cam_0) @ Tr(cam_0 -> velo)
         TrCamkToCam0 = np.linalg.inv(TrCamToPose['image_00']) @ TrCamToPose[k]
@@ -145,11 +151,19 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
         # Tr(velo -> cam_k)
         TrVeloToCam[k] = np.linalg.inv(TrCamToVelo)
 
+        # Tr(cam_k -> sick) = Tr(cam_k -> velo) @ Tr(velo -> sick)
+        TrVeloToSick = np.linalg.inv(TrSickToVelo)
+        TrCamToSick = TrVeloToSick @ TrCamToVelo
+        # Tr(sick -> cam_k)
+        TrSickToCam[k] = np.linalg.inv(TrCamToSick)
+
     # take the rectification into account for perspective cameras
     if cam_id == 0 or cam_id == 1:
         TrVeloToRect = np.matmul(camera.R_rect, TrVeloToCam['image_%02d' % cam_id])
+        TrSickToRect = np.matmul(camera.R_rect, TrSickToCam['image_%02d' % cam_id])
     else:
         TrVeloToRect = TrVeloToCam['image_%02d' % cam_id]
+        TrSickToRect = TrSickToCam['image_%02d' % cam_id]
 
     # color map for visualizing depth map
     cm = plt.get_cmap('jet')
@@ -163,6 +177,7 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
             if os.path.splitext(file)[-1] == '.png':
                 frame = int(os.path.splitext(file)[0])
 
+                ## velo
                 points = velo.loadVelodyneData(frame)
                 points[:, 3] = 1
 
@@ -192,13 +207,67 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
 
                 # depth to disparity
                 mask_nozero = depthMap != 0
-                dispMap = np.zeros_like(depthMap)
-                dispMap[mask_nozero] = depth_disp_konst / (depthMap[mask_nozero] * 1000)
+                dispMap_velo = np.zeros_like(depthMap)
+                dispMap_velo[mask_nozero] = depth_disp_konst / (depthMap[mask_nozero] * 1000)
+                # dispMap_velo[mask_nozero] = (depthMap[mask_nozero])
+
+                '''
+                ## sick
+                points = sick.loadSickData(frame)
+                points = np.concatenate([points, points[:, 1:2]], axis=1)
+                points[:, 3] = 1
+
+                # transfrom sick points to camera coordinate
+                pointsCam = np.matmul(TrSickToRect, points.T).T
+                pointsCam = pointsCam[:, :3]
+                # project to image space
+                u, v, depth = camera.cam2image(pointsCam.T)
+                u = u.astype(np.int64)
+                v = v.astype(np.int64)
+
+                # prepare depth map for visualization
+                depthMap = np.zeros((camera.height, camera.width))
+                depthImage = np.zeros((camera.height, camera.width, 3))
+                mask = np.logical_and(np.logical_and(np.logical_and(u >= 0, u < camera.width), v >= 0),
+                                      v < camera.height)
+                # visualize points within 30 meters
+                mask = np.logical_and(np.logical_and(mask, depth > 0), depth < 99999)
+                depthMap[v[mask], u[mask]] = depth[mask]
+
+                sub_dir = 'data_rect' if cam_id in [0, 1] else 'data_rgb'
+                imagePath = os.path.join(kitti360Path, 'data_2d_raw', sequence, 'image_%02d' % cam_id, sub_dir,
+                                         '%010d.png' % frame)
+                if not os.path.isfile(imagePath):
+                    raise RuntimeError('Image file %s does not exist!' % imagePath)
+
+                img_name = os.path.basename(imagePath)
+
+                # depth to disparity
+                mask_nozero = depthMap != 0
+                # dispMap_sick = np.zeros_like(depthMap)
+                # dispMap_sick[mask_nozero] = depth_disp_konst / (depthMap[mask_nozero] * 1000)
+                # dispMap_sick[mask_nozero] = (depthMap[mask_nozero])
+                print(np.sum(dispMap_velo!=0.0))
+                dispMap_velo[mask_nozero] = depth_disp_konst / (depthMap[mask_nozero] * 1000)
+                print(np.sum(dispMap_velo!=0.0))
+                '''
+                dispMap = dispMap_velo
+
+                # dispMap = dispMap.astype('int32')
                 gt = Image.fromarray(dispMap)
 
                 new_name_disp_gt = sequence + '_' + os.path.splitext(img_name)[0] + '_disparity.tiff'
+                # new_name_disp_gt = sequence + '_' + os.path.splitext(img_name)[0] + '_disparity.png'
                 gt.save(os.path.join(disp_gt_save_dir, new_name_disp_gt))
 
+                '''
+                tmp = Image.open(os.path.join(disp_gt_save_dir, new_name_disp_gt))
+                tmp = np.array(tmp)
+                tmp = tmp.astype(float) / 256
+                print(np.all(tmp == dispMap))
+                '''
+
+                '''
                 # copy raw 2D
                 left_img_path = imagePath
                 right_img_path = left_img_path.replace('image_00', 'image_01')
@@ -206,6 +275,7 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
                 new_name_right_img = sequence + '_' + os.path.splitext(img_name)[0] + '_right.png'
                 shutil.copyfile(left_img_path, os.path.join(left_save_dir, new_name_left_img))
                 shutil.copyfile(right_img_path, os.path.join(right_save_dir, new_name_right_img))
+                '''
 
                 continue
                 '''
@@ -245,10 +315,10 @@ if __name__ == '__main__':
     if not os.path.exists(output_root):
         os.makedirs(output_root)
         print("---  create new folder...  ---")
-    else:
-        shutil.rmtree(output_root)  # 递归删除文件夹
-        os.makedirs(output_root)
-        print("---  del old and create new folder...  ---")
+    #else:
+    #    shutil.rmtree(output_root)  # 递归删除文件夹
+    #    os.makedirs(output_root)
+    #    print("---  del old and create new folder...  ---")
 
     visualizeIn2D = True
     # sequence index
@@ -258,15 +328,16 @@ if __name__ == '__main__':
     cam_id = 0
 
     train_dir = os.path.join(output_root, "train")
-    os.makedirs(train_dir)
-
+    if not os.path.exists(train_dir):
+        os.makedirs(train_dir)
     for seq in [0, 3, 5, 6, 7, 10]:
         # visualize raw 3D velodyne scans in 2D
         if visualizeIn2D:
             projectVeloToImage(train_dir, seq=seq, cam_id=cam_id)
 
     test_dir = os.path.join(output_root, "test")
-    os.makedirs(test_dir)
+    if not os.path.exists(test_dir):
+        os.makedirs(test_dir)
     for seq in [2, 4, 9]:
         # visualize raw 3D velodyne scans in 2D
         if visualizeIn2D:
