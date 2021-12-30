@@ -52,7 +52,7 @@ def get_parser_kitti2015():
 
     parser.add_argument(
         "--output",
-        default="output/prediction",
+        default="output/prediction_kitti2015",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -63,7 +63,7 @@ def get_parser_kitti2015():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_0019999.pth'],
+        default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0014999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -108,7 +108,7 @@ def get_parser_kitti360():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/model_0029999.pth'],
+        default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0014999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
