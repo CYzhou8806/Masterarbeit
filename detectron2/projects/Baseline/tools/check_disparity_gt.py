@@ -16,7 +16,44 @@ from PIL import Image
 from tqdm import tqdm
 
 
-def to_warped_image(img, disp, direction_str, right):
+def to_warped_image(img, disp, direction_str):
+    if direction_str == 'r2l':
+        direction = - 1
+    elif direction_str == 'l2r':
+        direction = 1
+
+    map_x = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
+    map_y = np.zeros((img.shape[0], img.shape[1]), dtype=np.float32)
+
+    for i in range(map_x.shape[0]):
+        map_x[i, :] = [x for x in range(map_x.shape[1])]
+
+    if disp.ndim == 3:
+        disp = np.squeeze(disp, axis=-1)
+
+    map_x = map_x + disp * direction
+
+    for j in range(map_y.shape[1]):
+        map_y[:, j] = [y for y in range(map_y.shape[0])]
+
+    left_warped = cv2.remap(img, map_x, map_y, cv2.INTER_LINEAR)
+
+    return left_warped
+
+
+def get_warp_errormap(img, img_warped, gray=True):
+
+    if gray:
+        img= cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
+        img_warped = cv2.cvtColor(img_warped, cv2.COLOR_BGR2GRAY)
+
+    errormap = abs(img.astype('int16') - img_warped.astype('int16'))
+
+    return errormap
+
+
+
+def to_warped_image_diy(img, disp, direction_str, right):
     if direction_str == 'r2l':
         direction = - 1
     elif direction_str == 'l2r':
@@ -61,20 +98,24 @@ def to_warped_image(img, disp, direction_str, right):
 if __name__ == "__main__":
     left_path = r"C:\Users\cyzho\Desktop\to_check_disparity\left\2013_05_28_drive_0002_sync_0000004613_left.png"
     # left = Image.open(left_path)
-    left_path = r"D:\Masterarbeit\dataset\sceneflow\driving\left\000001_left.png"
+    # left_path = r"D:\Masterarbeit\dataset\sceneflow\driving\left\000001_left.png"
     left_path = r"D:\Masterarbeit\dataset\kitti 2015\kitti_2015\data_scene_flow\training\image_2\000000_10.png"
     left = cv2.imread(left_path)
     # left = np.array(left)
 
+
+
     right_path = r"C:\Users\cyzho\Desktop\to_check_disparity\right\2013_05_28_drive_0002_sync_0000004613_right.png"
-    # right = Image.open(right_path
-    right_path = r"D:\Masterarbeit\dataset\sceneflow\driving\right\000001_right.png"
+    # right = Image.open(right_path)
+    #right_path = r"D:\Masterarbeit\dataset\sceneflow\driving\right\000001_right.png"
     right_path = r"D:\Masterarbeit\dataset\kitti 2015\kitti_2015\data_scene_flow\training\image_3\000000_10.png"
     right = cv2.imread(right_path)
     # right = np.array(right)
 
+
+
     disp_path = r"C:\Users\cyzho\Desktop\to_check_disparity\disparity\2013_05_28_drive_0002_sync_0000004613_disparity.tiff"
-    disp_path = r"D:\Masterarbeit\dataset\sceneflow\driving\disparity\000001_disparity.tiff"
+    #disp_path = r"D:\Masterarbeit\dataset\sceneflow\driving\disparity\000001_disparity.tiff"
     disp_path = r"D:\Masterarbeit\dataset\kitti 2015\kitti_2015\data_scene_flow\training\disp_occ_0\000000_10.png"
     #disp_path = r"C:\Users\cyzho\Desktop\result_dis.png"
 
@@ -83,9 +124,23 @@ if __name__ == "__main__":
     disp = disp/256.0
 
     direction_str = 'l2r'
-    warped_img, warped_points, right_points = to_warped_image(left, disp, direction_str, right)
+    left_warped = to_warped_image(left, disp, direction_str)
+
+
+    errormap = get_warp_errormap(right, left_warped, gray=True)
+
+    errormap = np.array(errormap, np.uint8)
+    #errormap = cv2.cvtColor(errormap, cv2.GRAY2COLOR_BGR)
+    cv2.imshow("Image", errormap)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+
+    '''
+    direction_str = 'l2r'
+    warped_img, warped_points, right_points = to_warped_image_diy(left, disp, direction_str, right)
     direction_str = 'r2l'
-    # warped_img, warped_points, right_points = to_warped_image(right, disp, direction_str,left)
+    # warped_img, warped_points, right_points = to_warped_image_diy(right, disp, direction_str,left)
 
     left_warped_points = np.array(warped_points)
     right_points = np.array(right_points)
@@ -96,14 +151,6 @@ if __name__ == "__main__":
         for x in tqdm(range(left_warped_points.shape[0])):
             for y in tqdm(range(left_warped_points.shape[1])):
                 if left_warped_points[x, y, c] != right_points[x, y, c]:
-                    '''
-                    print(left_warped_points[x, y, c])
-                    print('\n')
-                    print(right_points[x, y, c])
-                    print('\n')
-                    print('\n')
-                    print('\n')
-                    '''
                     if abs(left_warped_points[x, y, c] - right_points[x, y, c]) < 1:
                         diff_positions.append([x, y])
                 else:
@@ -126,4 +173,5 @@ if __name__ == "__main__":
     cv2.imshow("Image", left_differ)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
+    '''
 

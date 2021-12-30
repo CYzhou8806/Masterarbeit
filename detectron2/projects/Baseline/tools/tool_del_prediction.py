@@ -8,7 +8,7 @@
 """
 import os
 
-for root, dirs, files in os.walk(r'C:\Users\cyzho\Desktop\demo_test\prediction'):
+for root, dirs, files in os.walk(r'C:\Users\cyzho\Desktop\demo_test\prediction_kitti2015'):
     for file in files:
         if os.path.splitext(file)[0][-1] == '1':
             os.remove(os.path.join(root, file))
