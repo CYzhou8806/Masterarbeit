@@ -96,7 +96,7 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
     baseline = 600.0  # 0.60 m
     # take fx of the to projected image
     if cam_id == 0:
-        f = 785.134093  # f = 788.629315
+        f = 552.554261  # f = 788.629315    # 552.554261
     elif cam_id == 1:
         f = 785.134093
     else:
@@ -330,6 +330,7 @@ if __name__ == '__main__':
     train_dir = os.path.join(output_root, "train")
     if not os.path.exists(train_dir):
         os.makedirs(train_dir)
+
     for seq in [0, 3, 5, 6, 7, 10]:
         # visualize raw 3D velodyne scans in 2D
         if visualizeIn2D:
@@ -347,4 +348,5 @@ if __name__ == '__main__':
     if visualizeIn2D:
         projectVeloToImage(train_dir, seq=seq, cam_id=cam_id)
     '''
+
 

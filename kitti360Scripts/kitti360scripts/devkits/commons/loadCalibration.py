@@ -1,6 +1,8 @@
 # Utils to load transformation to camera pose to system pose
 import os
 import numpy as np
+os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
+
 
 def checkfile(filename):
     if not os.path.isfile(filename):
