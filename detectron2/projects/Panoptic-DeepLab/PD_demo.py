@@ -34,7 +34,8 @@ def get_parser():
     parser.add_argument("--video-input", help="Path to video file.")
     parser.add_argument(
         "--input",
-        default=["/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
+        #default=["/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000004_10.png"],
+        default=["/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/*.png",],
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -42,7 +43,7 @@ def get_parser():
 
     parser.add_argument(
         "--output",
-        default="/home/eistrauben/桌面/000004_10_seg.png",
+        default="output/seg",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -131,7 +132,7 @@ def main(args):
                 if cv2.waitKey(0) == 27:
                     break  # esc to quit
 
-            return predictions, visualized_output
+            # return predictions, visualized_output
 
     '''
     model = Demoer.build_model(cfg)

@@ -325,8 +325,8 @@ def demo_series_input(source_input_gt_root, output_root):
     
 
 if __name__ == "__main__":
-    #demo_kitti2015()
-    demo_kitti360()
+    demo_kitti2015()
+    #demo_kitti360()
 
     depth_result_root = "datasets/data_scene_flow/kitti_worse_20"
     series_input_gt_root = "datasets/kitti_2015/data_scene_flow/training/disp_occ_0"

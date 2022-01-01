@@ -29,10 +29,10 @@ parser.add_argument('--loadmodel', default='./weights/pretrained_model_KITTI2015
 
 
 parser.add_argument('--leftimg',
-                    default='/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000000_10.png',
+                    default='/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2/000045_10.png',
                     help='load model')
 parser.add_argument('--rightimg',
-                    default='/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3/000000_10.png',
+                    default='/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_3/000045_10.png',
                     help='load model')
 
 
