@@ -65,7 +65,7 @@ def get_parser_kitti2015():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0014999.pth'],
+        default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0149999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -110,7 +110,7 @@ def get_parser_kitti360():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0014999.pth'],
+        default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti360/model_0099999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -325,8 +325,8 @@ def demo_series_input(source_input_gt_root, output_root):
     
 
 if __name__ == "__main__":
-    demo_kitti2015()
-    #demo_kitti360()
+    #demo_kitti2015()
+    demo_kitti360()
 
     depth_result_root = "datasets/data_scene_flow/kitti_worse_20"
     series_input_gt_root = "datasets/kitti_2015/data_scene_flow/training/disp_occ_0"

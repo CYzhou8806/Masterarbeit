@@ -25,9 +25,9 @@ import struct
 import shutil
 from tqdm import tqdm
 
-#os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
-os.environ["KITTI360_DATASET"] = "/bigwork/nhgnycao/datasets/KITTI-360"
-os.environ["KITTI360_DATASET"] = r"D:\Masterarbeit\dataset\kitti_360"
+os.environ["KITTI360_DATASET"] = "/media/eistrauben/Dinge/Masterarbeit/dataset/kitti_360"
+#os.environ["KITTI360_DATASET"] = "/bigwork/nhgnycao/datasets/KITTI-360"
+#os.environ["KITTI360_DATASET"] = r"D:\Masterarbeit\dataset\kitti_360"
 
 
 # the main class that loads raw 3D scans
@@ -168,6 +168,7 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
     # color map for visualizing depth map
     cm = plt.get_cmap('jet')
 
+    count = 0
     # visualize a set of frame
     # for each frame, load the raw 3D scan and project to image plane
     # for frame in tqdm(range(0, 1000, 2)):
@@ -175,6 +176,7 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
     for root, dirs, files in os.walk(os.path.join(kitti360Path, 'data_2d_raw', sequence, 'image_%02d' % cam_id, sub_dir)):
         for file in tqdm(files):
             if os.path.splitext(file)[-1] == '.png':
+                count +=1
                 frame = int(os.path.splitext(file)[0])
 
                 ## velo
@@ -267,7 +269,7 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
                 print(np.all(tmp == dispMap))
                 '''
 
-                '''
+
                 # copy raw 2D
                 left_img_path = imagePath
                 right_img_path = left_img_path.replace('image_00', 'image_01')
@@ -275,8 +277,9 @@ def projectVeloToImage(output_root, cam_id=0, seq=0):
                 new_name_right_img = sequence + '_' + os.path.splitext(img_name)[0] + '_right.png'
                 shutil.copyfile(left_img_path, os.path.join(left_save_dir, new_name_left_img))
                 shutil.copyfile(right_img_path, os.path.join(right_save_dir, new_name_right_img))
-                '''
 
+                if count >= 50:
+                    return 0
                 continue
                 '''
                 layout = (2,1) if cam_id in [0,1] else (1,2)
@@ -519,6 +522,7 @@ def projectVeloToImage_singel(cam_id=0, seq=6, ):
     plt.show()
     '''
 
+
 if __name__ == '__main__':
     if 'KITTI360_DATASET' in os.environ:
         kitti360Path = os.environ['KITTI360_DATASET']
@@ -526,7 +530,7 @@ if __name__ == '__main__':
         kitti360Path = os.path.join(os.path.dirname(
             os.path.realpath(__file__)), '..', '..')
 
-    output_root = os.path.join(kitti360Path, "kitti_360")
+    output_root = os.path.join(kitti360Path, "kitti_360_demo")
     #output_root = os.path.join("/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets", "kitti_360")
     if not os.path.exists(output_root):
         os.makedirs(output_root)
@@ -538,15 +542,15 @@ if __name__ == '__main__':
 
     visualizeIn2D = True
     # sequence index
-    seq = 6
+    seq = 0
     # set it to 0 or 1 for projection to perspective images
     #           2 or 3 for projecting to fisheye images
     cam_id = 0
-    '''
+
     train_dir = os.path.join(output_root, "train")
     if not os.path.exists(train_dir):
         os.makedirs(train_dir)
-
+    '''
     for seq in [0, 3, 5, 6, 7, 10]:
         # visualize raw 3D velodyne scans in 2D
         if visualizeIn2D:
@@ -560,11 +564,11 @@ if __name__ == '__main__':
         if visualizeIn2D:
             projectVeloToImage(test_dir, seq=seq, cam_id=cam_id)
 
-    
+    '''
     if visualizeIn2D:
         projectVeloToImage(train_dir, seq=seq, cam_id=cam_id)
-    '''
 
-    projectVeloToImage_singel()
+
+    #projectVeloToImage_singel()
 
 

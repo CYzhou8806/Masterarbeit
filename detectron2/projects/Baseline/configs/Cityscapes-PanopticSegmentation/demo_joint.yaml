@@ -45,7 +45,7 @@ INPUT:
     SIZE: (256, 512)
     ENABLED: False
     TYPE: "absolute"
-  IMG_SIZE: [384,1280]  # h, w  540,960 (sceneflow) or 384,1280 (kitti) or 1024,2048 (cityscapes) or 384,1408 (kitti360)
+  IMG_SIZE: [384,1408]  # h, w  540,960 (sceneflow) or 384,1280 (kitti) or 1024,2048 (cityscapes) or 384,1408 (kitti360)
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
