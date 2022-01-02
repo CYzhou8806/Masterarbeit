@@ -110,8 +110,8 @@ def get_parser_kitti360():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        #default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti360/model_0099999.pth'],
-        default=['MODEL.WEIGHTS', 'model/init_panoptic_cityscapes_weights.pth'],
+        default=['MODEL.WEIGHTS', 'model/joint/model_0004999.pth'],
+        #default=['MODEL.WEIGHTS', 'model/init_panoptic_cityscapes_weights.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser

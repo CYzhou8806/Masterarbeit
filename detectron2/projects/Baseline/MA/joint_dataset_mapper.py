@@ -327,11 +327,23 @@ class JointDeeplabDatasetMapper:
         # print(np.sum(dis_gt_with_mask[0, :, :]>0))
 
         if self.guided_loss:
-            pan_guided_raw = pan_guided_raw[:, :, :2]
-            pan_guided = np.zeros((2, pan_guided_raw.shape[0], pan_guided_raw.shape[1]), dtype=np.float)
-            pan_guided[0, :, :] = pan_guided_raw[:, :, 0]
-            pan_guided[1, :, :] = pan_guided_raw[:, :, 1]
+            pan_guided_raw2 = pan_guided_raw[:, :, :2]
+            pan_guided = np.zeros((2, pan_guided_raw2.shape[0], pan_guided_raw2.shape[1]), dtype=np.float)
+            pan_guided[0, :, :] = pan_guided_raw2[:, :, 0]
+            pan_guided[1, :, :] = pan_guided_raw2[:, :, 1]
             pan_mask = pan_guided[1, :, :] == 1.0
+            '''
+            # TODO:debug
+            if not np.any(pan_mask):
+                print("no 1")
+                Image.fromarray(pan_guided_raw).save("pan_guided_raw.png")
+                Image.fromarray(image).save("image.png")
+                Image.fromarray(pan_seg_gt).save("pan_seg_gt.png")
+                raise RuntimeError("excepted stop")
+            '''
+
+
+
             assert pan_guided.shape[0] == 2
             pan_guided_target = self.pan_guided_target_generator(pan_guided[0], pan_mask)
             dataset_dict.update(pan_guided_target)
