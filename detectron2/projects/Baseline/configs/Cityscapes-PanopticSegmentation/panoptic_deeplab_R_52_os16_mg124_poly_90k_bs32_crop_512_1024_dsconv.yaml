@@ -36,12 +36,12 @@ MODEL:
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 4
+  IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
   # BASE_LR: 0.00001
-  FREEZE_BACKBONE: True
+  FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: False
-  FREEZE_DISPARITY: True
+  FREEZE_DISPARITY: False
   CHECKPOINT_PERIOD: 5000
 DATASETS:
   TRAIN: ("kitti360_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
