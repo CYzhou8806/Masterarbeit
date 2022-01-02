@@ -110,7 +110,8 @@ def get_parser_kitti360():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti360/model_0099999.pth'],
+        #default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti360/model_0099999.pth'],
+        default=['MODEL.WEIGHTS', 'model/init_panoptic_cityscapes_weights.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -267,8 +268,8 @@ def main_kitti360(args):
                     if args.output:
                         if os.path.isdir(args.output):
                             assert os.path.isdir(args.output), args.output
-                            out_filename = os.path.join(args.output, os.path.basename(path))
-                            out_disp_name = os.path.join(args.output, os.path.basename(path))
+                            out_filename = os.path.join(args.output, os.path.basename(path).replace("left", "seg"))
+                            out_disp_name = os.path.join(args.output, os.path.basename(path).replace("left", "dis"))
                         else:
                             assert len(args.input) == 1, "Please specify a directory with args.output"
                             out_filename = args.output

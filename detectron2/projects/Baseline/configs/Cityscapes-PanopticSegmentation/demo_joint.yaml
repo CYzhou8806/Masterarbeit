@@ -29,7 +29,7 @@ MODEL:
     RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
     GRADIENT_TYPE: "sobel"
   MODE:
-    PANOPTIC_BRANCH: False
+    PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
@@ -37,8 +37,8 @@ SOLVER:
   IMS_PER_BATCH: 1
   LR_SCHEDULER_NAME: "WarmupPolyLR"
 DATASETS:
-  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train
-  TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train
+  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
+  TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
 INPUT:
   FORMAT: "RGB"
   CROP:
