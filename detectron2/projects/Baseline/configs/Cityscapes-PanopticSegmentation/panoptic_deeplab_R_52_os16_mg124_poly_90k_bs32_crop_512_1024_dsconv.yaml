@@ -19,10 +19,10 @@ MODEL:
     USE_DEPTHWISE_SEPARABLE_CONV: True
   DIS_EMBED_HEAD:
     MAX_DISP: 192
-    LOSS_TYPE: "panoptic_guided"  # "smoothL1_only" or "panoptic_guided" or "l1_norm"
+    LOSS_TYPE: "smoothL1_only"  # "smoothL1_only" or "panoptic_guided" or "l1_norm"
     HOURGLASS_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]
     INTERNAL_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # loss weight for pyramids
-    GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 0.1 ]   # guided_smooth, guided_boundary, smooth_L1
+    GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
     STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
     REGRESSION_INPLANES: 192  # to change dimension during the 3D-regression
     HOURGLASS_INPLANES: 192
