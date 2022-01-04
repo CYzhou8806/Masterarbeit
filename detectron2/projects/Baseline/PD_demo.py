@@ -110,7 +110,7 @@ def get_parser_kitti360():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/joint/model_0004999.pth'],
+        default=['MODEL.WEIGHTS', 'model/joint/model_0099999.pth'],
         #default=['MODEL.WEIGHTS', 'model/init_panoptic_cityscapes_weights.pth'],
         nargs=argparse.REMAINDER,
     )
@@ -235,6 +235,11 @@ def main_kitti360(args):
         shutil.rmtree(args.output)
     os.makedirs(args.output)
 
+    dis_path = os.path.join(args.output,"dis")
+    seg_path = os.path.join(args.output, "seg")
+    os.makedirs(dis_path)
+    os.makedirs(seg_path)
+
     cfg = setup(args)  # 配置设置
     demo = JointVisualizationDemo(cfg)  # $$$ 数据集的处理仍然不清楚
 
@@ -268,8 +273,8 @@ def main_kitti360(args):
                     if args.output:
                         if os.path.isdir(args.output):
                             assert os.path.isdir(args.output), args.output
-                            out_filename = os.path.join(args.output, os.path.basename(path).replace("left", "seg"))
-                            out_disp_name = os.path.join(args.output, os.path.basename(path).replace("left", "dis"))
+                            out_filename = os.path.join(seg_path, os.path.basename(path).replace("left", "seg"))
+                            out_disp_name = os.path.join(dis_path, os.path.basename(path).replace("left", "dis"))
                         else:
                             assert len(args.input) == 1, "Please specify a directory with args.output"
                             out_filename = args.output
