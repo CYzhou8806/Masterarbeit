@@ -405,10 +405,16 @@ class JointEstimation(nn.Module):
                     if len(instances) > 0:
                         processed_results[-1]["instances"] = Instances.cat(instances)
         elif self.disparity_branch:
-            processed_results.append({"dis_est": dis_results[-1][-1]})
+            processed_results.append({"dis_est": dis_results[1][-1]})
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
                              "Panoptic_Branch' are supported")
+
+        # TODO:debug
+        tmp1 = dis_results[0][-1]
+        tmp2 = dis_results[-1][-1]
+        tmp3 = tmp1 - tmp2
+        print((tmp3==-1.).all())
 
         return processed_results
 
@@ -984,7 +990,9 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
-        for i, scale in enumerate(['1/16', '1/8', '1/4']):
+        # for i, scale in enumerate(['1/16', '1/8', '1/4']):
+        for i, scale in enumerate(['1/4',]):    # TODO:debug
+
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1337,6 +1345,17 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
             for i in range(len(predictions)):  # for each pyramid
+                # TODO:debug
+                tmp1 = self.hourglass_loss_weight[0] * F.smooth_l1_loss(predictions[i][0][dis_mask_bool],
+                                                                        dis_targets[dis_mask_bool],
+                                                                        reduction='mean')
+                tmp2 = self.hourglass_loss_weight[0] * F.smooth_l1_loss(predictions[i][1][dis_mask_bool],
+                                                                        dis_targets[dis_mask_bool],
+                                                                        reduction='mean')
+                tmp3 = self.hourglass_loss_weight[0] * F.smooth_l1_loss(predictions[i][2][dis_mask_bool],
+                                                                        dis_targets[dis_mask_bool],
+                                                                        reduction='mean')
+
                 if smooth_l1:
                     smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
                                 (self.hourglass_loss_weight[0] *
