@@ -33,6 +33,7 @@ except:
     print("Failed to import numpy package.")
     sys.exit(-1)
 
+'''
 # Cityscapes modules
 try:
     from annotation   import Annotation
@@ -40,6 +41,7 @@ try:
 except:
     print("Failed to find all Cityscapes modules")
     sys.exit(-1)
+'''
 
 # Print an error message and quit
 def printError(message):
