@@ -138,10 +138,6 @@ class Trainer(DefaultTrainer):
         index_backbone = []
         index_panoptic = []
         index_disparity = []
-        index_disparity_4 = []
-        index_disparity_8 = []
-        index_disparity_16 = []
-
         for i, p in enumerate(list(model.state_dict())):
             if p.split('.')[0] == 'backbone':
                 index_backbone.append(i)
@@ -149,12 +145,6 @@ class Trainer(DefaultTrainer):
                 index_panoptic.append(i)
             if p.split('.')[0] == 'dis_embed_head':
                 index_disparity.append(i)
-            if p.split('.')[0] == 'dis_embed_head' and p.split('.')[2] == '1/4':
-                index_disparity_4.append(i)
-            if p.split('.')[0] == 'dis_embed_head' and p.split('.')[2] == '1/8':
-                index_disparity_8.append(i)
-            if p.split('.')[0] == 'dis_embed_head' and p.split('.')[2] == '1/16':
-                index_disparity_16.append(i)
 
         for i, p in enumerate(model.parameters()):
             if cfg.SOLVER.FREEZE_BACKBONE and i in index_backbone:
@@ -162,12 +152,6 @@ class Trainer(DefaultTrainer):
             if cfg.SOLVER.FREEZE_PANOPTIC and i in index_panoptic:
                 p.requires_grad = False
             if cfg.SOLVER.FREEZE_DISPARITY and i in index_disparity:
-                p.requires_grad = False
-            if cfg.SOLVER.FREEZE_DISPARITY_4 and i in index_disparity_4:
-                p.requires_grad = False
-            if cfg.SOLVER.FREEZE_DISPARITY_8 and i in index_disparity_8:
-                p.requires_grad = False
-            if cfg.SOLVER.FREEZE_DISPARITY_16 and i in index_disparity_16:
                 p.requires_grad = False
 
         params = get_default_optimizer_params(

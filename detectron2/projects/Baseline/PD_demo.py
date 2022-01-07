@@ -65,7 +65,8 @@ def get_parser_kitti2015():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0014999.pth'],
+        #default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0024999.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_0029999.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser

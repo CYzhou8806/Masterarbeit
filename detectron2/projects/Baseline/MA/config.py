@@ -100,4 +100,7 @@ def add_joint_estimation_config(cfg):
     cfg.SOLVER.FREEZE_BACKBONE = False
     cfg.SOLVER.FREEZE_PANOPTIC = False
     cfg.SOLVER.FREEZE_DISPARITY = False
+    cfg.SOLVER.FREEZE_DISPARITY_8 = False
+    cfg.SOLVER.FREEZE_DISPARITY_16 = False
+    cfg.SOLVER.FREEZE_DISPARITY_4 = False
 

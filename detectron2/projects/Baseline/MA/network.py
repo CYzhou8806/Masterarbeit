@@ -331,7 +331,7 @@ class JointEstimation(nn.Module):
         processed_results = []
         if self.panotic_branch and self.disparity_branch:
             for dis_result, sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
-                    dis_results, sem_seg_results, center_results, offset_results, batched_inputs,
+                    dis_results[-1], sem_seg_results, center_results, offset_results, batched_inputs,
                     left_images.image_sizes
             ):
                 height = input_per_image.get("height")
@@ -405,7 +405,7 @@ class JointEstimation(nn.Module):
                     if len(instances) > 0:
                         processed_results[-1]["instances"] = Instances.cat(instances)
         elif self.disparity_branch:
-            processed_results.append({"dis_est": dis_results[1][-1]})
+            processed_results.append({"dis_est": dis_results[-1][-1]})
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
                              "Panoptic_Branch' are supported")
@@ -991,7 +991,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
         # for i, scale in enumerate(['1/16', '1/8', '1/4']):
-        for i, scale in enumerate(['1/4',]):    # TODO:debug
+        for i, scale in enumerate(['1/16', '1/8', '1/4',]):    # TODO:debug
 
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]

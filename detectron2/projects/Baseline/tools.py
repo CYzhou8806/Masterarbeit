@@ -88,16 +88,18 @@ if __name__ == "__main__":
     cfg = setup(args)
     model = build_model(cfg)
     model.state_dict()
-    for name, para in model.state_dict().items():
+    for name, para1 in model.state_dict().items():
         break
     model.load_state_dict(torch.load('model/re_init_panoptic_cityscapes_weights.pth'))
 
-
+    to_compare_tmp = {}
     to_compare = {}
     for name, para in model.state_dict().items():
         branch = name.split('.')[0]
-        if branch == 'dis_embed_head':
-            to_compare[name] = para
+        if branch == 'dis_embed_head' and name.split('.')[2] == '1/4':
+            to_compare[name] = para.clone()
+        if branch == 'dis_embed_head' and name.split('.')[2] == '1/16':
+            to_compare_tmp[name] = para.clone()
 
     checkpointer = DetectionCheckpointer(model)
     checkpointer_5999 = "model/model_0004999.pth"
@@ -109,7 +111,7 @@ if __name__ == "__main__":
     model_dict.update(state_dict)
     model.load_state_dict(model_dict)
 
-    torch.save(model.state_dict(), 're_re_init_panoptic_cityscapes_weights.pth')
+    # torch.save(model.state_dict(), 're_re_init_panoptic_cityscapes_weights.pth')
 
 
 
