@@ -49,7 +49,7 @@ if __name__ == "__main__":
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     # down_samples_dataset(input_root, scale=4)
 
-    '''
+
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
@@ -59,26 +59,35 @@ if __name__ == "__main__":
     model.state_dict()
     for name, para in model.state_dict().items():
         break
-    model.load_state_dict(torch.load('model/re_init_panoptic_cityscapes_weights.pth'))
+    # model.load_state_dict(torch.load('model/base_sceneflow_kitti2015/model_0024999.pth'))
 
+    # model.load_state_dict(torch.load('model/model_0139999.pth'))
+    checkpointer = DetectionCheckpointer(model)
+    checkpointer_5999 = "model/model_0029999.pth"
+    checkpointer.load(checkpointer_5999)
 
     to_init = {}
     for name, para in model.state_dict().items():
         branch = name.split('.')[0]
-        if branch == 'sem_seg_head':
-            to_init[name.replace('sem_seg_head', 'dis_embed_head')] = para
+        if branch == 'dis_embed_head' and name.split('.')[2] == '1/4':
+            to_init[name] = para
+            to_init[name.replace('1/4', '1/8')] = para
 
-    # model.load_state_dict(torch.load('model/model_0139999.pth'))
-    checkpointer = DetectionCheckpointer(model)
-    checkpointer_5999 = "model/model_0139999.pth"
-    checkpointer.load(checkpointer_5999)
+    model1 = build_model(cfg)
+    model1.state_dict()
+    for name1, para1 in model1.state_dict().items():
+        break
+    checkpointer1 = DetectionCheckpointer(model1)
+    checkpointer_59991 = "model/base_sceneflow_kitti2015/model_0024999.pth"
+    checkpointer1.load(checkpointer_59991)
 
-    model_dict = model.state_dict()
-    state_dict = {k: v for k, v in to_init.items() if k in model_dict.keys()}
-    model_dict.update(state_dict)
-    model.load_state_dict(model_dict)
 
-    torch.save(model.state_dict(), 're_re_init_panoptic_cityscapes_weights.pth')
+    model1_dict = model1.state_dict()
+    state_dict = {k: v for k, v in to_init.items() if k in model1_dict.keys()}
+    model1_dict.update(state_dict)
+    model1.load_state_dict(model1_dict)
+
+    torch.save(model1.state_dict(), 'model_kitti2015_init.pth')
     '''
 
     # model = torch.load('init.pth')
@@ -112,7 +121,7 @@ if __name__ == "__main__":
     model.load_state_dict(model_dict)
 
     # torch.save(model.state_dict(), 're_re_init_panoptic_cityscapes_weights.pth')
-
+    '''
 
 
     '''
