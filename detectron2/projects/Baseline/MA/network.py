@@ -991,7 +991,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
         # for i, scale in enumerate(['1/16', '1/8', '1/4']):
-        for i, scale in enumerate(['1/16', '1/8', '1/4',]):    # TODO:debug
+        for i, scale in enumerate(['1/16', '1/8',]):    # TODO:debug
 
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
