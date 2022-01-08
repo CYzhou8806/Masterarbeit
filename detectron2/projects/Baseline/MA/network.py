@@ -405,7 +405,7 @@ class JointEstimation(nn.Module):
                     if len(instances) > 0:
                         processed_results[-1]["instances"] = Instances.cat(instances)
         elif self.disparity_branch:
-            processed_results.append({"dis_est": dis_results[-1][-1]})
+            processed_results.append({"dis_est": dis_results[0][-1]})
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
                              "Panoptic_Branch' are supported")
@@ -1026,13 +1026,15 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     dis_cost_volume = build_correlation_cost_volume(
                         max_dis, pyramid_features[scale][-1][0], pyramid_features[scale][-1][1])
                 else:
-                    dis = disparity[-1][-1]
+                    dis = disparity[-1][-1].detach_()   # todo:debug
                     dis_cost_volume = build_correlation_cost_volume(
                         max_dis,
                         self.warp(dis, pyramid_features[scale][-1][0], scale),
                         pyramid_features[scale][-1][1], )
                 cost_volume = dis_cost_volume
 
+            # todo:debug
+            # cost0_para = self.predictor[scale]['dres0'].parameters()
             cost0 = self.predictor[scale]['dres0'](cost_volume)
             cost0 = self.predictor[scale]['dres1'](cost0) + cost0
             out1, pre1, post1 = self.predictor[scale]['dres2'](cost0, None, None)
@@ -1069,8 +1071,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
             if self.training:
                 if not len(disparity):
-                    #disparity.append([pred1, pred2, pred3])  # List[3x List(3x Tensor)] # todo:debug
-                    pass
+                    disparity.append([pred1, pred2, pred3])  # List[3x List(3x Tensor)]
                 else:
                     disparity.append([pred1 + dis, pred2 + dis, pred3 + dis])
             else:
@@ -1345,7 +1346,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             losses = {"loss_dis_guided": loss * self.loss_weight}
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
-            for i in range(len(predictions)):  # for each pyramid
+            for i in range(1,len(predictions)):  # for each pyramid
                 # TODO:debug
                 tmp1 = self.hourglass_loss_weight[0] * F.smooth_l1_loss(predictions[i][0][dis_mask_bool],
                                                                         dis_targets[dis_mask_bool],
