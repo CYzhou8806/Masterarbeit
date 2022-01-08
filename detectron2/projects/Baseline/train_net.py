@@ -135,13 +135,13 @@ class Trainer(DefaultTrainer):
         所有的优化器都在相同的目录里, 按照需要调用即可
         """
 
+        '''
         index_backbone = []
         index_panoptic = []
         index_disparity = []
         index_disparity_4 = []
         index_disparity_8 = []
         index_disparity_16 = []
-
         for i, p in enumerate(list(model.state_dict())):
             if p.split('.')[0] == 'backbone':
                 index_backbone.append(i)
@@ -155,7 +155,29 @@ class Trainer(DefaultTrainer):
                 index_disparity_8.append(i)
             if p.split('.')[0] == 'dis_embed_head' and (p.split('.')[2] == '1/16' or p.split('.')[2] == 'res5'):
                 index_disparity_16.append(i)
+        '''
 
+        total_params = sum(p.numel() for p in model.parameters())
+        print(f'{total_params:,} total parameters.')
+        total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f'{total_trainable_params:,} training parameters.')
+
+        params = model.named_parameters()
+        for i, (name, param) in enumerate(params):
+            if cfg.SOLVER.FREEZE_BACKBONE and name.split('.')[0] == 'backbone':
+                param.requires_grad = False
+            if cfg.SOLVER.FREEZE_PANOPTIC and name.split('.')[0] in ['sem_seg_head', 'ins_embed_head']:
+                param.requires_grad = False
+            if cfg.SOLVER.FREEZE_DISPARITY and name.split('.')[0] == 'dis_embed_head':
+                param.requires_grad = False
+            if cfg.SOLVER.FREEZE_DISPARITY_4 and (name.split('.')[0] == 'dis_embed_head' and (name.split('.')[2] == '1/4' or name.split('.')[2] == 'res2')):
+                param.requires_grad = False
+            if cfg.SOLVER.FREEZE_DISPARITY_8 and (name.split('.')[0] == 'dis_embed_head' and (name.split('.')[2] == '1/8' or name.split('.')[2] == 'res3')):
+                param.requires_grad = False
+            if cfg.SOLVER.FREEZE_DISPARITY_16 and (name.split('.')[0] == 'dis_embed_head' and (name.split('.')[2] == '1/16' or name.split('.')[2] == 'res5')):
+                param.requires_grad = False
+
+        '''      
         for i, p in enumerate(model.parameters()):
             if cfg.SOLVER.FREEZE_BACKBONE and i in index_backbone:
                 p.requires_grad = False
@@ -169,6 +191,12 @@ class Trainer(DefaultTrainer):
                 p.requires_grad = False
             if cfg.SOLVER.FREEZE_DISPARITY_16 and i in index_disparity_16:
                 p.requires_grad = False
+        '''
+
+        total_params = sum(p.numel() for p in model.parameters())
+        print(f'{total_params:,} total parameters.')
+        total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+        print(f'{total_trainable_params:,} training parameters.')
 
         params = get_default_optimizer_params(
             model,
