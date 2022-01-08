@@ -157,11 +157,6 @@ class Trainer(DefaultTrainer):
                 index_disparity_16.append(i)
         '''
 
-        total_params = sum(p.numel() for p in model.parameters())
-        print(f'{total_params:,} total parameters.')
-        total_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-        print(f'{total_trainable_params:,} training parameters.')
-
         params = model.named_parameters()
         for i, (name, param) in enumerate(params):
             if cfg.SOLVER.FREEZE_BACKBONE and name.split('.')[0] == 'backbone':

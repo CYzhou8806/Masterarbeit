@@ -1033,8 +1033,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         pyramid_features[scale][-1][1], )
                 cost_volume = dis_cost_volume
 
-            # todo:debug
-            # cost0_para = self.predictor[scale]['dres0'].parameters()
             cost0 = self.predictor[scale]['dres0'](cost_volume)
             cost0 = self.predictor[scale]['dres1'](cost0) + cost0
             out1, pre1, post1 = self.predictor[scale]['dres2'](cost0, None, None)
@@ -1347,17 +1345,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
             for i in range(1,len(predictions)):  # for each pyramid
-                # TODO:debug
-                tmp1 = self.hourglass_loss_weight[0] * F.smooth_l1_loss(predictions[i][0][dis_mask_bool],
-                                                                        dis_targets[dis_mask_bool],
-                                                                        reduction='mean')
-                tmp2 = self.hourglass_loss_weight[0] * F.smooth_l1_loss(predictions[i][1][dis_mask_bool],
-                                                                        dis_targets[dis_mask_bool],
-                                                                        reduction='mean')
-                tmp3 = self.hourglass_loss_weight[0] * F.smooth_l1_loss(predictions[i][2][dis_mask_bool],
-                                                                        dis_targets[dis_mask_bool],
-                                                                        reduction='mean')
-
                 if smooth_l1:
                     smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
                                 (self.hourglass_loss_weight[0] *
