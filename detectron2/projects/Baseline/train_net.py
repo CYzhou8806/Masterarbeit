@@ -149,11 +149,11 @@ class Trainer(DefaultTrainer):
                 index_panoptic.append(i)
             if p.split('.')[0] == 'dis_embed_head':
                 index_disparity.append(i)
-            if p.split('.')[0] == 'dis_embed_head' and p.split('.')[2] == '1/4':
+            if p.split('.')[0] == 'dis_embed_head' and (p.split('.')[2] == '1/4' or p.split('.')[2] == 'res2'):
                 index_disparity_4.append(i)
-            if p.split('.')[0] == 'dis_embed_head' and p.split('.')[2] == '1/8':
+            if p.split('.')[0] == 'dis_embed_head' and (p.split('.')[2] == '1/8' or p.split('.')[2] == 'res3'):
                 index_disparity_8.append(i)
-            if p.split('.')[0] == 'dis_embed_head' and p.split('.')[2] == '1/16':
+            if p.split('.')[0] == 'dis_embed_head' and (p.split('.')[2] == '1/16' or p.split('.')[2] == 'res5'):
                 index_disparity_16.append(i)
 
         for i, p in enumerate(model.parameters()):
