@@ -1069,7 +1069,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
             if self.training:
                 if not len(disparity):
-                    disparity.append([pred1, pred2, pred3])  # List[3x List(3x Tensor)]
+                    #disparity.append([pred1, pred2, pred3])  # List[3x List(3x Tensor)] # todo:debug
+                    pass
                 else:
                     disparity.append([pred1 + dis, pred2 + dis, pred3 + dis])
             else:
