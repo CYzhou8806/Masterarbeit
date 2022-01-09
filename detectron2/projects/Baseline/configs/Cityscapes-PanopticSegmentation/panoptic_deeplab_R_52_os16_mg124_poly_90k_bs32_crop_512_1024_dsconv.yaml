@@ -3,7 +3,7 @@ MODEL:
   #WEIGHTS: "./output/base_sceneflow_driving_19999_kitti2015/model_0024999.pth"
   #WEIGHTS: "./model/base_sceneflow_kitti2015/model_0024999.pth"
   # WEIGHTS: "./model/model_kitti2015_init.pth"
-  WEIGHTS: "./output/model_0054999.pth"
+  WEIGHTS: "./output/model_0014999.pth"
   PIXEL_MEAN: [123.675, 116.280, 103.530]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
   BACKBONE:
@@ -23,7 +23,7 @@ MODEL:
     MAX_DISP: 192
     LOSS_TYPE: "smoothL1_only"  # "smoothL1_only" or "panoptic_guided" or "l1_norm"
     HOURGLASS_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]
-    INTERNAL_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # loss weight for pyramids
+    INTERNAL_LOSS_WEIGHT: [ 0.2, 0.3, 0.5 ]   # loss weight for pyramids
     GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
     STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
     REGRESSION_INPLANES: 192  # to change dimension during the 3D-regression
@@ -38,16 +38,16 @@ MODEL:
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 8
+  IMS_PER_BATCH: 4
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
   #BASE_LR: 0.0001
-  FREEZE_BACKBONE: True
+  FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
 
   FREEZE_DISPARITY_4: False
-  FREEZE_DISPARITY_8: True
-  FREEZE_DISPARITY_16: True
+  FREEZE_DISPARITY_8: False
+  FREEZE_DISPARITY_16: False
   CHECKPOINT_PERIOD: 5000
 DATASETS:
   TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
