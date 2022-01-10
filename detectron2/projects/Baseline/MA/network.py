@@ -405,7 +405,7 @@ class JointEstimation(nn.Module):
                     if len(instances) > 0:
                         processed_results[-1]["instances"] = Instances.cat(instances)
         elif self.disparity_branch:
-            processed_results.append({"dis_est": dis_results[0][-1]})
+            processed_results.append({"dis_est": dis_results[-1][-1]})
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
                              "Panoptic_Branch' are supported")
@@ -984,8 +984,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
-        for i, scale in enumerate(['1/16', '1/8', '1/4']):
-
+        #for i, scale in enumerate(['1/16', '1/8', '1/4']):
+        for i, scale in enumerate(['1/16', ]):  # todo:debug
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1338,7 +1338,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
             for i in range(len(predictions)):  # for each pyramid
-                assert len(predictions) ==3
+                # assert len(predictions) ==3
                 if smooth_l1:
                     smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
                                 (self.hourglass_loss_weight[0] *
