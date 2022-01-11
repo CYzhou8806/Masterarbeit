@@ -37,15 +37,15 @@ SOLVER:
   IMS_PER_BATCH: 1
   LR_SCHEDULER_NAME: "WarmupPolyLR"
 DATASETS:
-  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
-  TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
+  TRAIN: ("kitti360_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
+  TEST: ("kitti360_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
 INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (256, 512)
     ENABLED: False
     TYPE: "absolute"
-  IMG_SIZE: [256, 512]  # h, w  540,960 (sceneflow) or 384,1280 (kitti) or 1024,2048 (cityscapes) or 384,1408 (kitti360)
+  IMG_SIZE: [384,1408]  # h, w  540,960 (sceneflow) or 384,1280 (kitti) or 1024,2048 (cityscapes) or 384,1408 (kitti360)
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
