@@ -984,8 +984,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
-        #for i, scale in enumerate(['1/16', '1/8', '1/4']):
-        for i, scale in enumerate(['1/16', '1/8','1/4']):  # todo:debug
+        for i, scale in enumerate(['1/16', '1/8','1/4']):
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1019,7 +1018,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     dis_cost_volume = build_correlation_cost_volume(
                         max_dis, pyramid_features[scale][-1][0], pyramid_features[scale][-1][1])
                 else:
-                    dis = disparity[-1][-1].detach_()  # todo:debug
+                    dis = disparity[-1][-1]
                     dis_cost_volume = build_correlation_cost_volume(
                         max_dis,
                         self.warp(dis, pyramid_features[scale][-1][0], scale),
@@ -1337,7 +1336,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             losses = {"loss_dis_guided": loss * self.loss_weight}
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
-            for i in range(2,len(predictions)):  # for each pyramid   # todo:debug
+            for i in range(len(predictions)):  # for each pyramid
                 assert len(predictions) ==3
                 if smooth_l1:
                     smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
