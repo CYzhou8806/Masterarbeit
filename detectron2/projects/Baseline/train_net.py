@@ -30,9 +30,39 @@ from detectron2.projects.MA import (
     register_all_kitti_2015,
     register_all_kitti360,
     JointDeeplabDatasetMapper,
+    JointEvaluator,
 )
 from detectron2.solver import get_default_optimizer_params
 from detectron2.solver.build import maybe_add_gradient_clipping
+from detectron2.config import configurable
+
+'''
+import itertools
+import torch.utils.data as torchdata
+from detectron2.config import configurable
+from detectron2.data.catalog import DatasetCatalog, MetadataCatalog
+from detectron2.data.common import DatasetFromList, MapDataset
+from detectron2.data.dataset_mapper import DatasetMapper
+from detectron2.data.detection_utils import check_metadata_consistency
+from detectron2.data.samplers import (
+    InferenceSampler,
+)
+'''
+
+from detectron2.data.build import (
+    filter_images_with_only_crowd_annotations,
+    filter_images_with_few_keypoints,
+    load_proposals_into_dataset,
+    print_instances_class_histogram,
+    get_detection_dataset_dicts,
+    build_batch_data_loader,
+    trivial_batch_collator,
+    worker_init_reset_seed,
+)
+from detectron2.data.common import DatasetFromList, MapDataset
+import torch.utils.data as torchdata
+from detectron2.data.samplers import InferenceSampler
+
 
 # TODO: the meaning is not clear
 import torch.distributed as dist
@@ -78,14 +108,18 @@ class Trainer(DefaultTrainer):
         evaluator_list = []
         evaluator_type = MetadataCatalog.get(dataset_name).evaluator_type
         if evaluator_type in ["cityscapes_panoptic_seg", "coco_panoptic_seg"]:
-            evaluator_list.append(COCOPanopticEvaluator(dataset_name, output_folder))
+            # evaluator_list.append(COCOPanopticEvaluator(dataset_name, output_folder))
+            evaluator_list.append(JointEvaluator(dataset_name, output_folder))
         if evaluator_type == "cityscapes_panoptic_seg":
             assert (
                     torch.cuda.device_count() > comm.get_rank()
             ), "CityscapesEvaluator currently do not work with multiple machines."
-            evaluator_list.append(CityscapesSemSegEvaluator(dataset_name))
-            evaluator_list.append(CityscapesInstanceEvaluator(dataset_name))
+            #evaluator_list.append(CityscapesSemSegEvaluator(dataset_name))
+            #evaluator_list.append(CityscapesInstanceEvaluator(dataset_name))
+            pass    # todo: has been changed
         if evaluator_type == "coco_panoptic_seg":
+            pass    # todo: has been changed
+            '''
             # `thing_classes` in COCO panoptic metadata includes both thing and
             # stuff classes for visualization. COCOEvaluator requires metadata
             # which only contains thing classes, thus we map the name of
@@ -97,6 +131,7 @@ class Trainer(DefaultTrainer):
             evaluator_list.append(
                 COCOEvaluator(dataset_name_mapper[dataset_name], output_dir=output_folder)
             )
+            '''
         if len(evaluator_list) == 0:
             raise NotImplementedError(
                 "no Evaluator for the dataset {} with the type {}".format(
@@ -211,6 +246,98 @@ class Trainer(DefaultTrainer):
             return maybe_add_gradient_clipping(cfg, torch.optim.Adam)(params, cfg.SOLVER.BASE_LR)
         else:
             raise NotImplementedError(f"no optimizer type {optimizer_type}")
+
+
+    @classmethod
+    def build_test_loader(cls, cfg, dataset_name):
+        """
+        Returns:
+            iterable
+
+        It now calls :func:`detectron2.data.build_detection_test_loader`.
+        Overwrite it if you'd like a different data loader.
+        """
+        return build_detection_test_loader(cfg, dataset_name)
+
+
+def _test_loader_from_config(cfg, dataset_name, mapper=None):
+    """
+    Uses the given `dataset_name` argument (instead of the names in cfg), because the
+    standard practice is to evaluate each test set individually (not combining them).
+    """
+    if isinstance(dataset_name, str):
+        dataset_name = [dataset_name]
+
+    dataset = get_detection_dataset_dicts(
+        dataset_name,
+        filter_empty=False,
+        proposal_files=[
+            cfg.DATASETS.PROPOSAL_FILES_TEST[list(cfg.DATASETS.TEST).index(x)] for x in dataset_name
+        ]
+        if cfg.MODEL.LOAD_PROPOSALS
+        else None,
+    )
+    if mapper is None:
+        # mapper = DatasetMapper(cfg, False)
+        mapper = JointDeeplabDatasetMapper(cfg)
+    return {"dataset": dataset, "mapper": mapper, "num_workers": cfg.DATALOADER.NUM_WORKERS}
+
+
+@configurable(from_config=_test_loader_from_config)
+def build_detection_test_loader(dataset, *, mapper, sampler=None, num_workers=0, collate_fn=None):
+    """
+    Similar to `build_detection_train_loader`, but uses a batch size of 1,
+    and :class:`InferenceSampler`. This sampler coordinates all workers to
+    produce the exact set of all samples.
+    This interface is experimental.
+
+    Args:
+        dataset (list or torch.utils.data.Dataset): a list of dataset dicts,
+            or a pytorch dataset (either map-style or iterable). They can be obtained
+            by using :func:`DatasetCatalog.get` or :func:`get_detection_dataset_dicts`.
+        mapper (callable): a callable which takes a sample (dict) from dataset
+           and returns the format to be consumed by the model.
+           When using cfg, the default choice is ``DatasetMapper(cfg, is_train=False)``.
+        sampler (torch.utils.data.sampler.Sampler or None): a sampler that produces
+            indices to be applied on ``dataset``. Default to :class:`InferenceSampler`,
+            which splits the dataset across all workers. Sampler must be None
+            if `dataset` is iterable.
+        num_workers (int): number of parallel data loading workers
+        collate_fn: same as the argument of `torch.utils.data.DataLoader`.
+            Defaults to do no collation and return a list of data.
+
+    Returns:
+        DataLoader: a torch DataLoader, that loads the given detection
+        dataset, with test-time transformation and batching.
+
+    Examples:
+    ::
+        data_loader = build_detection_test_loader(
+            DatasetRegistry.get("my_test"),
+            mapper=DatasetMapper(...))
+
+        # or, instantiate with a CfgNode:
+        data_loader = build_detection_test_loader(cfg, "my_test")
+    """
+    if isinstance(dataset, list):
+        dataset = DatasetFromList(dataset, copy=False)
+    if mapper is not None:
+        dataset = MapDataset(dataset, mapper)
+    if isinstance(dataset, torchdata.IterableDataset):
+        assert sampler is None, "sampler must be None if dataset is IterableDataset"
+    else:
+        if sampler is None:
+            sampler = InferenceSampler(len(dataset))
+    # Always use 1 image per worker during inference since this is the
+    # standard when reporting inference time in papers.
+    return torchdata.DataLoader(
+        dataset,
+        batch_size=1,
+        sampler=sampler,
+        num_workers=num_workers,
+        collate_fn=trivial_batch_collator if collate_fn is None else collate_fn,
+    )
+
 
 
 def setup(args):

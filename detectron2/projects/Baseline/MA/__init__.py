@@ -29,3 +29,4 @@ from .kitti_2015_joint import register_all_kitti_2015
 # from .kitti360_jointestamation_disparity import register_all_kitti360
 from .kitti360_jointestamation import register_all_kitti360
 # from l1norm_loss import l1_norm_loss
+from .joint_evaluation import JointEvaluator
