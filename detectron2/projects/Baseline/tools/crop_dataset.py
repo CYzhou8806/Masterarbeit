@@ -8,7 +8,7 @@
 """
 import os
 import shutil
-
+from tqdm import tqdm
 from PIL import Image
 
 path_left = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015_orig/data_scene_flow/training/image_2"
@@ -23,11 +23,11 @@ save_root = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/d
 # width在前， height在后
 box = (12, 54, 1228, 374)
 for root, dirs, files in os.walk(path_left):
-    for file in files:
+    for file in tqdm(files):
         if os.path.splitext(file)[-1] == ".png":
             left_img = os.path.join(root, file)
-            right_img = left_img.replace("left", "right")
-            gt = left_img.replace("left", "disp_occ_0")
+            right_img = left_img.replace("image_2", "image_3")
+            gt = left_img.replace("image_2", "disp_occ_0")
 
             for to_crop in [left_img, right_img, gt]:
                 img = Image.open(to_crop)
