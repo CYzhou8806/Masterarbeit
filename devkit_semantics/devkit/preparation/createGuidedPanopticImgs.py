@@ -74,17 +74,17 @@ id2label        = { label.id      : label for label in labels           }
 
 
 # The main method
-def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, setNames=["val", "train", "test"]):
+def convert2panoptic(kitti2015Path=None, outputFolder=None, useTrainId=False, setNames=["val", "train", "test"]):
     # Where to look for Cityscapes
 
-    cityscapesPath = os.path.join(cityscapesPath, "data_scene_flow")
+    kitti2015Path = os.path.join(kitti2015Path, "data_scene_flow")
 
     if outputFolder is None:
-        outputFolder = cityscapesPath
+        outputFolder = kitti2015Path
 
     for setName in setNames:  # train, val, test
         # how to search for all ground truth
-        searchFine = os.path.join(cityscapesPath, setName, "*", "*_instanceIds.png")
+        searchFine = os.path.join(kitti2015Path, setName, "*", "*_instanceIds.png")
         # search files
         filesFine = glob.glob(searchFine)
         filesFine.sort()
@@ -164,7 +164,7 @@ def convert2panoptic(cityscapesPath=None, outputFolder=None, useTrainId=False, s
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dataset-folder",
-                        dest="cityscapesPath",
+                        dest="kitti2015Path",
                         help="path to the Cityscapes dataset 'gtFine' folder",
                         default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015",
                         type=str)
@@ -178,11 +178,11 @@ def main():
                         dest="setNames",
                         help="set names to which apply the function to",
                         nargs='+',
-                        default=["training", ],
+                        default=["training",],
                         type=str)
     args = parser.parse_args()
 
-    convert2panoptic(args.cityscapesPath, args.outputFolder, args.useTrainId, args.setNames)
+    convert2panoptic(args.kitti2015Path, args.outputFolder, args.useTrainId, args.setNames)
 
 
 # call the main

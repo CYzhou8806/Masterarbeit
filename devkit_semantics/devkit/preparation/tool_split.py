@@ -13,12 +13,13 @@ os.environ['KITTI2015_DATASET'] = "/home/eistrauben/github/Masterarbeit/detectro
 kitti2015Path = os.environ['KITTI2015_DATASET']
 kitti2015Path = os.path.join(kitti2015Path, "data_scene_flow")
 
-left_root = os.path.join(kitti2015Path, "image_2")
+left_root = os.path.join(kitti2015Path, "training","image_2")
 
 
 for root, dirs, files in os.walk(left_root):
     for i, file in enumerate(files):
-        if (i+1) % 4 == 0:
+        id_img = int(file.split('_')[0])
+        if (id_img+1) % 8 == 0:
             left_file = os.path.join(root, file)
             right_file = left_file.replace("image_2", "image_3")
             gt = left_file.replace("image_2", "disp_occ_0")

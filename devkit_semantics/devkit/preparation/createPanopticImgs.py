@@ -34,7 +34,7 @@ os.environ['KITTI2015_DATASET'] = "/home/eistrauben/github/Masterarbeit/detectro
 
 
 # The main method
-def convert2panoptic(kitti2015Path=None, outputFolder=None, useTrainId=False, setNames=['training',]):
+def convert2panoptic(kitti2015Path=None, outputFolder=None, useTrainId=False, setNames=['training','test']):
     # Where to look for Cityscapes
     if kitti2015Path is None:
         if 'KITTI2015_DATASET' in os.environ:
@@ -57,6 +57,7 @@ def convert2panoptic(kitti2015Path=None, outputFolder=None, useTrainId=False, se
                            'isthing': 1 if label.hasInstances else 0})
 
     for setName in setNames:
+        outputFolder = os.path.join(kitti2015Path, setName)
         # how to search for all ground truth
         searchFine   = os.path.join(kitti2015Path, setName, "*", "*_instanceIds.png")
         # search files
@@ -178,7 +179,7 @@ def main():
                         dest="setNames",
                         help="set names to which apply the function to",
                         nargs='+',
-                        default=['training',],
+                        default=['training','test'],
                         type=str)
     args = parser.parse_args()
 
