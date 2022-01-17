@@ -19,7 +19,7 @@ left_root = os.path.join(kitti2015Path, "training","image_2")
 for root, dirs, files in os.walk(left_root):
     for i, file in enumerate(files):
         id_img = int(file.split('_')[0])
-        if (id_img+1) % 8 == 0:
+        if (id_img+1) % 10 == 0:
             left_file = os.path.join(root, file)
             right_file = left_file.replace("image_2", "image_3")
             gt = left_file.replace("image_2", "disp_occ_0")
@@ -29,6 +29,15 @@ for root, dirs, files in os.walk(left_root):
             shutil.move(right_file, right_file.replace("training", "test"))
             shutil.move(gt, gt.replace("training", "test"))
             shutil.move(instance, instance.replace("training", "test"))
+        elif (id_img+1) % 5 == 0:
+            left_file = os.path.join(root, file)
+            right_file = left_file.replace("image_2", "image_3")
+            gt = left_file.replace("image_2", "disp_occ_0")
+            instance = left_file.replace("image_2", "instanceIds").split('.')[0] + "_instanceIds.png"
 
+            shutil.move(left_file, left_file.replace("training", "val"))
+            shutil.move(right_file, right_file.replace("training", "val"))
+            shutil.move(gt, gt.replace("training", "val"))
+            shutil.move(instance, instance.replace("training", "val"))
 
 
