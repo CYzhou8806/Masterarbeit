@@ -45,7 +45,7 @@ from detectron2.utils.file_io import PathManager
 from detectron2.utils.logger import setup_logger
 
 from . import hooks
-from .train_loop import AMPTrainer, SimpleTrainer, TrainerBase
+from .train_loop import AMPTrainer, SimpleTrainer, TrainerBase, SimpleTrainerEval
 
 __all__ = [
     "create_ddp_model",
@@ -377,6 +377,7 @@ class DefaultTrainer(TrainerBase):
         # model.state_dict()
         optimizer = self.build_optimizer(cfg, model)
         data_loader = self.build_train_loader(cfg)
+        self.val_data_loader = self.build_test_loader(cfg, cfg.DATASETS.TEST[0])
 
         model = create_ddp_model(model, broadcast_buffers=False)
         self._trainer = (AMPTrainer if cfg.SOLVER.AMP.ENABLED else SimpleTrainer)(
@@ -449,7 +450,6 @@ class DefaultTrainer(TrainerBase):
         # some checkpoints may have more precise statistics than others.
         if comm.is_main_process():
             ret.append(hooks.PeriodicCheckpointer(self.checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD))
-
         def test_and_save_results():
             self._last_eval_results = self.test(self.cfg, self.model)
             return self._last_eval_results
@@ -462,6 +462,8 @@ class DefaultTrainer(TrainerBase):
             # Here the default print/log frequency of each writer is used.
             # run writers in the end, so that evaluation metrics are written
             ret.append(hooks.PeriodicWriter(self.build_writers(), period=20))
+
+        ret.append(hooks.WriteBestCheckpointer(self.checkpointer, cfg.SOLVER.CHECKPOINT_PERIOD))
         return ret
 
     def build_writers(self):
@@ -493,6 +495,10 @@ class DefaultTrainer(TrainerBase):
     def run_step(self):
         self._trainer.iter = self.iter
         self._trainer.run_step()
+
+    def run_eval(self):
+        self._eval = SimpleTrainerEval(self._trainer.model, self.val_data_loader)
+        return self._eval.run_step()
 
     @classmethod
     def build_model(cls, cfg):

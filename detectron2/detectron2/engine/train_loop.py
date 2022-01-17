@@ -110,6 +110,7 @@ class TrainerBase:
         self.start_iter: int = 0
         self.max_iter: int
         self.storage: EventStorage
+        self._trainer = None
         _log_api_usage("trainer." + self.__class__.__name__)
 
     def register_hooks(self, hooks: List[Optional[HookBase]]) -> None:
@@ -141,13 +142,26 @@ class TrainerBase:
         self.iter = self.start_iter = start_iter
         self.max_iter = max_iter
 
+        self.save_best = False
+        self.cur_best = 99999.9
+        print("cur_best: ", self.cur_best)
         with EventStorage(start_iter) as self.storage:
             try:
                 self.before_train()
                 for self.iter in range(start_iter, max_iter):
                     self.before_step()
                     self.run_step()
+                    inter_pre_epoche = len(self._trainer.data_loader.dataset.dataset.dataset) // self._trainer.data_loader.batch_size
+                    if (self.iter+1) % inter_pre_epoche == 0:
+                        cur_val_loss = self.run_eval()
+                        logger.info("Epoche {} ---- val set loss: {}".format((self.iter+1)/inter_pre_epoche, cur_val_loss))
+                        if cur_val_loss < self.cur_best:
+                            self.cur_best = cur_val_loss
+                            logger.info("Current best val loss changed: {}".format(self.cur_best))
+                            self.save_best = True
                     self.after_step()
+                    self.save_best = False
+
                 # self.iter == max_iter can be used by `after_train` to
                 # tell whether the training successfully finished or failed
                 # due to exceptions.
@@ -176,11 +190,17 @@ class TrainerBase:
             h.before_step()
 
     def after_step(self):
-        for h in self._hooks:
+        for h in self._hooks[:-1]:
             h.after_step()
+        if self.save_best:
+            self._hooks[-1].after_step()
 
     def run_step(self):
         raise NotImplementedError
+
+    def run_eval(self):
+        raise NotImplementedError
+
 
     def state_dict(self):
         ret = {"iteration": self.iter}
@@ -352,6 +372,74 @@ class SimpleTrainer(TrainerBase):
     def load_state_dict(self, state_dict):
         super().load_state_dict(state_dict)
         self.optimizer.load_state_dict(state_dict["optimizer"])
+
+
+class SimpleTrainerEval(TrainerBase):
+    """
+    A simple trainer for the most common type of task:
+    single-cost single-optimizer single-data-source iterative optimization,
+    optionally using data-parallelism.
+    It assumes that every step, you:
+
+    1. Compute the loss with a data from the data_loader.
+    2. Compute the gradients with the above loss.
+    3. Update the model with the optimizer.
+
+    All other tasks during training (checkpointing, logging, evaluation, LR schedule)
+    are maintained by hooks, which can be registered by :meth:`TrainerBase.register_hooks`.
+
+    If you want to do anything fancier than this,
+    either subclass TrainerBase and implement your own `run_step`,
+    or write your own training loop.
+    """
+
+    def __init__(self, model, data_loader,):
+        """
+        Args:
+            model: a torch Module. Takes a data from data_loader and returns a
+                dict of losses.
+            data_loader: an iterable. Contains data to be used to call model.
+            optimizer: a torch optimizer.
+        """
+        super().__init__()
+
+        """
+        We set the model to training mode in the trainer.
+        However it's valid to train a model that's in eval mode.
+        If you want your model (or a submodule of it) to behave
+        like evaluation during training, you can overwrite its train() method.
+        """
+        model.train()
+
+        self.model = model
+        self.data_loader = data_loader
+        self._data_loader_iter = iter(data_loader)
+
+    def run_step(self):
+        """
+        Implement the standard training logic described above.
+        """
+        # assert self.model.training, "[SimpleTrainer] model was changed to eval mode!"
+        """
+        If you want to do something with the data, you can wrap the dataloader.
+        """
+        losses_sum = 0.0
+        i = 0
+        with torch.no_grad():
+            for i, data in enumerate(self.data_loader):
+            # data = next(self._data_loader_iter)
+                """
+                If you want to do something with the losses, you can wrap the model.
+                """
+                loss_dict = self.model(data)
+                if isinstance(loss_dict, torch.Tensor):
+                    losses = loss_dict
+                    loss_dict = {"total_loss": loss_dict}
+                else:
+                    losses = sum(loss_dict.values())
+                losses_sum += losses.float()
+
+            return losses_sum/(i+1)
 
 
 class AMPTrainer(SimpleTrainer):

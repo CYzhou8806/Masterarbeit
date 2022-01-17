@@ -303,6 +303,21 @@ class BestCheckpointer(HookBase):
             self._best_checking()
 
 
+class WriteBestCheckpointer(_PeriodicCheckpointer, HookBase):
+    """
+    Write events to EventStorage (by calling ``writer.write()``) periodically.
+
+    It is executed every ``period`` iterations and after the last iteration.
+    Note that ``period`` does not affect how data is smoothed by each writer.
+    """
+
+    def before_train(self):
+        self.max_iter = self.trainer.max_iter
+
+    def after_step(self):
+        self.checkpointer.save("model_best")
+
+
 class LRScheduler(HookBase):
     """
     A hook which executes a torch builtin LR scheduler and summarizes the LR.
