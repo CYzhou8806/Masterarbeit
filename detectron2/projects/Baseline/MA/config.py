@@ -103,4 +103,5 @@ def add_joint_estimation_config(cfg):
     cfg.SOLVER.FREEZE_DISPARITY_8 = False
     cfg.SOLVER.FREEZE_DISPARITY_16 = False
     cfg.SOLVER.FREEZE_DISPARITY_4 = False
+    cfg.INPUT.CROP.VAL_SIZE = (320,1216)
 

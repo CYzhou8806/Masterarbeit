@@ -89,6 +89,7 @@ class JointDeeplabDatasetMapper:
     @configurable
     def __init__(
             self,
+            isVal=False,
             *,
             augmentations: List[Union[T.Augmentation, T.Transform]],
             image_format: str,
@@ -98,6 +99,7 @@ class JointDeeplabDatasetMapper:
             panoptic_branch: bool,
             guided_loss: bool,
             max_disp: int,
+            augmentations_val: List[Union[T.Augmentation, T.Transform]],
     ):
         """
         NOTE: this interface is experimental.
@@ -109,7 +111,7 @@ class JointDeeplabDatasetMapper:
                 "segments_info" to generate training targets for the model.
         """
         # fmt: off
-        self.augmentations = T.AugmentationList(augmentations)
+        self.augmentations = T.AugmentationList(augmentations if not isVal else augmentations_val)
         self.image_format = image_format
         # fmt: on
         logger = logging.getLogger(__name__)
@@ -140,6 +142,8 @@ class JointDeeplabDatasetMapper:
                 cfg.INPUT.MAX_SIZE_TRAIN,
                 cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING,
             ), T.RandomFlip()]
+        augs_val = [T.RandomCrop(cfg.INPUT.CROP.TYPE, cfg.INPUT.CROP.VAL_SIZE)]
+
         # Assume always applies to the training set.
         dataset_names = cfg.DATASETS.TRAIN
         meta = MetadataCatalog.get(dataset_names[0])
@@ -155,6 +159,7 @@ class JointDeeplabDatasetMapper:
 
         ret = {
             "augmentations": augs,
+            "augmentations_val": augs_val,
             "image_format": cfg.INPUT.FORMAT,
             "panoptic_target_generator": panoptic_target_generator,
             "do_aug": cfg.INPUT.DO_AUGUMENTATION,
