@@ -144,11 +144,16 @@ class TrainerBase:
 
         self.save_best = False
         self.cur_best = 99999.9
-        print("cur_best: ", self.cur_best)
         with EventStorage(start_iter) as self.storage:
             try:
                 self.before_train()
                 for self.iter in range(start_iter, max_iter):
+                    if self.iter == 0:
+                        cur_val_loss = self.run_eval()
+                        logger.info(
+                            "Start ---- val set loss: {}".format(cur_val_loss))
+                        self.cur_best = cur_val_loss
+                        logger.info("Setting start val set loss as current best val loss: {}".format(self.cur_best))
                     self.before_step()
                     self.run_step()
                     inter_pre_epoche = len(self._trainer.data_loader.dataset.dataset.dataset) // self._trainer.data_loader.batch_size
