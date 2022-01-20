@@ -1019,7 +1019,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     dis_cost_volume = build_correlation_cost_volume(
                         max_dis, pyramid_features[scale][-1][0], pyramid_features[scale][-1][1])
                 else:
-                    dis = disparity[-1][-1]
+                    dis = disparity[-1][-1].detach_()  # todo:debug
                     dis_cost_volume = build_correlation_cost_volume(
                         max_dis,
                         self.warp(dis, pyramid_features[scale][-1][0], scale),
