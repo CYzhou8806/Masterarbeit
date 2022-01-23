@@ -22,7 +22,7 @@ MODEL:
     MAX_DISP: 192
     LOSS_TYPE: "smoothL1_only"  # "smoothL1_only" or "panoptic_guided" or "l1_norm"
     HOURGLASS_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]
-    INTERNAL_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # loss weight for pyramids
+    INTERNAL_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]   # loss weight for pyramids
     GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
     STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
     REGRESSION_INPLANES: 192  # to change dimension during the 3D-regression
@@ -37,16 +37,16 @@ MODEL:
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 8
+  IMS_PER_BATCH: 4
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
   BASE_LR: 0.0005
-  FREEZE_BACKBONE: True
+  FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
 
-  FREEZE_DISPARITY_4: True
+  FREEZE_DISPARITY_4: False
   FREEZE_DISPARITY_8: False
-  FREEZE_DISPARITY_16: True
+  FREEZE_DISPARITY_16: False
   CHECKPOINT_PERIOD: 10000
 DATASETS:
   TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
