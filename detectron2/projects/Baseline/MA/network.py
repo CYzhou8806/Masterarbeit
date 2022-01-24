@@ -852,6 +852,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             resol_disp_adapt: bool,
             gradient_type: str,
             zero_dis_considered: bool,
+            fusion_model: str,
             # num_classes=None,
             **kwargs,
     ):
@@ -895,6 +896,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.hourglass_inplanes = hourglass_inplanes
         self.regression_inplanes = regression_inplanes
         self.zero_dis_considered = zero_dis_considered
+        self.fusion_model = fusion_model
 
         if img_size is None:
             self.img_size = [1024, 2048]  # h, w
@@ -950,6 +952,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                    stride=1,
                                                    bias=False)).cuda()
                 decoder_stage['classif3'] = classif3
+
+                decoder_stage['fusion_block'] = share_module(max_dis)
                 self.predictor[scale] = decoder_stage
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
@@ -972,6 +976,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["img_size"] = cfg.INPUT.CROP.SIZE if cfg.INPUT.CROP.ENABLED else cfg.INPUT.IMG_SIZE
         ret["num_classes"] = cfg.MODEL.DIS_EMBED_HEAD.NUM_CLASSES
         ret["zero_dis_considered"] = cfg.MODEL.DIS_EMBED_HEAD.ZERO_DIS_CONSIDERED
+        ret["fusion_model"] = cfg.MODEL.DIS_EMBED_HEAD.FUSION_MODEL
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,
@@ -1013,7 +1018,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         max_dis,
                         self.warp(dis, pyramid_features[scale][2][0], scale),
                         pyramid_features[scale][2][1], )
-                cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
+                if self.fusion_model == "multi":
+                    cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
+                elif self.fusion_model == "share":
+                    pass
+                else:
+                    raise ValueError("unexpected fusion model {}", format(self.fusion_model))
             else:
                 if not len(disparity):
                     dis_cost_volume = build_correlation_cost_volume(
@@ -1624,6 +1634,26 @@ class hourglass_2d(nn.Module):
         out = self.conv6(post)  # in:1/8 out:1/4
 
         return out, pre, post
+
+
+class share_module(nn.Module):
+    def __init__(self, depth):
+        super().__init__()
+        self.depth = depth
+        for i in range(self.depth):
+            exec('self.conv{} = {}'.format(i, nn.Conv2d(3, 1, kernel_size=(3, 3), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda()))
+
+    def forward(self, x, y, z):
+        assert x.shape[1] == y.shape[1] == z.shape[1] == self.depth, \
+            "wrong input dimension of share_module: {} {} {}".format(x.shape[1], y.shape[1], z.shape[1])
+
+        for i in range(self.depth):
+            exec('out{} = self.conv{}({})'.format(i, i, torch.cat((x[:, i, :, :], y[:, i, :, :], z[:, i, :, :]), 1)))
+
+        out = torch.cat((exec('out{}'.format(i for i in range(self.depth)))), 1)
+        assert out.shape[1] == self.depth
+
+        return out
 
 
 class Gradient(nn.Module):
