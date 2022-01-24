@@ -1021,7 +1021,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 if self.fusion_model == "multi":
                     cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
                 elif self.fusion_model == "share":
-                    pass
+                    cost_volume = self.predictor[scale]['fusion_block'](seg_cost_volume, ins_cost_volume, dis_cost_volume)
                 else:
                     raise ValueError("unexpected fusion model {}", format(self.fusion_model))
             else:
