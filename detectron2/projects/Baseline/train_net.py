@@ -206,6 +206,8 @@ class Trainer(DefaultTrainer):
                 param.requires_grad = False
             if cfg.SOLVER.FREEZE_DISPARITY_16 and (name.split('.')[0] == 'dis_embed_head' and (name.split('.')[2] == '1/16' or name.split('.')[2] == 'res5')):
                 param.requires_grad = False
+            if (cfg.MODEL.DIS_EMBED_HEAD.FUSION_MODEL=="multi" or (not cfg.MODEL.MODE.FEATURE_FUSION)) and (name.split('.')[0] == 'dis_embed_head' and name.split('.')[3] == 'fusion_block'):
+                param.requires_grad = False
 
         '''      
         for i, p in enumerate(model.parameters()):
