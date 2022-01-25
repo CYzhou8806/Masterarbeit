@@ -21,7 +21,7 @@ MODEL:
   DIS_EMBED_HEAD:
     MAX_DISP: 192
     LOSS_TYPE: "smoothL1_only"  # "smoothL1_only" or "panoptic_guided" or "l1_norm"
-    HOURGLASS_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]
+    HOURGLASS_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]
     INTERNAL_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]   # loss weight for pyramids
     GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
     STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
@@ -31,7 +31,7 @@ MODEL:
     RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
     GRADIENT_TYPE: "sobel"
     ZERO_DIS_CONSIDERED: False
-    FUSION_MODEL: "multi"  # "multi" or "share"
+    FUSION_MODEL: "share"  # "multi" or "share"
   MODE:
     PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
@@ -41,9 +41,9 @@ SOLVER:
   IMS_PER_BATCH: 4
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
   BASE_LR: 0.0005
-  FREEZE_BACKBONE: True
+  FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: False
-  FREEZE_DISPARITY: True
+  FREEZE_DISPARITY: False
 
   FREEZE_DISPARITY_4: False
   FREEZE_DISPARITY_8: False

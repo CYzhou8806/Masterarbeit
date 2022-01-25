@@ -1647,13 +1647,18 @@ class share_module(nn.Module):
         assert x.shape[1] == y.shape[1] == z.shape[1] == self.depth, \
             "wrong input dimension of share_module: {} {} {}".format(x.shape[1], y.shape[1], z.shape[1])
 
-        for i in range(self.depth):
-            exec('out{} = self.conv{}({})'.format(i, i, torch.cat((x[:, i, :, :], y[:, i, :, :], z[:, i, :, :]), 1)))
+        c = vars(self)['_modules']
+        out = []
+        for i, (name, value) in enumerate(c.items()):
+            tmp = torch.cat((x[:, i, :, :].unsqueeze(1), y[:, i, :, :].unsqueeze(1), z[:, i, :, :].unsqueeze(1)), 1)
+            out.append(value(tmp))
 
-        out = torch.cat((exec('out{}'.format(i for i in range(self.depth)))), 1)
-        assert out.shape[1] == self.depth
+        print(self.conv9.weight)
 
-        return out
+        res = torch.cat(tuple(out), 1)
+        assert res.shape[1] == self.depth
+
+        return res
 
 
 class Gradient(nn.Module):

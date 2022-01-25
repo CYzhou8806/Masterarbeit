@@ -4,7 +4,7 @@
 @Project ：Masterarbeit
 @File    ：tools.py
 @Author  ：Yu Cao
-@Date    ：2021/12/1 19:19 
+@Date    ：2021/12/1 19:19
 """
 import os
 import shutil
@@ -49,29 +49,31 @@ if __name__ == "__main__":
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     # down_samples_dataset(input_root, scale=4)
 
-
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
 
     cfg = setup(args)
     model = build_model(cfg)
-    model.state_dict()
+    model_dict = model.state_dict()
     for name, para in model.state_dict().items():
         break
     # model.load_state_dict(torch.load('model/base_sceneflow_kitti2015/model_0024999.pth'))
 
-    # model.load_state_dict(torch.load('model/model_0139999.pth'))
+    tmp = torch.load('model/model_best.pth')['model']
+    state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
+    model_dict.update(state_dict)
+    model.load_state_dict(model_dict)
+    torch.save(model.state_dict(), 'model_best_new.pth')
+
+    '''
     checkpointer = DetectionCheckpointer(model)
-    checkpointer_5999 = "model/model_0029999.pth"
+    checkpointer_5999 = "model/model_best.pth"
     checkpointer.load(checkpointer_5999)
 
     to_init = {}
     for name, para in model.state_dict().items():
-        branch = name.split('.')[0]
-        if branch == 'dis_embed_head' and name.split('.')[2] == '1/4':
-            to_init[name] = para
-            to_init[name.replace('1/4', '1/8')] = para
+        to_init[name] = para
 
     model1 = build_model(cfg)
     model1.state_dict()
@@ -89,7 +91,7 @@ if __name__ == "__main__":
 
     torch.save(model1.state_dict(), 'model_kitti2015_init.pth')
     '''
-
+    '''
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
@@ -119,7 +121,7 @@ if __name__ == "__main__":
     state_dict = {k: v for k, v in to_compare.items() if k in model_dict.keys()}
     model_dict.update(state_dict)
     model.load_state_dict(model_dict)
-
+    
     # torch.save(model.state_dict(), 're_re_init_panoptic_cityscapes_weights.pth')
     '''
 
