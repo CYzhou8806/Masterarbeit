@@ -1653,7 +1653,7 @@ class share_module(nn.Module):
             tmp = torch.cat((x[:, i, :, :].unsqueeze(1), y[:, i, :, :].unsqueeze(1), z[:, i, :, :].unsqueeze(1)), 1)
             out.append(value(tmp))
 
-        print(self.conv9.weight)
+        #print(self.conv9.weight)
 
         res = torch.cat(tuple(out), 1)
         assert res.shape[1] == self.depth

@@ -60,37 +60,48 @@ if __name__ == "__main__":
         print(name)
     # model.load_state_dict(torch.load('model/base_sceneflow_kitti2015/model_0024999.pth'))
 
+    '''
     tmp = torch.load('model/model_best.pth')['model']
     state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
     model_dict.update(state_dict)
     model.load_state_dict(model_dict)
     # torch.save(model.state_dict(), 'model_best.pth')
-
     '''
+
     checkpointer = DetectionCheckpointer(model)
-    checkpointer_5999 = "model/model_best.pth"
+    checkpointer_5999 = "output/model_best1.pth"
     checkpointer.load(checkpointer_5999)
 
     to_init = {}
     for name, para in model.state_dict().items():
-        to_init[name] = para
+        if len(name.split('.')) > 3 and name.split('.')[3] == 'fusion_block':
+            to_init[name] = para
 
     model1 = build_model(cfg)
     model1.state_dict()
     for name1, para1 in model1.state_dict().items():
         break
     checkpointer1 = DetectionCheckpointer(model1)
-    checkpointer_59991 = "model/base_sceneflow_kitti2015/model_0024999.pth"
+    checkpointer_59991 = "output/model_best.pth"
     checkpointer1.load(checkpointer_59991)
-
-
     model1_dict = model1.state_dict()
-    state_dict = {k: v for k, v in to_init.items() if k in model1_dict.keys()}
-    model1_dict.update(state_dict)
-    model1.load_state_dict(model1_dict)
+    to_init1 = {}
+    for name, para in model1_dict.items():
+        if len(name.split('.')) > 3 and name.split('.')[3] == 'fusion_block':
+            to_init1[name] = para
 
-    torch.save(model1.state_dict(), 'model_kitti2015_init.pth')
-    '''
+    count = 0
+    for k in to_init1:
+        if not to_init1[k].equal(to_init[k]):
+            count += 1
+            print(k)
+    print(count/len(to_init1))
+    # state_dict = {k: v for k, v in to_init.items() if k in model1_dict.keys()}
+    #model1_dict.update(state_dict)
+    #model1.load_state_dict(model1_dict)
+
+    # torch.save(model1.state_dict(), 'model_kitti2015_init.pth')
+
     '''
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()

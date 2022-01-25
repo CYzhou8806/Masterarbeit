@@ -309,6 +309,14 @@ class SimpleTrainer(TrainerBase):
         self.optimizer.zero_grad()
         losses.backward()
 
+        '''
+        # todo:debug
+        for name, parms in self.model.named_parameters():
+            if parms.requires_grad:
+                print('-->name:', name, '-->grad_requirs:', parms.requires_grad, \
+                      ' -->grad_value:', parms.grad)
+        '''
+
         self._write_metrics(loss_dict, data_time)
 
         """
