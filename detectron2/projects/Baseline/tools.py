@@ -57,14 +57,14 @@ if __name__ == "__main__":
     model = build_model(cfg)
     model_dict = model.state_dict()
     for name, para in model.state_dict().items():
-        break
+        print(name)
     # model.load_state_dict(torch.load('model/base_sceneflow_kitti2015/model_0024999.pth'))
 
     tmp = torch.load('model/model_best.pth')['model']
     state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
     model_dict.update(state_dict)
     model.load_state_dict(model_dict)
-    torch.save(model.state_dict(), 'model_best_new.pth')
+    # torch.save(model.state_dict(), 'model_best.pth')
 
     '''
     checkpointer = DetectionCheckpointer(model)
