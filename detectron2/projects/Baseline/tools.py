@@ -60,12 +60,12 @@ if __name__ == "__main__":
         print(name)
     # model.load_state_dict(torch.load('model/base_sceneflow_kitti2015/model_0024999.pth'))
 
-    '''
-    tmp = torch.load('model/model_best.pth')['model']
+
+    tmp = torch.load('model/model_best_kitti2015_baseDis_panop.pth')['model']
     state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
     model_dict.update(state_dict)
     model.load_state_dict(model_dict)
-    # torch.save(model.state_dict(), 'model_best.pth')
+    torch.save(model.state_dict(), 'model/model_best.pth')
     '''
 
     checkpointer = DetectionCheckpointer(model)
@@ -101,6 +101,7 @@ if __name__ == "__main__":
     #model1.load_state_dict(model1_dict)
 
     # torch.save(model1.state_dict(), 'model_kitti2015_init.pth')
+    '''
 
     '''
     # model = torch.load('init.pth')

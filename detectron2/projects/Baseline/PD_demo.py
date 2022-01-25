@@ -38,7 +38,7 @@ def get_parser_kitti2015():
     parser.add_argument("--video-input", help="Path to video file.")
     parser.add_argument(
         "--input_dir",
-        default="datasets/kitti_2015/data_scene_flow/training/image_2",
+        default="datasets/kitti_2015/data_scene_flow/test/image_2",
         help="A list of space separated input images; "
              "or a single glob pattern such as 'directory/*.jpg'",
     )
@@ -66,7 +66,7 @@ def get_parser_kitti2015():
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
         #default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0024999.pth'],
-        default=['MODEL.WEIGHTS', 'model/model_kitti2015_dis.pth'],
+        default=['MODEL.WEIGHTS', 'model/model_best.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -203,12 +203,17 @@ def main_kitti2015(args):
                             assert os.path.isdir(args.output), args.output
                             out_filename = os.path.join(args.output, os.path.basename(path))
                             out_disp_name = os.path.join(args.output, os.path.basename(path))
+
+                            panop_save_dir = os.path.join(args.output, 'seg')
+                            if not os.path.exists(panop_save_dir):
+                                os.makedirs(panop_save_dir)
+                            out_panop_name = os.path.join(args.output, 'seg', os.path.basename(path))
                         else:
                             assert len(args.input) == 1, "Please specify a directory with args.output"
                             out_filename = args.output
                             out_disp_name = out_filename.replace('seg', 'dis')
                         if visualized_output:
-                            visualized_output.save(out_filename)
+                            visualized_output.save(out_panop_name)
                         dis_img.save(out_disp_name)
                     else:
                         cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
