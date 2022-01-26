@@ -35,7 +35,7 @@ MODEL:
   MODE:
     PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
-    FEATURE_FUSION: False  # whether create cost volume with panoptic features
+    FEATURE_FUSION: True  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
   IMS_PER_BATCH: 2
