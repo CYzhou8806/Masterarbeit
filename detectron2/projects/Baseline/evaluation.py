@@ -15,6 +15,16 @@ from prettytable import PrettyTable
 
 
 def pixel_error_rate(prediction, ground_truth, threshold=5):
+    '''
+    Calculate the pixel_error_rate between prediction and ground truth
+    Args:
+        prediction: the prediction of the network
+        ground_truth:
+        threshold: 1 pixel or 3 pixel or 5 pixel
+
+    Returns:
+
+    '''
     assert prediction.shape == ground_truth.shape
     count = .0
     for i in range(prediction.shape[0]):
@@ -25,6 +35,17 @@ def pixel_error_rate(prediction, ground_truth, threshold=5):
 
 
 def eval_disparity(predict_root, gt_root):
+    '''
+    Make evaluation of the disparity prediction.
+    It contains 'MAE', 'RMSE', 'PER_1', 'PER_3', 'PER_5'
+    Args:
+        predict_root: the root folder of prediction
+        gt_root: the root folder of ground truth
+
+    Returns:
+        the results will be saved in a new txt file "disparity_evaluation.txt"
+
+    '''
     detail_res = {}
     list_PER_5 = []
     list_PER_3 = []
