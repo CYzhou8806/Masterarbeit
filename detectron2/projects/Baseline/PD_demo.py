@@ -183,7 +183,7 @@ def main_kitti2015(args):
                     img_right = read_image(right_path, format="BGR")
 
                     start_time = time.time()
-                    predictions, visualized_output = demo.run_on_image(img, img_right)
+                    predictions, visualized_output = demo.run_on_image(img, img_right, file)
                     logger.info(
                         "{}: {} in {:.2f}s".format(
                             path,

@@ -1,12 +1,24 @@
 # Copyright (c) Facebook, Inc. and its affiliates.
 import atexit
 import bisect
+import contextlib
+import io
+import itertools
+import json
+import logging
 import multiprocessing as mp
+import os
+import tempfile
 from collections import deque
 import cv2
+import numpy as np
 import torch
 import torch.nn.functional as F
 import torchvision.transforms as transforms
+from PIL import Image
+from detectron2.utils import comm
+from collections import OrderedDict
+from tabulate import tabulate
 
 import detectron2.data.transforms as T
 from detectron2.checkpoint import DetectionCheckpointer
@@ -15,6 +27,9 @@ from detectron2.engine.defaults import DefaultPredictor
 from detectron2.modeling import build_model
 from detectron2.utils.video_visualizer import VideoVisualizer
 from detectron2.utils.visualizer import ColorMode, Visualizer
+from detectron2.utils.file_io import PathManager
+
+logger = logging.getLogger(__name__)
 
 
 class JointPredictor:
@@ -280,7 +295,15 @@ class JointVisualizationDemo(object):
         else:
             self.predictor = JointPredictor(cfg)
 
-    def run_on_image(self, image, img_right):
+        self.thing_contiguous_id_to_dataset_id = {
+            v: k for k, v in self.metadata.thing_dataset_id_to_contiguous_id.items()
+        }
+        self.stuff_contiguous_id_to_dataset_id = {
+            v: k for k, v in self.metadata.stuff_dataset_id_to_contiguous_id.items()
+        }
+        self._predictions = []
+
+    def run_on_image(self, image, img_right, file):
         """
         Args:
             image (np.ndarray): an image of shape (H, W, C) (in BGR order).
@@ -300,6 +323,46 @@ class JointVisualizationDemo(object):
             vis_output = visualizer.draw_panoptic_seg_predictions(
                 panoptic_seg.to(self.cpu_device), segments_info
             )
+
+            if segments_info is None:
+                # If "segments_info" is None, we assume "panoptic_seg" is a
+                # H*W int32 image storing the panoptic_id in the format of
+                # category_id * label_divisor + instance_id. We reserve -1 for
+                # VOID label, and add 1 to panoptic_seg since the official
+                # evaluation script uses 0 for VOID label.
+                label_divisor = self.metadata.label_divisor
+                segments_info = []
+                for panoptic_label in np.unique(panoptic_seg):
+                    if panoptic_label == -1:
+                        # VOID region.
+                        continue
+                    pred_class = panoptic_label // label_divisor
+                    isthing = (
+                        pred_class in self.metadata.thing_dataset_id_to_contiguous_id.values()
+                    )
+                    segments_info.append(
+                        {
+                            "id": int(panoptic_label) + 1,
+                            "category_id": int(pred_class),
+                            "isthing": bool(isthing),
+                        }
+                    )
+                # Official evaluation script uses 0 for VOID label.
+                panoptic_seg += 1
+            file_name = os.path.basename(file)
+            file_name_png = os.path.splitext(file_name)[0] + ".png"
+            with io.BytesIO() as out:
+                #Image.fromarray(id2rgb(panoptic_seg)).save(out, format="PNG")
+                segments_info = [self.convert_category_id(x) for x in segments_info]
+                self._predictions.append(
+                    {
+                        "image_id": file_name,
+                        "file_name": file_name_png, # todo:compare whether it is right
+                        "png_string": out.getvalue(),
+                        "segments_info": segments_info,
+                    }
+                )
+
         else:
             if "sem_seg" in predictions:
                 vis_output = visualizer.draw_sem_seg(
@@ -373,6 +436,86 @@ class JointVisualizationDemo(object):
         else:
             for frame in frame_gen:
                 yield process_predictions(frame, self.predictor(frame))
+
+    def convert_category_id(self, segment_info):
+        isthing = segment_info.pop("isthing", None)
+        if isthing is None:
+            # the model produces panoptic category id directly. No more conversion needed
+            return segment_info
+        if isthing is True:
+            segment_info["category_id"] = self.thing_contiguous_id_to_dataset_id[
+                segment_info["category_id"]
+            ]
+        else:
+            segment_info["category_id"] = self.stuff_contiguous_id_to_dataset_id[
+                segment_info["category_id"]
+            ]
+        return segment_info
+
+    def evaluate(self):
+        comm.synchronize()
+
+        self._predictions = comm.gather(self._predictions)
+        self._predictions = list(itertools.chain(*self._predictions))
+        if not comm.is_main_process():
+            return
+
+        # PanopticApi requires local files
+        gt_json = PathManager.get_local_path(self.metadata.panoptic_json)
+        gt_folder = PathManager.get_local_path(self.metadata.panoptic_root)
+
+        with tempfile.TemporaryDirectory(prefix="panoptic_eval") as pred_dir:
+            # logger.info("Writing all panoptic predictions to {} ...".format(pred_dir))
+            for p in self._predictions:
+                with open(os.path.join(pred_dir, p["file_name"]), "wb") as f:
+                    f.write(p.pop("png_string"))
+
+            with open(gt_json, "r") as f:
+                json_data = json.load(f)
+            json_data["annotations"] = self._predictions
+
+            # output_dir = self._output_dir or pred_dir
+            # predictions_json = os.path.join(output_dir, "predictions.json")
+            predictions_json = "predictions.json"
+            with PathManager.open(predictions_json, "w") as f:
+                f.write(json.dumps(json_data))
+
+            from panopticapi.evaluation import pq_compute
+
+            with contextlib.redirect_stdout(io.StringIO()):
+                pq_res = pq_compute(
+                    gt_json,
+                    PathManager.get_local_path(predictions_json),
+                    gt_folder=gt_folder,
+                    pred_folder=pred_dir,
+                )
+
+        res = {}
+        res["PQ"] = 100 * pq_res["All"]["pq"]
+        res["SQ"] = 100 * pq_res["All"]["sq"]
+        res["RQ"] = 100 * pq_res["All"]["rq"]
+        res["PQ_th"] = 100 * pq_res["Things"]["pq"]
+        res["SQ_th"] = 100 * pq_res["Things"]["sq"]
+        res["RQ_th"] = 100 * pq_res["Things"]["rq"]
+        res["PQ_st"] = 100 * pq_res["Stuff"]["pq"]
+        res["SQ_st"] = 100 * pq_res["Stuff"]["sq"]
+        res["RQ_st"] = 100 * pq_res["Stuff"]["rq"]
+
+        results = OrderedDict({"panoptic_seg": res})
+        _print_panoptic_results(pq_res)
+
+        return results
+
+def _print_panoptic_results(pq_res):
+    headers = ["", "PQ", "SQ", "RQ", "#categories"]
+    data = []
+    for name in ["All", "Things", "Stuff"]:
+        row = [name] + [pq_res[name][k] * 100 for k in ["pq", "sq", "rq"]] + [pq_res[name]["n"]]
+        data.append(row)
+    table = tabulate(
+        data, headers=headers, tablefmt="pipe", floatfmt=".3f", stralign="center", numalign="center"
+    )
+    logger.info("Panoptic Evaluation Results:\n" + table)
 
 
 class AsyncPredictor:
