@@ -29,7 +29,6 @@ from detectron2.utils.video_visualizer import VideoVisualizer
 from detectron2.utils.visualizer import ColorMode, Visualizer
 from detectron2.utils.file_io import PathManager
 
-logger = logging.getLogger(__name__)
 
 
 class JointPredictor:
@@ -314,6 +313,7 @@ class JointVisualizationDemo(object):
             vis_output (VisImage): the visualized image output.
         """
         vis_output = None
+        panoptic_eval = None
         predictions = self.predictor(image, img_right)
         # Convert image from OpenCV BGR format to Matplotlib RGB format.
         image = image[:, :, ::-1]
@@ -332,7 +332,7 @@ class JointVisualizationDemo(object):
                 # evaluation script uses 0 for VOID label.
                 label_divisor = self.metadata.label_divisor
                 segments_info = []
-                for panoptic_label in np.unique(panoptic_seg):
+                for panoptic_label in np.unique(panoptic_seg.cpu().numpy()):
                     if panoptic_label == -1:
                         # VOID region.
                         continue
@@ -350,14 +350,19 @@ class JointVisualizationDemo(object):
                 # Official evaluation script uses 0 for VOID label.
                 panoptic_seg += 1
             file_name = os.path.basename(file)
-            file_name_png = os.path.splitext(file_name)[0] + ".png"
+            file_id = os.path.splitext(file_name)[0]
+            file_name_png = os.path.splitext(file_name)[0] + ".png"    # todo:compare whether it is right
+
+            from panopticapi.utils import id2rgb
             with io.BytesIO() as out:
-                #Image.fromarray(id2rgb(panoptic_seg)).save(out, format="PNG")
+                panoptic_eval = id2rgb(panoptic_seg.cpu().numpy())
+                panoptic_eval = Image.fromarray(panoptic_eval)
+                # Image.fromarray(id2rgb(panoptic_seg.cpu().numpy())).save(out, format="PNG")
                 segments_info = [self.convert_category_id(x) for x in segments_info]
                 self._predictions.append(
                     {
-                        "image_id": file_name,
-                        "file_name": file_name_png, # todo:compare whether it is right
+                        "image_id": file_id,
+                        "file_name": file_name_png,
                         "png_string": out.getvalue(),
                         "segments_info": segments_info,
                     }
@@ -372,7 +377,7 @@ class JointVisualizationDemo(object):
                 instances = predictions["instances"].to(self.cpu_device)
                 vis_output = visualizer.draw_instance_predictions(predictions=instances)
 
-        return predictions, vis_output
+        return predictions, vis_output, panoptic_eval
 
     def _frame_from_video(self, video):
         while video.isOpened():
@@ -452,7 +457,7 @@ class JointVisualizationDemo(object):
             ]
         return segment_info
 
-    def evaluate(self):
+    def evaluate(self, panopEval_outdir):
         comm.synchronize()
 
         self._predictions = comm.gather(self._predictions)
@@ -464,31 +469,37 @@ class JointVisualizationDemo(object):
         gt_json = PathManager.get_local_path(self.metadata.panoptic_json)
         gt_folder = PathManager.get_local_path(self.metadata.panoptic_root)
 
-        with tempfile.TemporaryDirectory(prefix="panoptic_eval") as pred_dir:
+        # with tempfile.TemporaryDirectory(prefix="panoptic_eval") as pred_dir:
             # logger.info("Writing all panoptic predictions to {} ...".format(pred_dir))
-            for p in self._predictions:
-                with open(os.path.join(pred_dir, p["file_name"]), "wb") as f:
-                    f.write(p.pop("png_string"))
+        '''
+        for p in self._predictions:
+            with open(os.path.join(self.output_dir, p["file_name"]), "wb") as f:
+                f.write(p.pop("png_string"))
+        '''
 
-            with open(gt_json, "r") as f:
-                json_data = json.load(f)
-            json_data["annotations"] = self._predictions
+        for p in self._predictions:
+            p.pop("png_string")
 
-            # output_dir = self._output_dir or pred_dir
-            # predictions_json = os.path.join(output_dir, "predictions.json")
-            predictions_json = "predictions.json"
-            with PathManager.open(predictions_json, "w") as f:
-                f.write(json.dumps(json_data))
+        with open(gt_json, "r") as f:
+            json_data = json.load(f)
+        json_data["annotations"] = self._predictions
 
-            from panopticapi.evaluation import pq_compute
+        # output_dir = self._output_dir or pred_dir
+        # predictions_json = os.path.join(output_dir, "predictions.json")
+        predictions_json = "output/predictions.json"
+        with PathManager.open(predictions_json, "w") as f:
+            f.write(json.dumps(json_data))
 
-            with contextlib.redirect_stdout(io.StringIO()):
-                pq_res = pq_compute(
-                    gt_json,
-                    PathManager.get_local_path(predictions_json),
-                    gt_folder=gt_folder,
-                    pred_folder=pred_dir,
-                )
+        from panopticapi.evaluation import pq_compute
+
+        pred_dir = panopEval_outdir
+        with contextlib.redirect_stdout(io.StringIO()):
+            pq_res = pq_compute(
+                gt_json,
+                PathManager.get_local_path(predictions_json),
+                gt_folder=gt_folder,
+                pred_folder=pred_dir,
+            )
 
         res = {}
         res["PQ"] = 100 * pq_res["All"]["pq"]
@@ -502,9 +513,9 @@ class JointVisualizationDemo(object):
         res["RQ_st"] = 100 * pq_res["Stuff"]["rq"]
 
         results = OrderedDict({"panoptic_seg": res})
-        _print_panoptic_results(pq_res)
-
-        return results
+        tabel = _print_panoptic_results(pq_res)
+        print(tabel)
+        return results, tabel
 
 def _print_panoptic_results(pq_res):
     headers = ["", "PQ", "SQ", "RQ", "#categories"]
@@ -515,7 +526,9 @@ def _print_panoptic_results(pq_res):
     table = tabulate(
         data, headers=headers, tablefmt="pipe", floatfmt=".3f", stralign="center", numalign="center"
     )
-    logger.info("Panoptic Evaluation Results:\n" + table)
+
+    # logger.info("Panoptic Evaluation Results:\n" + table)
+    return table
 
 
 class AsyncPredictor:

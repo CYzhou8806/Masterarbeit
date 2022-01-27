@@ -141,7 +141,13 @@ _RAW_KITTI_2015_SPLITS = {
         "kitti_2015/data_scene_flow/val/panoptic",
         "kitti_2015/data_scene_flow/val/panoptic.json",
     ),
-    # "test": not supported yet
+    "kitti_2015_test": (
+        "kitti_2015/data_scene_flow/test/image_2",
+        "kitti_2015/data_scene_flow/test/image_3",
+        "kitti_2015/data_scene_flow/test/disp_occ_0",
+        "kitti_2015/data_scene_flow/test/panoptic",
+        "kitti_2015/data_scene_flow/test/panoptic.json",
+    ),
 }
 
 

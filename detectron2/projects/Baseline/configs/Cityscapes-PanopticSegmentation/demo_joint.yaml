@@ -19,8 +19,8 @@ MODEL:
   DIS_EMBED_HEAD:
     MAX_DISP: 192
     LOSS_TYPE: "smoothL1_only"  # "smoothL1_only" or "panoptic_guided"
-    HOURGLASS_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]
-    INTERNAL_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # loss weight for pyramids
+    HOURGLASS_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]
+    INTERNAL_LOSS_WEIGHT: [ 0.5, 0.7, 1.0 ]   # loss weight for pyramids
     GUIDED_LOSS_WEIGHT: [ 1.0, 1.0, 1.0 ]   # guided_smooth, guided_boundary, smooth_L1
     STRESHOLD_GUIDED_LOSS: 10.0    # for the guided_smooth
     REGRESSION_INPLANES: 192  # to change dimension during the 3D-regression
@@ -39,7 +39,7 @@ SOLVER:
   LR_SCHEDULER_NAME: "WarmupPolyLR"
 DATASETS:
   TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
-  TEST: ("kitti_2015_train",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
+  TEST: ("kitti_2015_test",)   # sceneflow_driving_val or cityscapes_fine_joint_test or kitti_2015_test or kitti360_test
 INPUT:
   FORMAT: "RGB"
   CROP:

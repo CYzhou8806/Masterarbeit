@@ -21,6 +21,16 @@ from PIL import Image
 from PIL import ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 import detectron2.data.transforms as T
+from detectron2.projects.MA import (
+    add_joint_estimation_config,
+    register_all_cityscapes_joint,
+    register_all_sceneflow,
+    register_all_kitti_2015,
+    register_all_kitti360,
+    JointDeeplabDatasetMapper,
+    JointEvaluator,
+)
+from evaluation import eval_disparity
 
 # constants
 WINDOW_NAME = "demo"
@@ -158,7 +168,7 @@ def get_parser_diy(input_diy, output_diy, input_right):
     return parser
 
 
-def main_kitti2015(args):
+def main_kitti2015(args, eval=False):
     # 设定log文件
     setup_logger(name="fvcore")
     logger = setup_logger()
@@ -167,6 +177,12 @@ def main_kitti2015(args):
     if os.path.exists(args.output):
         shutil.rmtree(args.output)
     os.makedirs(args.output)
+
+    _root = os.getenv("DETECTRON2_DATASETS", "datasets")
+    register_all_cityscapes_joint(_root)
+    register_all_sceneflow(_root)
+    register_all_kitti_2015(_root)
+    register_all_kitti360(_root)
 
     cfg = setup(args)  # 配置设置
     demo = JointVisualizationDemo(cfg)  # $$$ 数据集的处理仍然不清楚
@@ -183,7 +199,7 @@ def main_kitti2015(args):
                     img_right = read_image(right_path, format="BGR")
 
                     start_time = time.time()
-                    predictions, visualized_output = demo.run_on_image(img, img_right, file)
+                    predictions, visualized_output, panoptic_eval = demo.run_on_image(img, img_right, file)
                     logger.info(
                         "{}: {} in {:.2f}s".format(
                             path,
@@ -201,25 +217,46 @@ def main_kitti2015(args):
                     if args.output:
                         if os.path.isdir(args.output):
                             assert os.path.isdir(args.output), args.output
-                            out_filename = os.path.join(args.output, os.path.basename(path))
-                            out_disp_name = os.path.join(args.output, os.path.basename(path))
+                            disp_save_dir = os.path.join(args.output, 'dis')
+                            if not os.path.exists(disp_save_dir):
+                                os.makedirs(disp_save_dir)
+                            out_filename = os.path.join(disp_save_dir, os.path.basename(path))
+                            out_disp_name = os.path.join(disp_save_dir, os.path.basename(path))
 
                             panop_save_dir = os.path.join(args.output, 'seg')
                             if not os.path.exists(panop_save_dir):
                                 os.makedirs(panop_save_dir)
                             out_panop_name = os.path.join(args.output, 'seg', os.path.basename(path))
+
+                            panoEval_save_dir = os.path.join(args.output, 'cach')
+                            if not os.path.exists(panoEval_save_dir):
+                                os.makedirs(panoEval_save_dir)
+                            out_panoEval_name = os.path.join(args.output, 'cach', os.path.basename(path))
+
                         else:
                             assert len(args.input) == 1, "Please specify a directory with args.output"
                             out_filename = args.output
                             out_disp_name = out_filename.replace('seg', 'dis')
                         if visualized_output:
                             visualized_output.save(out_panop_name)
+                        if panoptic_eval:
+                            panoptic_eval.save(out_panoEval_name, format="PNG")
                         dis_img.save(out_disp_name)
                     else:
                         cv2.namedWindow(WINDOW_NAME, cv2.WINDOW_NORMAL)
                         cv2.imshow(WINDOW_NAME, visualized_output.get_image()[:, :, ::-1])
                         if cv2.waitKey(0) == 27:
                             break  # esc to quit
+
+        if eval:
+            dis_ground_truth_dir = args.input_dir.replace('image_2', 'disp_occ_0')
+            dis_eval_result = eval_disparity(disp_save_dir, dis_ground_truth_dir, args.output)
+
+            panop_eval_results, panop_eval_table = demo.evaluate(panoEval_save_dir, )
+
+            with open(dis_eval_result, 'a') as f:
+                f.write('\n\n')
+                f.write(panop_eval_table)
 
     '''
     model = Demoer.build_model(cfg)
@@ -307,7 +344,7 @@ def main_kitti360(args):
 def demo_kitti2015():
     args = get_parser_kitti2015().parse_args()  # 用于预设/捕获命令行配置
     # args = default_argument_parser().parse_args()  # 用于预设/捕获命令行配置, 和上面自定义的get_parser没啥区别
-    main_kitti2015(args)
+    main_kitti2015(args, eval=True)
 
 
 def demo_kitti360():

@@ -34,7 +34,7 @@ def pixel_error_rate(prediction, ground_truth, threshold=5):
     return count / float(prediction.shape[0])
 
 
-def eval_disparity(predict_root, gt_root):
+def eval_disparity(predict_root, gt_root, output_dir=None):
     '''
     Make evaluation of the disparity prediction.
     It contains 'MAE', 'RMSE', 'PER_1', 'PER_3', 'PER_5'
@@ -90,7 +90,11 @@ def eval_disparity(predict_root, gt_root):
     print(tabel_detail)
     print('\n\n')
 
-    f = open("disparity_evaluation.txt", "w")
+    if output_dir:
+        dis_eval_result = os.path.join(output_dir, 'disparity_evaluation.txt')
+    else:
+        dis_eval_result = "disparity_evaluation.txt"
+    f = open(dis_eval_result, "w")
     tabel_detail_txt = tabel_detail.get_string()
     f.write(tabel_detail_txt)
     f.write('\n\n\n')
@@ -124,6 +128,7 @@ def eval_disparity(predict_root, gt_root):
         f.write('\n\n')
 
     f.close()
+    return dis_eval_result
 
 
 if __name__ == "__main__":
