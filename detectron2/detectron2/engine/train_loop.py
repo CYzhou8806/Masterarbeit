@@ -167,6 +167,8 @@ class TrainerBase:
                     self.after_step()
                     self.save_best = False
 
+                    if (self.iter + 1) / inter_pre_epoche > 500:
+                        raise RuntimeError("maximal epoch reached.")
                 # self.iter == max_iter can be used by `after_train` to
                 # tell whether the training successfully finished or failed
                 # due to exceptions.
