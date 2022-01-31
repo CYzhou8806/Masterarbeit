@@ -61,7 +61,7 @@ INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (256, 512)
-    VAL_SIZE: (320,1216)
+    VAL_SIZE: (540,960)  # 320,1216
     ENABLED: True
     TYPE: "absolute"
   IMG_SIZE: [540,960]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
