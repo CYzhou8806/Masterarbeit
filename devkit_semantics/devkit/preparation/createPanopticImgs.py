@@ -179,7 +179,7 @@ def main():
                         dest="setNames",
                         help="set names to which apply the function to",
                         nargs='+',
-                        default=['training','test','val'],
+                        default=['val',],
                         type=str)
     args = parser.parse_args()
 

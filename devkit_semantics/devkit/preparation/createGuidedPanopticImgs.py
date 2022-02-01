@@ -171,14 +171,14 @@ def main():
     parser.add_argument("--output-folder",
                         dest="outputFolder",
                         help="path to the output folder.",
-                        default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/panGuided",
+                        default="/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/val/panGuided",
                         type=str)
     parser.add_argument("--use-train-id", action="store_true", dest="useTrainId")
     parser.add_argument("--set-names",
                         dest="setNames",
                         help="set names to which apply the function to",
                         nargs='+',
-                        default=["training",],
+                        default=["val",],
                         type=str)
     args = parser.parse_args()
 
