@@ -1,7 +1,7 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
   #WEIGHTS: "./model/base_sceneflow_driving_19999_kitti360/model_0149999.pth"
-  WEIGHTS: "./model/preTrain_sceneflow_driving.pth"
+  WEIGHTS: "./model/model_preTrain.pth"
   #WEIGHTS: "./model/base_sceneflow_driving_kitti2015/model_best_kitti2015_all_nofusion.pth"
   PIXEL_MEAN: [123.675, 116.280, 103.530]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
@@ -38,9 +38,9 @@ MODEL:
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 6
+  IMS_PER_BATCH: 4
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.0005
+  BASE_LR: 0.00033
   FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
@@ -50,18 +50,17 @@ SOLVER:
   FREEZE_DISPARITY_16: False
   CHECKPOINT_PERIOD: 10000
 DATASETS:
-  TRAIN: ("sceneflow_driving_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
-  TEST: ("sceneflow_driving_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
+  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
+  TEST: ("kitti_2015_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_val or kitti360_train
 TEST:
   EVAL_PERIOD: 0
   PRECISE_BN:
     ENABLED: False
-
 INPUT:
   FORMAT: "RGB"
   CROP:
     SIZE: (256, 512)
-    VAL_SIZE: (320,1216)  # 320,1216
+    VAL_SIZE: (256, 512)
     ENABLED: True
     TYPE: "absolute"
   IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
