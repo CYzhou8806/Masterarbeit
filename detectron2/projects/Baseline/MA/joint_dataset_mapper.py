@@ -142,7 +142,9 @@ class JointDeeplabDatasetMapper:
                 cfg.INPUT.MAX_SIZE_TRAIN,
                 cfg.INPUT.MIN_SIZE_TRAIN_SAMPLING,
             ), T.RandomFlip()]
-        augs_val = [T.RandomCrop(cfg.INPUT.CROP.TYPE, cfg.INPUT.CROP.VAL_SIZE)]
+        #augs_val = [T.RandomCrop(cfg.INPUT.CROP.TYPE, cfg.INPUT.CROP.VAL_SIZE)]
+
+        augs_val = [T.FixedSizeCrop(cfg.INPUT.CROP.VAL_SIZE, pad=True, pad_value=0.0)]
 
         # Assume always applies to the training set.
         dataset_names = cfg.DATASETS.TRAIN
