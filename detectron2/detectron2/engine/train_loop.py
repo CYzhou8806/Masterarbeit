@@ -143,7 +143,7 @@ class TrainerBase:
         self.max_iter = max_iter
 
         self.save_best = False
-        self.cur_best = 22.592052459716797
+        self.cur_best = 9999
         with EventStorage(start_iter) as self.storage:
             try:
                 self.before_train()
@@ -167,7 +167,7 @@ class TrainerBase:
                     self.after_step()
                     self.save_best = False
 
-                    if (self.iter + 1) / inter_pre_epoche > 299:
+                    if (self.iter + 1) / inter_pre_epoche > 199:
                         raise RuntimeError("maximal epoch reached.")
                 # self.iter == max_iter can be used by `after_train` to
                 # tell whether the training successfully finished or failed
