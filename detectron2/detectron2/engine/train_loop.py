@@ -143,7 +143,7 @@ class TrainerBase:
         self.max_iter = max_iter
 
         self.save_best = False
-        self.cur_best = 9999
+        self.cur_best = 20.966806411743164
         with EventStorage(start_iter) as self.storage:
             try:
                 self.before_train()
