@@ -164,11 +164,13 @@ class TrainerBase:
                             self.cur_best = cur_val_loss
                             logger.info("Current best val loss changed: {}".format(self.cur_best))
                             self.save_best = True
+                            wait_count = 0
+                        else:
+                            wait_count += 1
+                            if wait_count > 9:
+                                raise RuntimeError("maximal epoch reached.")
                     self.after_step()
                     self.save_best = False
-
-                    if (self.iter + 1) / inter_pre_epoche > 199:
-                        raise RuntimeError("maximal epoch reached.")
                 # self.iter == max_iter can be used by `after_train` to
                 # tell whether the training successfully finished or failed
                 # due to exceptions.
