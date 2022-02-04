@@ -168,7 +168,7 @@ class TrainerBase:
                         else:
                             wait_count += 1
                             if wait_count > 9:
-                                raise RuntimeError("maximal epoch reached.")
+                                raise RuntimeError("early stopping.")
                     self.after_step()
                     self.save_best = False
                 # self.iter == max_iter can be used by `after_train` to
