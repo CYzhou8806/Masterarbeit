@@ -144,6 +144,7 @@ class TrainerBase:
 
         self.save_best = False
         self.cur_best = 20.966806411743164
+        wait_count = 0
         with EventStorage(start_iter) as self.storage:
             try:
                 self.before_train()
