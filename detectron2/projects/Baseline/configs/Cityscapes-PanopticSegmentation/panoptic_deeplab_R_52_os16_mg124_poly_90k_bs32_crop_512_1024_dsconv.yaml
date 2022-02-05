@@ -1,7 +1,7 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
   #WEIGHTS: "./model/base_sceneflow_driving_19999_kitti360/model_0149999.pth"
-  WEIGHTS: "./model/model_dis02.pth"
+  WEIGHTS: "./model/model_pan01.pth"
   #WEIGHTS: "./model/base_sceneflow_driving_kitti2015/model_best_kitti2015_all_nofusion.pth"
   PIXEL_MEAN: [123.675, 116.280, 103.530]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
@@ -40,7 +40,7 @@ SOLVER:
   MAX_ITER: 9999999
   IMS_PER_BATCH: 12
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.001
+  BASE_LR: 0.0005
   FREEZE_BACKBONE: True
   FREEZE_PANOPTIC: False
   FREEZE_DISPARITY: True
