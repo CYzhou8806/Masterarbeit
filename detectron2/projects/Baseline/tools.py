@@ -60,11 +60,11 @@ if __name__ == "__main__":
         print(name)
     # model.load_state_dict(torch.load('model/base_sceneflow_kitti2015/model_0024999.pth'))
 
-    tmp = torch.load('model/re_re_init_panoptic_cityscapes_weights.pth')
+    tmp = torch.load('model/to_init.pth')
     state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
     model_dict.update(state_dict)
     model.load_state_dict(model_dict)
-    torch.save(model.state_dict(), 'model/init.pth')
+    torch.save(model.state_dict(), 'model/init_dis.pth')
 
 
     '''
