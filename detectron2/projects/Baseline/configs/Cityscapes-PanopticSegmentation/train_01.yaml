@@ -1,7 +1,7 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
   #WEIGHTS: "./model/base_sceneflow_driving_19999_kitti360/model_0149999.pth"
-  WEIGHTS: "./model/model_nofusion.pth"
+  WEIGHTS: "./output1/model_best.pth"
   #WEIGHTS: "./model/base_sceneflow_driving_kitti2015/model_best_kitti2015_all_nofusion.pth"
   PIXEL_MEAN: [123.675, 116.280, 103.530]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
   PIXEL_STD: [58.395, 57.120, 57.375]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
@@ -40,7 +40,7 @@ SOLVER:
   MAX_ITER: 9999999
   IMS_PER_BATCH: 4
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.00033
+  BASE_LR: 0.000033
   FREEZE_BACKBONE: True
   FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
@@ -66,4 +66,4 @@ INPUT:
   IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output1"    # the dir for save/read checkpoint and ....
-RESUME: True  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
+RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
