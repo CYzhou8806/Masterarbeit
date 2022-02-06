@@ -34,7 +34,7 @@ MODEL:
     FUSION_MODEL: "multi"  # "multi" or "share"
   MODE:
     PANOPTIC_BRANCH: True
-    DISPARITY_BRANCH:  True
+    DISPARITY_BRANCH:  False
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
