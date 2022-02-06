@@ -60,11 +60,16 @@ if __name__ == "__main__":
         print(name)
     # model.load_state_dict(torch.load('model/base_sceneflow_kitti2015/model_0024999.pth'))
 
-    tmp = torch.load('model/to_init.pth')
-    state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
-    model_dict.update(state_dict)
+    tmp = torch.load('model/init_dis.pth')['model']
+    to_init = {}
+    for name, para in tmp.items():
+        if name.split('.')[0] != 'dis_embed_head':
+            to_init[name] = para
+
+    # state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
+    model_dict.update(to_init)
     model.load_state_dict(model_dict)
-    torch.save(model.state_dict(), 'model/init_dis.pth')
+    torch.save(model.state_dict(), 'model/vinit.pth')
 
 
     '''
