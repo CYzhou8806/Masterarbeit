@@ -10,6 +10,7 @@ import os
 import shutil
 
 import cv2
+import numpy as np
 import torch
 from tqdm import tqdm
 from detectron2.modeling.meta_arch.build import build_model
@@ -49,27 +50,39 @@ if __name__ == "__main__":
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     # down_samples_dataset(input_root, scale=4)
 
+    toinit = np.zeros((1,3,3,3)).astype(float)
+    toinit[0,2,1,1] = 1.0
+    a = torch.from_numpy(toinit)
+
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
 
     cfg = setup(args)
     model = build_model(cfg)
-    model_dict = model.state_dict()
-    for name, para in model.state_dict().items():
-        print(name)
-    # model.load_state_dict(torch.load('model/base_sceneflow_kitti2015/model_0024999.pth'))
+    checkpointer = DetectionCheckpointer(model)
+    checkpointer_5999 = "model/hope.pth"
+    checkpointer.load(checkpointer_5999)
 
-    tmp = torch.load('model/init_dis.pth')['model']
+    model_dict = model.state_dict()
+    to_init = {}
+    for name, para in model_dict.items():
+        if len(name.split('.')) > 3 and name.split('.')[3] == 'fusion_block':
+            to_init[name] = a
+            print(para)
+
+    '''
+    tmp = torch.load('model/model_preTrain.pth')['model']
     to_init = {}
     for name, para in tmp.items():
-        if name.split('.')[0] != 'dis_embed_head':
+        if name.split('.')[0] == 'dis_embed_head':
             to_init[name] = para
+    '''
 
     # state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
     model_dict.update(to_init)
     model.load_state_dict(model_dict)
-    torch.save(model.state_dict(), 'model/vinit.pth')
+    torch.save(model.state_dict(), 'model/hope.pth')
 
 
     '''

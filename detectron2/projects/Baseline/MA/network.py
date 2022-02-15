@@ -41,6 +41,7 @@ from .post_processing import get_panoptic_segmentation
 from .submodule import convbn_3d, disparityregression, convbn
 from torchsummary import summary
 from PIL import Image
+from projects.Baseline.tools.visual_feature_map import draw_features
 
 __all__ = ["JointEstimation", "INS_EMBED_BRANCHES_REGISTRY", "build_ins_embed_branch", "build_dis_embed_head"]
 
@@ -958,6 +959,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
 
+        self.count_FM = 0
+
     @classmethod
     def from_config(cls, cfg, input_shape):
         ret = super().from_config(cfg, input_shape)
@@ -1024,6 +1027,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     cost_volume = self.predictor[scale]['fusion_block'](seg_cost_volume, ins_cost_volume, dis_cost_volume)
                 else:
                     raise ValueError("unexpected fusion model {}", format(self.fusion_model))
+
+                draw_feature_map = True
+                if draw_feature_map:
+                    self.count_FM+=1
+                    draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+
             else:
                 if not len(disparity):
                     dis_cost_volume = build_correlation_cost_volume(
