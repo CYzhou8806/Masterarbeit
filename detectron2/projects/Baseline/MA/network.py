@@ -993,7 +993,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
         for i, scale in enumerate(['1/16', '1/8','1/4']):
-        #for i, scale in enumerate(['1/16', '1/8',]): #todo:debug
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1021,6 +1020,14 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         max_dis,
                         self.warp(dis, pyramid_features[scale][2][0], scale),
                         pyramid_features[scale][2][1], )
+
+                draw_feature_map = False
+                if draw_feature_map:
+                    self.count_FM+=1
+                    draw_features(ins_cost_volume.shape[1],ins_cost_volume.shape[3], ins_cost_volume.shape[2], ins_cost_volume.cpu().numpy(), "{}/ins_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                    draw_features(seg_cost_volume.shape[1],seg_cost_volume.shape[3], seg_cost_volume.shape[2], seg_cost_volume.cpu().numpy(), "{}/seg_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                    draw_features(dis_cost_volume.shape[1],dis_cost_volume.shape[3], dis_cost_volume.shape[2], dis_cost_volume.cpu().numpy(), "{}/dis_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+
                 if self.fusion_model == "multi":
                     cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
                 elif self.fusion_model == "share":
@@ -1028,10 +1035,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 else:
                     raise ValueError("unexpected fusion model {}", format(self.fusion_model))
 
-                draw_feature_map = True
                 if draw_feature_map:
-                    self.count_FM+=1
-                    draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                    draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
 
             else:
                 if not len(disparity):
@@ -1656,13 +1661,23 @@ class share_module(nn.Module):
         assert x.shape[1] == y.shape[1] == z.shape[1] == self.depth, \
             "wrong input dimension of share_module: {} {} {}".format(x.shape[1], y.shape[1], z.shape[1])
 
+        '''
+        # todo:debug
+        toinit = np.zeros_like(x.cpu())
+        a = torch.from_numpy(toinit).cuda()
+        c = vars(self)['_modules']
+        out = []
+        for i, (name, value) in enumerate(c.items()):
+            tmp = torch.cat((a[:, i, :, :].unsqueeze(1), y[:, i, :, :].unsqueeze(1), a[:, i, :, :].unsqueeze(1)), 1)
+            out.append(value(tmp))
+        '''
+
         c = vars(self)['_modules']
         out = []
         for i, (name, value) in enumerate(c.items()):
             tmp = torch.cat((x[:, i, :, :].unsqueeze(1), y[:, i, :, :].unsqueeze(1), z[:, i, :, :].unsqueeze(1)), 1)
             out.append(value(tmp))
 
-        #print(self.conv9.weight)
 
         res = torch.cat(tuple(out), 1)
         assert res.shape[1] == self.depth

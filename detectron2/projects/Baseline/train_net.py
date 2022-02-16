@@ -27,6 +27,7 @@ from detectron2.projects.MA import (
     add_joint_estimation_config,
     register_all_cityscapes_joint,
     register_all_sceneflow,
+    register_all_sceneflow_flying3d,
     register_all_kitti_2015,
     register_all_kitti360,
     JointDeeplabDatasetMapper,
@@ -147,6 +148,7 @@ class Trainer(DefaultTrainer):
         _root = os.getenv("DETECTRON2_DATASETS", "datasets")
         register_all_cityscapes_joint(_root)
         register_all_sceneflow(_root)
+        register_all_sceneflow_flying3d(_root)
         register_all_kitti_2015(_root)
         register_all_kitti360(_root)
         mapper = JointDeeplabDatasetMapper(cfg) # TODO: changes

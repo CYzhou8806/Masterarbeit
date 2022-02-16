@@ -25,6 +25,7 @@ from detectron2.projects.MA import (
     add_joint_estimation_config,
     register_all_cityscapes_joint,
     register_all_sceneflow,
+    register_all_sceneflow_flying3d,
     register_all_kitti_2015,
     register_all_kitti360,
     JointDeeplabDatasetMapper,
@@ -76,7 +77,7 @@ def get_parser_kitti2015():
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
         #default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0024999.pth'],
-        default=['MODEL.WEIGHTS', 'model/mul.pth'],
+        default=['MODEL.WEIGHTS', 'model/sha.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
@@ -183,6 +184,7 @@ def main_kitti2015(args, eval=False):
     register_all_sceneflow(_root)
     register_all_kitti_2015(_root)
     register_all_kitti360(_root)
+    register_all_sceneflow_flying3d(_root)
 
     cfg = setup(args)  # 配置设置
     demo = JointVisualizationDemo(cfg)  # $$$ 数据集的处理仍然不清楚

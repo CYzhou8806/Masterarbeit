@@ -51,7 +51,7 @@ if __name__ == "__main__":
     # down_samples_dataset(input_root, scale=4)
 
     toinit = np.zeros((1,3,3,3)).astype(float)
-    toinit[0,2,1,1] = 1.0
+    # toinit[0,2,1,1] = 1.0
     a = torch.from_numpy(toinit)
 
     # model = torch.load('init.pth')
@@ -61,15 +61,17 @@ if __name__ == "__main__":
     cfg = setup(args)
     model = build_model(cfg)
     checkpointer = DetectionCheckpointer(model)
-    checkpointer_5999 = "model/hope.pth"
+    checkpointer_5999 = "model/old/init.pth"
     checkpointer.load(checkpointer_5999)
+    # torch.save(model.state_dict(), 'model/old/init.pth')
+    print("stop")
 
     model_dict = model.state_dict()
     to_init = {}
     for name, para in model_dict.items():
         if len(name.split('.')) > 3 and name.split('.')[3] == 'fusion_block':
-            to_init[name] = a
             print(para)
+            to_init[name] = a
 
     '''
     tmp = torch.load('model/model_preTrain.pth')['model']
@@ -82,7 +84,7 @@ if __name__ == "__main__":
     # state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
     model_dict.update(to_init)
     model.load_state_dict(model_dict)
-    torch.save(model.state_dict(), 'model/hope.pth')
+    # torch.save(model.state_dict(), 'model/old/init.pth')
 
 
     '''

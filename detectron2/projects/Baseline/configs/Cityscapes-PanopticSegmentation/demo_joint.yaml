@@ -28,7 +28,7 @@ MODEL:
     HOURGLASS_TYPE: "hourglass_2D"
     RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
     GRADIENT_TYPE: "sobel"
-    FUSION_MODEL: "multi"  # "multi" or "share"
+    FUSION_MODEL: "share"  # "multi" or "share"
   MODE:
     PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
