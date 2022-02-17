@@ -60,6 +60,44 @@ def sort_datasets(input_root, output_root):
                 shutil.copyfile(right_img_path, os.path.join(right_save_path, new_name_right_img))
 
 
+def sort_datasets_flying3d(input_root, output_root):
+    if not os.path.exists(output_root):
+        os.makedirs(output_root)
+        print("---  create new folder...  ---")
+    else:
+        shutil.rmtree(output_root)  # 递归删除文件夹
+        os.makedirs(output_root)
+        print("---  del old and create new folder...  ---")
+
+    left_save_path = os.path.join(output_root, 'left')
+    os.makedirs(left_save_path)
+    right_save_path = os.path.join(output_root, 'right')
+    os.makedirs(right_save_path)
+    disparity_save_path = os.path.join(output_root, 'disparity')
+    os.makedirs(disparity_save_path)
+
+    count = 0
+    for root, dirs, files in os.walk(input_root):
+        for file in tqdm(files):
+            tmp = os.path.splitext(file)
+            if os.path.splitext(file)[-1] == '.png' and root[-4:] == 'left':
+                count += 1
+                left_img_path = os.path.join(root, file)
+                right_img_path = left_img_path.replace('left', 'right')
+                gt_path = left_img_path.replace('frames_finalpass', 'disparity').split('.')[0] + ".pfm"
+
+                id = str(count).zfill(6)
+                data = load_pfm(gt_path)
+                gt = Image.fromarray(data)
+                new_name_gt = id + '_disparity.tiff'
+                new_name_left_img = id + '_left.png'
+                new_name_right_img = id + '_right.png'
+
+                gt.save(os.path.join(disparity_save_path, new_name_gt))
+                shutil.copyfile(left_img_path, os.path.join(left_save_path, new_name_left_img))
+                shutil.copyfile(right_img_path, os.path.join(right_save_path, new_name_right_img))
+
+
 def read(file):
     if file.endswith('.float3'):
         return readFloat(file)
@@ -321,4 +359,8 @@ if __name__ == '__main__':
     '''
     input_root = r'D:\Masterarbeit\dataset\sceneflow\driving_original'
     save_root = r'D:\Masterarbeit\dataset\sceneflow\driving'
-    sort_datasets(input_root, save_root)
+
+    input_root = '/media/eistrauben/移动胡萝卜框/dataset/frames_finalpass/TRAIN'
+    save_root = '/media/eistrauben/移动胡萝卜框/dataset/flying3d/train'
+
+    sort_datasets_flying3d(input_root, save_root)

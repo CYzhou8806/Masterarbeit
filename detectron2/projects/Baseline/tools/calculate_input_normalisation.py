@@ -72,6 +72,14 @@ if __name__ == '__main__':
         'kitti2015_test': '/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/test/image_2',
     }
 
+    datasets = {
+        'SF_flying3d_train': '/media/eistrauben/移动胡萝卜框/dataset/flying3d/train/left',
+        'SF_flying3d_val': '/media/eistrauben/移动胡萝卜框/dataset/flying3d/val/left',
+        'kitti2015_train': '/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/training/image_2',
+        'kitti2015_val': '/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/val/image_2',
+        'kitti2015_test': '/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015/data_scene_flow/test/image_2',
+    }
+
     # create details table
     tabel_detail = PrettyTable(['dataset', 'mean', 'std', ])
     for dataset_name, path in tqdm(datasets.items()):
