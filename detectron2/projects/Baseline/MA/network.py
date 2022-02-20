@@ -1493,8 +1493,8 @@ class Warper2d(nn.Module):
         scale_factor = self.scale[scale]
 
         # TODO: check the difference
-        disp = F.interpolate(disp, scale_factor=scale_factor)
-        # disp = F.interpolate(disp, scale_factor=scale_factor, recompute_scale_factor=True)
+        # disp = F.interpolate(disp, scale_factor=scale_factor)
+        disp = F.interpolate(disp, scale_factor=scale_factor, recompute_scale_factor=True)
 
         vgrid = grid + disp * self.direction
         vgrid[:, 1, :, :] = grid[:, 1, :, :]

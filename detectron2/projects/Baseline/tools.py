@@ -61,7 +61,7 @@ if __name__ == "__main__":
     cfg = setup(args)
     model = build_model(cfg)
     checkpointer = DetectionCheckpointer(model)
-    checkpointer_5999 = "model/old/init.pth"
+    checkpointer_5999 = "model/old/re_re_init_panoptic_cityscapes_weights.pth"
     checkpointer.load(checkpointer_5999)
     # torch.save(model.state_dict(), 'model/old/init.pth')
     print("stop")
@@ -82,9 +82,9 @@ if __name__ == "__main__":
     '''
 
     # state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
-    model_dict.update(to_init)
-    model.load_state_dict(model_dict)
-    # torch.save(model.state_dict(), 'model/old/init.pth')
+    # model_dict.update(to_init)
+    # model.load_state_dict(model_dict)
+    torch.save(model.state_dict(), 'model/old/init.pth')
 
 
     '''
