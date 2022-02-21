@@ -360,7 +360,7 @@ if __name__ == '__main__':
     input_root = r'D:\Masterarbeit\dataset\sceneflow\driving_original'
     save_root = r'D:\Masterarbeit\dataset\sceneflow\driving'
 
-    input_root = r'D:\dataset\frames_finalpass\TRAIN'
-    save_root = r'D:\dataset\flying3d\train'
+    input_root = '/media/eistrauben/mob/dataset/frames_finalpass/TRAIN'
+    save_root = '/media/eistrauben/mob/dataset/frames_finalpass/train'
 
     sort_datasets_flying3d(input_root, save_root)

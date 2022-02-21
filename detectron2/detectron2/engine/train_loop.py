@@ -443,6 +443,7 @@ class SimpleTrainerEval(TrainerBase):
         """
         losses_sum = 0.0
         i = 0
+        count = 0
         with torch.no_grad():
             for i, data in enumerate(self.data_loader):
             # data = next(self._data_loader_iter)
@@ -455,7 +456,9 @@ class SimpleTrainerEval(TrainerBase):
                     loss_dict = {"total_loss": loss_dict}
                 else:
                     losses = sum(loss_dict.values())
-                losses_sum += losses.float()
+                count += 1
+
+                losses_sum += losses.float().cpu().numpy()
 
             return losses_sum/(i+1)
 
