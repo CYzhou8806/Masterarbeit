@@ -457,7 +457,7 @@ class SimpleTrainerEval(TrainerBase):
                 else:
                     losses = sum(loss_dict.values())
                 if torch.isnan(losses):
-                    print(data)
+                    print(data[0]['file_name'])
                 #losses_mean = (losses.cpu().numpy() - losses_mean)/(i+1) + losses_mean
                 losses_sum += losses.float()
             return losses_sum/(i+1)
