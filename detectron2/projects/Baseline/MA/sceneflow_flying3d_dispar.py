@@ -65,16 +65,7 @@ _RAW_SCENEFLOW_FLYING3D_SPLITS = {
         "sceneflow/flying3d/val/disparity",
     ),
 
-    "sceneflow_flying3d_train": (
-        "/media/eistrauben/mob/dataset/flying3d_orig/train/left",
-        "/media/eistrauben/mob/dataset/flying3d_orig/train/right",
-        "/media/eistrauben/mob/dataset/flying3d_orig/train/disparity",
-    ),
-    "sceneflow_flying3d_val": (
-        "/media/eistrauben/mob/dataset/flying3d_orig/val/left",
-        "/media/eistrauben/mob/dataset/flying3d_orig/val/right",
-        "/media/eistrauben/mob/dataset/flying3d_orig/val/disparity",
-    ),
+
 
     # "test": not supported yet
 }

@@ -442,8 +442,8 @@ class SimpleTrainerEval(TrainerBase):
         If you want to do something with the data, you can wrap the dataloader.
         """
         losses_sum = 0.0
+        losses_mean = 0.0
         i = 0
-        count = 0
         with torch.no_grad():
             for i, data in enumerate(self.data_loader):
             # data = next(self._data_loader_iter)
@@ -456,11 +456,12 @@ class SimpleTrainerEval(TrainerBase):
                     loss_dict = {"total_loss": loss_dict}
                 else:
                     losses = sum(loss_dict.values())
-                count += 1
-
-                losses_sum += losses.float().cpu().numpy()
-
+                if torch.isnan(losses):
+                    print(losses)
+                #losses_mean = (losses.cpu().numpy() - losses_mean)/(i+1) + losses_mean
+                losses_sum += losses.float()
             return losses_sum/(i+1)
+            #return losses_mean
 
 
 class AMPTrainer(SimpleTrainer):
