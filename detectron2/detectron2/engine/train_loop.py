@@ -168,7 +168,7 @@ class TrainerBase:
                             wait_count = 0
                         else:
                             wait_count += 1
-                            if wait_count > 4:
+                            if wait_count > 5:
                                 raise RuntimeError("early stopping.")
                     self.after_step()
                     self.save_best = False
