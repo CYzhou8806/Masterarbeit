@@ -332,7 +332,7 @@ class JointEstimation(nn.Module):
         processed_results = []
         if self.panotic_branch and self.disparity_branch:
             for dis_result, sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
-                    dis_results[-1], sem_seg_results, center_results, offset_results, batched_inputs,
+                    dis_results[0], sem_seg_results, center_results, offset_results, batched_inputs,
                     left_images.image_sizes
             ):
                 height = input_per_image.get("height")
@@ -406,7 +406,7 @@ class JointEstimation(nn.Module):
                     if len(instances) > 0:
                         processed_results[-1]["instances"] = Instances.cat(instances)
         elif self.disparity_branch:
-            processed_results.append({"dis_est": dis_results[-1][-1]})
+            processed_results.append({"dis_est": dis_results[0][-1]})
         else:
             raise ValueError("Unexpected train mode. Now only mode 'disparity_branch' or 'disparity_branch & "
                              "Panoptic_Branch' are supported")
@@ -992,7 +992,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
-        for i, scale in enumerate(['1/16', '1/8','1/4']):
+        #for i, scale in enumerate(['1/16', '1/8','1/4']):
+        for i, scale in enumerate(['1/16', ]): # todo:debug
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1024,9 +1025,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 draw_feature_map = False
                 if draw_feature_map:
                     self.count_FM+=1
-                    draw_features(ins_cost_volume.shape[1],ins_cost_volume.shape[3], ins_cost_volume.shape[2], ins_cost_volume.cpu().numpy(), "{}/ins_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
-                    draw_features(seg_cost_volume.shape[1],seg_cost_volume.shape[3], seg_cost_volume.shape[2], seg_cost_volume.cpu().numpy(), "{}/seg_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
-                    draw_features(dis_cost_volume.shape[1],dis_cost_volume.shape[3], dis_cost_volume.shape[2], dis_cost_volume.cpu().numpy(), "{}/dis_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                    if self.count_FM>3:
+                        draw_features(ins_cost_volume.shape[1],ins_cost_volume.shape[3], ins_cost_volume.shape[2], ins_cost_volume.cpu().numpy(), "{}/ins_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                        draw_features(seg_cost_volume.shape[1],seg_cost_volume.shape[3], seg_cost_volume.shape[2], seg_cost_volume.cpu().numpy(), "{}/seg_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                        draw_features(dis_cost_volume.shape[1],dis_cost_volume.shape[3], dis_cost_volume.shape[2], dis_cost_volume.cpu().numpy(), "{}/dis_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
 
                 if self.fusion_model == "multi":
                     cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
@@ -1036,7 +1038,8 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     raise ValueError("unexpected fusion model {}", format(self.fusion_model))
 
                 if draw_feature_map:
-                    draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                    if self.count_FM > 3:
+                        draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
 
             else:
                 if not len(disparity):
@@ -1094,24 +1097,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     disparity.append([pred3])
                 else:
                     disparity.append([pred3 + dis])
-
-        '''
-        for i in range(len(disparity)):
-            for j in range(len(disparity[i])):
-                disparity[i][j] = torch.unsqueeze(dis_targets.clone(), 1)
-        
-
-        dis_mask = torch.unsqueeze(dis_mask, 1)
-        dis_targets = torch.unsqueeze(dis_targets, 1)
-        dis_mask_bool = dis_mask == 1.0
-        dis_mask_bool.detach_()
-        disparity = [[[]]]
-        print(disparity)
-        disparity[-1][-1][dis_mask_bool] = dis_targets[dis_mask_bool]
-        dis_est = disparity[-1][-1]
-        dis_est = (dis_est * 256).astype('uint16')
-        dis_img = Image.fromarray(dis_est)
-        '''
 
         if self.training:
             return self.losses(disparity, dis_targets=dis_targets, dis_mask=dis_mask, weights=weights,
@@ -1216,47 +1201,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         #print(torch.sum(dis_mask_bool))
         dis_mask_bool.detach_()
-
-
-        '''
-        for i in range(3):
-            for j in range(3):
-                gaosi = (0.1**0.5)*torch.randn(dis_targets.shape[0], dis_targets.shape[1], dis_targets.shape[2], dis_targets.shape[3]).cuda()
-                predictions[i][j][dis_mask_bool] = dis_targets[dis_mask_bool]
-                tmp0 = predictions[i][j][dis_mask_bool]
-                tmp = gaosi[dis_mask_bool]
-                # predictions[i][j][dis_mask_bool] = gaosi[dis_mask_bool]
-        '''
-
-        '''
-        dis_est = predictions[-1][-1].squeeze(0).squeeze(0).detach().cpu().numpy()
-        dis_est = (dis_est * 256).astype('uint16')
-        dis_img = Image.fromarray(dis_est)
-        dis_img.save('output/000153_10_pred.png')
-        raise RuntimeError("stop")
-        '''
-
-        '''
-        print(dis_targets.shape)
-        count = 0
-        for j in dis_mask_bool[0][0]:
-            for i in j:
-                if i:
-                    count+=1
-        print(count)
-
-        dis_mask_no = ~dis_mask_bool
-
-        print((predictions[-1][-1]<0.0).any())
-
-        predictions[-1][-1][dis_mask_no] = 0.0
-        print((predictions[-1][-1]<0.0).any())
-        tmp = torch.sum(torch.abs(predictions[-1][-1][dis_mask_bool] - dis_targets[dis_mask_bool]))
-        print((dis_targets < 0.0).any())
-
-        print(torch.max(dis_targets))
-        print(torch.max(predictions[0][-1]))
-        '''
 
         if self.loss_type == "panoptic_guided":
             assert pan_guided is not None, "if use loss 'panoptic_guided',the label must exist"
@@ -1668,8 +1612,9 @@ class share_module(nn.Module):
         c = vars(self)['_modules']
         out = []
         for i, (name, value) in enumerate(c.items()):
-            tmp = torch.cat((a[:, i, :, :].unsqueeze(1), y[:, i, :, :].unsqueeze(1), a[:, i, :, :].unsqueeze(1)), 1)
+            tmp = torch.cat((a[:, i, :, :].unsqueeze(1), a[:, i, :, :].unsqueeze(1), z[:, i, :, :].unsqueeze(1)), 1)
             out.append(value(tmp))
+
         '''
 
         c = vars(self)['_modules']
@@ -1677,6 +1622,7 @@ class share_module(nn.Module):
         for i, (name, value) in enumerate(c.items()):
             tmp = torch.cat((x[:, i, :, :].unsqueeze(1), y[:, i, :, :].unsqueeze(1), z[:, i, :, :].unsqueeze(1)), 1)
             out.append(value(tmp))
+
 
 
         res = torch.cat(tuple(out), 1)

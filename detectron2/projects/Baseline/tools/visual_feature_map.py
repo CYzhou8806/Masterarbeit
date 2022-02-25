@@ -15,7 +15,14 @@ def draw_features(depth, width, height, x, savename):
         img = x[0, i, :, :]
         pmin = np.min(img)
         pmax = np.max(img)
-        img = ((img - pmin) / (pmax - pmin + 0.000001)) * 255  # float在[0，1]之间，转换成0-255
+        pre_max = 75.0
+        pre_min = -25.0
+        if pmax > pre_max:
+            raise ValueError("predefine max not enough for current: ", pmax)
+        if pmin < pre_min:
+            raise ValueError("predefine min not enough for current: ", pmin)
+
+        img = ((img - pre_min) / (pre_max - pre_min)) * 255  # float在[0，1]之间，转换成0-255
         img = img.astype(np.uint8)  # 转成unit8
         img = cv2.applyColorMap(img, cv2.COLORMAP_JET)  # 生成heat map
         img = img[:, :, ::-1]  # 注意cv2（BGR）和matplotlib(RGB)通道是相反的
