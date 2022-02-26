@@ -30,6 +30,7 @@ def get_sceneflow_files(image_dir):
 def load_sceneflow(image_dir):
 
     files = get_sceneflow_files(image_dir)
+    print(files)
     ret = []
     for image_file, right_image_file, disparity_file in files:
         ret.append(
