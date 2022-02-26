@@ -18,6 +18,9 @@ def get_sceneflow_files(image_dir):
     output = []
     # files = os.listdir(image_dir)
     for root, dirs, files in os.walk(image_dir):
+        print(root)
+        print(dirs)
+        print(files)
         for file in files:
             if os.path.splitext(file)[-1] == '.png':
                 left_img_path = os.path.join(root, file)
@@ -30,7 +33,6 @@ def get_sceneflow_files(image_dir):
 def load_sceneflow(image_dir):
 
     files = get_sceneflow_files(image_dir)
-    print(image_dir)
     ret = []
     for image_file, right_image_file, disparity_file in files:
         ret.append(
