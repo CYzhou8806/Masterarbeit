@@ -16,14 +16,8 @@ logger = logging.getLogger(__name__)
 
 def get_sceneflow_files(image_dir):
     output = []
-    print(os.getcwd())
-    files = os.listdir(image_dir)
-    print(os.getcwd())
-    print(files)
+    # files = os.listdir(image_dir)
     for root, dirs, files in os.walk(image_dir):
-        print(root)
-        print(dirs)
-        print(files)
         for file in files:
             if os.path.splitext(file)[-1] == '.png':
                 left_img_path = os.path.join(root, file)
