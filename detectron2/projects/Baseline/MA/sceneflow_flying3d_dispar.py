@@ -16,7 +16,8 @@ logger = logging.getLogger(__name__)
 
 def get_sceneflow_files(image_dir):
     output = []
-    # files = os.listdir(image_dir)
+    files = os.listdir(image_dir)
+    print(files)
     for root, dirs, files in os.walk(image_dir):
         print(root)
         print(dirs)
