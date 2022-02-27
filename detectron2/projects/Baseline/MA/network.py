@@ -332,7 +332,7 @@ class JointEstimation(nn.Module):
         processed_results = []
         if self.panotic_branch and self.disparity_branch:
             for dis_result, sem_seg_result, center_result, offset_result, input_per_image, image_size in zip(
-                    dis_results[0], sem_seg_results, center_results, offset_results, batched_inputs,
+                    dis_results[-1], sem_seg_results, center_results, offset_results, batched_inputs,
                     left_images.image_sizes
             ):
                 height = input_per_image.get("height")
@@ -993,7 +993,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
         #for i, scale in enumerate(['1/16', '1/8','1/4']):
-        for i, scale in enumerate(['1/16', '1/8',]): # todo:debug
+        for i, scale in enumerate(['1/16', ]): # todo:debug
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1151,54 +1151,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             dis_mask_bool = dis_mask_bool & mask_no_zero
         #print(torch.sum(dis_mask_bool))
 
-        '''
-        # TODO:debug_tmp
-        neighbor = 16
-        size = neighbor * 2
-        h, w = dis_targets[0, 0].shape
-        for b in range(dis_targets.shape[0]):
-            for i in range(neighbor, h - neighbor, size):
-                for j in range(neighbor, w - neighbor, size):
-                    local = []
-                    way = []
-                    for p in range(0, neighbor + 1, 5):
-                        for q in range(p + 1):
-                            if p != 0:
-                                if [i + p, j + q] not in way:
-                                    local.append(dis_targets[b][0][i + p, j + q])
-                                    way.append([i + p, j + q])
-                                if [i + p, j - q] not in way:
-                                    local.append(dis_targets[b][0][i + p, j - q])
-                                    way.append([i + p, j - q])
-                                if [i - p, j + q] not in way:
-                                    local.append(dis_targets[b][0][i - p, j + q])
-                                    way.append([i - p, j + q])
-                                if [i - p, j - q] not in way:
-                                    local.append(dis_targets[b][0][i - p, j - q])
-                                    way.append([i - p, j - q])
-                                if [i + q, j + p] not in way:
-                                    local.append(dis_targets[b][0][i + q, j + p])
-                                    way.append([i + q, j + p])
-                                if [i + q, j - p] not in way:
-                                    local.append(dis_targets[b][0][i + q, j - p])
-                                    way.append([i + q, j - p])
-                                if [i - q, j + p] not in way:
-                                    local.append(dis_targets[b][0][i - q, j + p])
-                                    way.append([i - q, j + p])
-                                if [i - q, j - p] not in way:
-                                    local.append(dis_targets[b][0][i - q, j - p])
-                                    way.append([i - q, j - p])
-                            else:
-                                local.append(dis_targets[b][0][i, j])
-                                way.append([i, j])
-                                break
-                    if max(local) == 0.0:
-                        # count = 0
-                        for [x,y] in way:
-                            dis_mask_bool[b][0][x, y] = True
-                           
-        '''
-
         #print(torch.sum(dis_mask_bool))
         dis_mask_bool.detach_()
 
@@ -1305,7 +1257,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             losses = {"loss_dis_guided": loss * self.loss_weight}
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
-            for i in range(1,len(predictions)):  # for each pyramid  #todo:debug
+            for i in range(len(predictions)):  # for each pyramid  #todo:debug
                 # assert len(predictions) ==3
                 if smooth_l1:
                     smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
