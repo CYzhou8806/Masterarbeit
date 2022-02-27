@@ -51,7 +51,7 @@ conda install -c conda-forge tqdm
 git clone https://github.com/facebookresearch/detectron2.git
 cd detectron2
 python -m pip install -e detectron2
-
+pip install torchsummary
 
 ## test detectron2 #####
 cd demo
