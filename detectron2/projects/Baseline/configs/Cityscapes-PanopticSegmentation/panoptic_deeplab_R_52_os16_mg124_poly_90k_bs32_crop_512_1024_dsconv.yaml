@@ -1,6 +1,6 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  WEIGHTS: "./model/pre_03.pth"
+  WEIGHTS: "./model/pre_train_flying3d.pth"
   PIXEL_MEAN: [107.88465124608473, 102.6064127952325, 93.83097775116936]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
   PIXEL_STD: [49.61812515777384, 45.72323916028775, 42.10830307882334]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
   BACKBONE:
@@ -48,8 +48,8 @@ SOLVER:
   FREEZE_DISPARITY_16: False
   CHECKPOINT_PERIOD: 10000
 DATASETS:
-  TRAIN: ("sceneflow_flying3d_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train or sceneflow_flying3d_train
-  TEST: ("sceneflow_flying3d_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_val or kitti360_train or sceneflow_flying3d_val
+  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train or sceneflow_flying3d_train
+  TEST: ("kitti_2015_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_val or kitti360_train or sceneflow_flying3d_val
 TEST:
   EVAL_PERIOD: 0
   PRECISE_BN:
