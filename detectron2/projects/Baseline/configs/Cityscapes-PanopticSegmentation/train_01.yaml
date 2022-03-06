@@ -1,10 +1,8 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  #WEIGHTS: "./model/base_sceneflow_driving_19999_kitti360/model_0149999.pth"
-  WEIGHTS: "./model/freez_b_p/model_best_mul.pth"
-  #WEIGHTS: "./model/base_sceneflow_driving_kitti2015/model_best_kitti2015_all_nofusion.pth"
-  PIXEL_MEAN: [123.675, 116.280, 103.530]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
-  PIXEL_STD: [58.395, 57.120, 57.375]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
+  WEIGHTS: "./model/train_nof_fine.pth"
+  PIXEL_MEAN: [107.88465124608473, 102.6064127952325, 93.83097775116936]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
+  PIXEL_STD: [49.61812515777384, 45.72323916028775, 42.10830307882334]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
   BACKBONE:
     NAME: "build_resnet_deeplab_backbone"
   RESNETS:
@@ -40,7 +38,7 @@ SOLVER:
   MAX_ITER: 9999999
   IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.000033
+  BASE_LR: 0.000167
   FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: False
   FREEZE_DISPARITY: False
@@ -48,7 +46,7 @@ SOLVER:
   FREEZE_DISPARITY_4: False
   FREEZE_DISPARITY_8: False
   FREEZE_DISPARITY_16: False
-  CHECKPOINT_PERIOD: 500
+  CHECKPOINT_PERIOD: 10000
 DATASETS:
   TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
   TEST: ("kitti_2015_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_val or kitti360_train
@@ -65,5 +63,5 @@ INPUT:
     TYPE: "absolute"
   IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
   DO_AUGUMENTATION: False
-OUTPUT_DIR: "./output1"    # the dir for save/read checkpoint and ....
+OUTPUT_DIR: "./output_mul"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
