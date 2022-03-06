@@ -1257,7 +1257,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             losses = {"loss_dis_guided": loss * self.loss_weight}
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
-            for i in range(len(predictions)):  # for each pyramid  #todo:debug
+            for i in range(2, len(predictions)):  # for each pyramid  #todo:debug
                 # assert len(predictions) ==3
                 if smooth_l1:
                     smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
