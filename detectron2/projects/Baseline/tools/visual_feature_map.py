@@ -15,8 +15,8 @@ def draw_features(depth, width, height, x, savename):
         img = x[0, i, :, :]
         pmin = np.min(img)
         pmax = np.max(img)
-        pre_max = 75.0
-        pre_min = -25.0
+        pre_max = 0.01
+        pre_min = -0.0
         if pmax > pre_max:
             raise ValueError("predefine max not enough for current: ", pmax)
         if pmin < pre_min:

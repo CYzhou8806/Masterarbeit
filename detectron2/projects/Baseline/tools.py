@@ -20,7 +20,6 @@ import pickle
 from detectron2.checkpoint import DetectionCheckpointer
 
 
-
 def down_samples_dataset(dataset_root, output_root=None, scale=16):
     for root, dirs, files in os.walk(dataset_root):
         for file in tqdm(files):
@@ -50,10 +49,6 @@ if __name__ == "__main__":
     input_root = "/bigwork/nhgnycao/Masterarbeit/detectron2/projects/Baseline/datasets/cityscapes"
     # down_samples_dataset(input_root, scale=4)
 
-    toinit = np.zeros((1,3,3,3)).astype(float)
-    # toinit[0,2,1,1] = 1.0
-    a = torch.from_numpy(toinit)
-
     # model = torch.load('init.pth')
     args = default_argument_parser().parse_args()
     print("Command Line Args:", args)
@@ -61,17 +56,59 @@ if __name__ == "__main__":
     cfg = setup(args)
     model = build_model(cfg)
     checkpointer = DetectionCheckpointer(model)
-    checkpointer_5999 = "model/old/re_re_init_panoptic_cityscapes_weights.pth"
-    checkpointer.load(checkpointer_5999)
-    # torch.save(model.state_dict(), 'model/old/init.pth')
-    print("stop")
 
     model_dict = model.state_dict()
-    to_init = {}
+    to_compare_init = {}
     for name, para in model_dict.items():
-        if len(name.split('.')) > 3 and name.split('.')[3] == 'fusion_block':
-            print(para)
-            to_init[name] = a
+        if name.split('.')[0] == 'dis_embed_head' and (name.split('.')[2] == '1/8' or name.split('.')[2] == '1/4') and name.split('.')[3] != 'fusion_block':
+            to_compare_init[name] = para.clone()
+
+    to_compare_weight = "model/train_nof_fine_with_init84.pth"
+    checkpointer.load(to_compare_weight)
+    model_dict = model.state_dict()
+    to_compare_weight = {}
+    for name, para in model_dict.items():
+        if name.split('.')[0] == 'dis_embed_head' and (name.split('.')[2] == '1/8' or name.split('.')[2] == '1/4') and name.split('.')[3] != 'fusion_block':
+            to_compare_weight[name] = para.clone()
+    count = 0
+    for i, [name, para] in enumerate(to_compare_init.items()):
+        if (para.equal(to_compare_weight[name])):
+            count += 1
+            print(name)
+    print(count / (i + 1))
+
+    # model_dict.update(to_compare_init)
+    # model.load_state_dict(model_dict)
+    # torch.save(model.state_dict(), 'model/train_nof_fine_with_init84.pth')
+
+
+
+    '''
+    # compare the parameter after train step
+    checkpointer = DetectionCheckpointer(model)
+    checkpointer_16 = "model/train_nof_fine.pth"
+    checkpointer.load(checkpointer_16)
+    model_dict = model.state_dict()
+    to_compare_init = {}
+    for name, para in model_dict.items():
+        if name.split('.')[0] == 'dis_embed_head' and name.split('.')[2] == '1/8' and name.split('.')[3] != 'fusion_block':
+            to_compare_init[name] = para.clone()
+
+    to_compare_weight = "model/split_freez/train_stage4.pth"
+    checkpointer.load(to_compare_weight)
+    model_dict = model.state_dict()
+    to_compare_weight = {}
+    for name, para in model_dict.items():
+        if name.split('.')[0] == 'dis_embed_head' and name.split('.')[2] == '1/8' and name.split('.')[3] != 'fusion_block':
+            # print(para)
+            to_compare_weight[name] = para.clone()
+    count = 0
+    for i, [name, para] in enumerate(to_compare_init.items()):
+        if (para.equal(to_compare_weight[name])):
+            count +=1
+            print(name)
+    print(count/(i+1))
+    '''
 
     '''
     tmp = torch.load('model/model_preTrain.pth')['model']
@@ -84,8 +121,7 @@ if __name__ == "__main__":
     # state_dict = {k: v for k, v in tmp.items() if k in model_dict.keys()}
     # model_dict.update(to_init)
     # model.load_state_dict(model_dict)
-    torch.save(model.state_dict(), 'model/old/init.pth')
-
+    # torch.save(model.state_dict(), 'model/old/init.pth')
 
     '''
 
@@ -158,7 +194,6 @@ if __name__ == "__main__":
     # torch.save(model.state_dict(), 're_re_init_panoptic_cityscapes_weights.pth')
     '''
 
-
     '''
     path_panoptic_model_dict = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/model/original_panoptic_dict.pth"
     panoptic_model_dict = torch.load(path_panoptic_model_dict)
@@ -182,7 +217,6 @@ if __name__ == "__main__":
     print(sum_p.index('dis_embed_head'))
     '''
 
-
     '''
     model_dict = model.state_dict()
     # state_dict = {k: v for k, v in panoptic_model.items() if k in model_dict.keys()}
@@ -200,13 +234,4 @@ if __name__ == "__main__":
     # model.load_state_dict(torch.load(checkpointer_init))
     '''
 
-
-
-
     print("stop")
-
-
-
-
-
-

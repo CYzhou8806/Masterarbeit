@@ -954,7 +954,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                    bias=False)).cuda()
                 decoder_stage['classif3'] = classif3
 
-                decoder_stage['fusion_block'] = share_module(max_dis)
+                if self.fusion_model == "more_share":
+                    decoder_stage['fusion_block'] = share_module_more(max_dis)
+                else:
+                    decoder_stage['fusion_block'] = share_module(max_dis)
                 self.predictor[scale] = decoder_stage
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
@@ -992,13 +995,14 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
+        cost_after_3D = []
         # for i, scale in enumerate(['1/16', '1/8','1/4']):
         for i, scale in enumerate(['1/16', '1/8','1/4']): # todo:debug
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
                 max_dis = self.max_disp
-
+            draw_feature_map = False
             if len(pyramid_features[scale]) == 3:
                 if not len(disparity):
                     seg_cost_volume = build_correlation_cost_volume(
@@ -1022,17 +1026,16 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         self.warp(dis, pyramid_features[scale][2][0], scale),
                         pyramid_features[scale][2][1], )
 
-                draw_feature_map = False
                 if draw_feature_map:
                     self.count_FM+=1
                     if self.count_FM>3:
-                        draw_features(ins_cost_volume.shape[1],ins_cost_volume.shape[3], ins_cost_volume.shape[2], ins_cost_volume.cpu().numpy(), "{}/ins_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
-                        draw_features(seg_cost_volume.shape[1],seg_cost_volume.shape[3], seg_cost_volume.shape[2], seg_cost_volume.cpu().numpy(), "{}/seg_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                        #draw_features(ins_cost_volume.shape[1],ins_cost_volume.shape[3], ins_cost_volume.shape[2], ins_cost_volume.cpu().numpy(), "{}/ins_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                        #draw_features(seg_cost_volume.shape[1],seg_cost_volume.shape[3], seg_cost_volume.shape[2], seg_cost_volume.cpu().numpy(), "{}/seg_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
                         draw_features(dis_cost_volume.shape[1],dis_cost_volume.shape[3], dis_cost_volume.shape[2], dis_cost_volume.cpu().numpy(), "{}/dis_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
 
                 if self.fusion_model == "multi":
                     cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
-                elif self.fusion_model == "share":
+                elif self.fusion_model == "share" or self.fusion_model == "more_share" :
                     cost_volume = self.predictor[scale]['fusion_block'](seg_cost_volume, ins_cost_volume, dis_cost_volume)
                 else:
                     raise ValueError("unexpected fusion model {}", format(self.fusion_model))
@@ -1053,6 +1056,12 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         pyramid_features[scale][-1][1], )
                 cost_volume = dis_cost_volume
 
+                if draw_feature_map:
+                    self.count_FM+=1
+                    if self.count_FM>3:
+                       #draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/cost_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                       pass
+
             cost0 = self.predictor[scale]['dres0'](cost_volume)
             cost0 = self.predictor[scale]['dres1'](cost0) + cost0
             out1, pre1, post1 = self.predictor[scale]['dres2'](cost0, None, None)
@@ -1064,6 +1073,19 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             cost1 = self.predictor[scale]['classif1'](out1)
             cost2 = self.predictor[scale]['classif2'](out2) + cost1
             cost3 = self.predictor[scale]['classif3'](out3) + cost2
+            '''
+            cost0 = self.predictor['1/16']['dres0'](cost_volume)
+            cost0 = self.predictor['1/16']['dres1'](cost0) + cost0
+            out1, pre1, post1 = self.predictor['1/16']['dres2'](cost0, None, None)
+            out1 = out1 + cost0
+            out2, pre2, post2 = self.predictor['1/16']['dres3'](out1, pre1, post1)
+            out2 = out2 + cost0
+            out3, pre3, post3 = self.predictor['1/16']['dres4'](out2, pre1, post2)
+            out3 = out3 + cost0
+            cost1 = self.predictor['1/16']['classif1'](out1)
+            cost2 = self.predictor['1/16']['classif2'](out2) + cost1
+            cost3 = self.predictor['1/16']['classif3'](out3) + cost2
+            '''
 
             if self.training:
                 cost1 = torch.unsqueeze(cost1, 1)
@@ -1084,9 +1106,16 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             cost3 = F.interpolate(cost3, size=[max_dis, self.img_size[0], self.img_size[1]], mode='trilinear',
                                   align_corners=True)
             cost3 = torch.squeeze(cost3, 1)
+            cost_after_3D.append(cost3)
             pred3 = F.softmax(cost3, dim=1)
-            pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
+            if draw_feature_map:
+                if self.count_FM > 4:
+                    #draw_features(pred3.shape[1], pred3.shape[3], pred3.shape[2],pred3.cpu().numpy(), "{}/pred3_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
+                    #draw_features(pred1.shape[1], pred1.shape[3], pred1.shape[2],pred1.cpu().numpy(), "{}/pred1_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
+                    #draw_features(pred2.shape[1], pred2.shape[3], pred2.shape[2],pred2.cpu().numpy(), "{}/pred2_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
+                    pass
 
+            pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
             if self.training:
                 if not len(disparity):
                     disparity.append([pred1, pred2, pred3])  # List[3x List(3x Tensor)]
@@ -1576,6 +1605,51 @@ class share_module(nn.Module):
             out.append(value(tmp))
 
 
+
+        res = torch.cat(tuple(out), 1)
+        assert res.shape[1] == self.depth
+
+        return res
+
+
+class share_module_more(nn.Module):
+    def __init__(self, depth):
+        super().__init__()
+        self.depth = depth
+        layers = self.__dict__['_modules']
+        for i in range(self.depth):
+            # exec('self.in_conv{} = {}'.format(i, nn.Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda()))
+            #exec('self.out_conv{} = {}'.format(i, nn.Conv2d(32, 1, kernel_size=(1, 1), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda()))
+            tmp = nn.Sequential(
+                nn.Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda(),
+                nn.ReLU(inplace=True),
+                nn.Conv2d(32, 1, kernel_size=(3, 3), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda(),
+                nn.ReLU(inplace=True))
+            layers['convs' + str(i)] = tmp
+            # exec('self.convs{} = {}'.format(i,tmp))
+
+    def forward(self, x, y, z):
+        assert x.shape[1] == y.shape[1] == z.shape[1] == self.depth, \
+            "wrong input dimension of share_module: {} {} {}".format(x.shape[1], y.shape[1], z.shape[1])
+
+        '''
+        # todo:debug
+        toinit = np.zeros_like(x.cpu())
+        a = torch.from_numpy(toinit).cuda()
+        c = vars(self)['_modules']
+        out = []
+        for i, (name, value) in enumerate(c.items()):
+            tmp = torch.cat((a[:, i, :, :].unsqueeze(1), a[:, i, :, :].unsqueeze(1), z[:, i, :, :].unsqueeze(1)), 1)
+            out.append(value(tmp))
+
+        '''
+
+        c = vars(self)['_modules']
+        out = []
+        for i, (name, value) in enumerate(c.items()):
+            tmp = torch.cat((x[:, i, :, :].unsqueeze(1), y[:, i, :, :].unsqueeze(1), z[:, i, :, :].unsqueeze(1)), 1)
+            out.append(c['convs' + str(i)](tmp))
+            # out.append(value(tmp))
 
         res = torch.cat(tuple(out), 1)
         assert res.shape[1] == self.depth

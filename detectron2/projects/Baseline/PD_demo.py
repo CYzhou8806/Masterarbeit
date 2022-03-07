@@ -65,7 +65,7 @@ def get_parser_kitti2015():
 
     parser.add_argument(
         "--output",
-        default="output/prediction_tmp",
+        default="output/prediction_nof_LUIS",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -77,7 +77,7 @@ def get_parser_kitti2015():
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
         #default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0024999.pth'],
-        default=['MODEL.WEIGHTS', 'model/xiwang.pth'],
+        default=['MODEL.WEIGHTS', 'model/train_nof_fine_with_init84.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
