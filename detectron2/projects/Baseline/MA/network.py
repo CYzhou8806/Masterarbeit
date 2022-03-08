@@ -915,7 +915,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     max_dis = self.max_disp // zoom[i]
                 else:
                     max_dis = self.max_disp
-
+                '''
                 dres0 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True),
                                       convbn(max_dis, max_dis, 3, 1, 1, 1),
@@ -953,6 +953,46 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                    stride=1,
                                                    bias=False)).cuda()
                 decoder_stage['classif3'] = classif3
+                '''
+
+                dres0 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                      nn.ReLU(inplace=True))
+                decoder_stage['dres0'] = dres0
+                dres1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                      nn.ReLU(inplace=True),
+                                      convbn(max_dis, max_dis, 3, 1, 1, 1))
+                decoder_stage['dres1'] = dres1
+                dres2 = hourglass_2d(max_dis)
+                dres3 = hourglass_2d(max_dis)
+                dres4 = hourglass_2d(max_dis)
+                decoder_stage['dres2'] = dres2
+                decoder_stage['dres3'] = dres3
+                decoder_stage['dres4'] = dres4
+
+                classif1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                         nn.ReLU(inplace=True),
+                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                                   padding=1,
+                                                   stride=1,
+                                                   bias=False)).cuda()
+                decoder_stage['classif1'] = classif1
+                classif2 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                         nn.ReLU(inplace=True),
+                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                                   padding=1,
+                                                   stride=1,
+                                                   bias=False)).cuda()
+                decoder_stage['classif2'] = classif2
+                classif3 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                         nn.ReLU(inplace=True),
+                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                                   padding=1,
+                                                   stride=1,
+                                                   bias=False)).cuda()
+                decoder_stage['classif3'] = classif3
+
 
                 if self.fusion_model == "more_share":
                     decoder_stage['fusion_block'] = share_module_more(max_dis)
@@ -1093,15 +1133,20 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                       align_corners=True)
                 cost1 = torch.squeeze(cost1, 1)
                 pred1 = F.softmax(cost1, dim=1)
-                pred1 = disparityregression(max_dis)(pred1)
+                if self.resol_disp_adapt:
+                    pred1 = disparityregression(self.max_disp, zoom[i])(pred1)
+                else:
+                    pred1 = disparityregression(self.max_disp, 1)(pred1)
 
                 cost2 = torch.unsqueeze(cost2, 1)
                 cost2 = F.interpolate(cost2, size=[max_dis, self.img_size[0], self.img_size[1]], mode='trilinear',
                                       align_corners=True)
                 cost2 = torch.squeeze(cost2, 1)
                 pred2 = F.softmax(cost2, dim=1)
-                pred2 = disparityregression(max_dis)(pred2)
-
+                if self.resol_disp_adapt:
+                    pred2 = disparityregression(self.max_disp, zoom[i])(pred2)
+                else:
+                    pred2 = disparityregression(self.max_disp, 1)(pred2)
             cost3 = torch.unsqueeze(cost3, 1)
             cost3 = F.interpolate(cost3, size=[max_dis, self.img_size[0], self.img_size[1]], mode='trilinear',
                                   align_corners=True)
@@ -1115,7 +1160,11 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     #draw_features(pred2.shape[1], pred2.shape[3], pred2.shape[2],pred2.cpu().numpy(), "{}/pred2_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
                     pass
 
-            pred3 = disparityregression(max_dis)(pred3)  # TODO: to determine the size
+            if self.resol_disp_adapt:
+                pred3 = disparityregression(self.max_disp, zoom[i])(pred3)
+            else:
+                pred3 = disparityregression(self.max_disp, 1)(pred3)
+
             if self.training:
                 if not len(disparity):
                     disparity.append([pred1, pred2, pred3])  # List[3x List(3x Tensor)]

@@ -63,7 +63,7 @@ if __name__ == "__main__":
         if name.split('.')[0] == 'dis_embed_head' and (name.split('.')[2] == '1/8' or name.split('.')[2] == '1/4') and name.split('.')[3] != 'fusion_block':
             to_compare_init[name] = para.clone()
 
-    to_compare_weight = "model/train_nof_fine_with_init84.pth"
+    to_compare_weight = "model/mul_fine.pth"
     checkpointer.load(to_compare_weight)
     model_dict = model.state_dict()
     to_compare_weight = {}

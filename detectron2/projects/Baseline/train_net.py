@@ -149,7 +149,7 @@ class Trainer(DefaultTrainer):
         _root_autodl = "/root/autodl-tmp"
         register_all_cityscapes_joint(_root)
         register_all_sceneflow(_root)
-        register_all_sceneflow_flying3d(_root_autodl)
+        register_all_sceneflow_flying3d(_root)
         register_all_kitti_2015(_root)
         register_all_kitti360(_root)
         mapper = JointDeeplabDatasetMapper(cfg) # TODO: changes
