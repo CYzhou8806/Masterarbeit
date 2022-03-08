@@ -143,7 +143,7 @@ class TrainerBase:
         self.max_iter = max_iter
 
         self.save_best = False
-        self.cur_best = 104.88675689697266
+        self.cur_best = 12.993550300598145
         wait_count = 0
         with EventStorage(start_iter) as self.storage:
             try:
@@ -168,7 +168,7 @@ class TrainerBase:
                             wait_count = 0
                         else:
                             wait_count += 1
-                            if wait_count > 5:
+                            if wait_count > 400:
                                 raise RuntimeError("early stopping.")
                     self.after_step()
                     self.save_best = False
