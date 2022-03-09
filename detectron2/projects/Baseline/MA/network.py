@@ -955,39 +955,39 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 decoder_stage['classif3'] = classif3
                 '''
 
-                dres0 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                dres0 = nn.Sequential(convbn(max_dis, self.max_disp, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True),
-                                      convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                      convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True))
                 decoder_stage['dres0'] = dres0
-                dres1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                dres1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
                                       nn.ReLU(inplace=True),
-                                      convbn(max_dis, max_dis, 3, 1, 1, 1))
+                                      convbn(self.max_disp, self.max_disp, 3, 1, 1, 1))
                 decoder_stage['dres1'] = dres1
-                dres2 = hourglass_2d(max_dis)
-                dres3 = hourglass_2d(max_dis)
-                dres4 = hourglass_2d(max_dis)
+                dres2 = hourglass_2d(self.max_disp)
+                dres3 = hourglass_2d(self.max_disp)
+                dres4 = hourglass_2d(self.max_disp)
                 decoder_stage['dres2'] = dres2
                 decoder_stage['dres3'] = dres3
                 decoder_stage['dres4'] = dres4
 
-                classif1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                classif1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
                                          nn.ReLU(inplace=True),
-                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                         nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
                                                    padding=1,
                                                    stride=1,
                                                    bias=False)).cuda()
                 decoder_stage['classif1'] = classif1
-                classif2 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                classif2 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
                                          nn.ReLU(inplace=True),
-                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                         nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
                                                    padding=1,
                                                    stride=1,
                                                    bias=False)).cuda()
                 decoder_stage['classif2'] = classif2
-                classif3 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                classif3 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
                                          nn.ReLU(inplace=True),
-                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                         nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
                                                    padding=1,
                                                    stride=1,
                                                    bias=False)).cuda()
@@ -1035,7 +1035,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
-        cost_after_3D = []
         # for i, scale in enumerate(['1/16', '1/8','1/4']):
         for i, scale in enumerate(['1/16', '1/8','1/4']): # todo:debug
             if self.resol_disp_adapt:
@@ -1151,7 +1150,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             cost3 = F.interpolate(cost3, size=[max_dis, self.img_size[0], self.img_size[1]], mode='trilinear',
                                   align_corners=True)
             cost3 = torch.squeeze(cost3, 1)
-            cost_after_3D.append(cost3)
             pred3 = F.softmax(cost3, dim=1)
             if draw_feature_map:
                 if self.count_FM > 4:
