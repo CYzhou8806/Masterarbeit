@@ -1,6 +1,6 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  WEIGHTS: "./model/train_nof_fine.pth"
+  WEIGHTS: "./model/adaptive_variant01_pre.pth"
   PIXEL_MEAN: [107.88465124608473, 102.6064127952325, 93.83097775116936]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
   PIXEL_STD: [49.61812515777384, 45.72323916028775, 42.10830307882334]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
   BACKBONE:
@@ -31,16 +31,16 @@ MODEL:
     ZERO_DIS_CONSIDERED: False
     FUSION_MODEL: "multi"  # "multi" or "share"
   MODE:
-    PANOPTIC_BRANCH: False
+    PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
     FEATURE_FUSION: False  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 4
+  IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.000333
+  BASE_LR: 0.0000167
   FREEZE_BACKBONE: False
-  FREEZE_PANOPTIC: True
+  FREEZE_PANOPTIC: False
   FREEZE_DISPARITY: False
 
   FREEZE_DISPARITY_4: False
@@ -48,8 +48,8 @@ SOLVER:
   FREEZE_DISPARITY_16: False
   CHECKPOINT_PERIOD: 10000
 DATASETS:
-  TRAIN: ("sceneflow_flying3d_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train or sceneflow_flying3d_train
-  TEST: ("sceneflow_flying3d_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_val or kitti360_train or sceneflow_flying3d_val
+  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train or sceneflow_flying3d_train
+  TEST: ("kitti_2015_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_val or kitti360_train or sceneflow_flying3d_val
 TEST:
   EVAL_PERIOD: 0
   PRECISE_BN:
