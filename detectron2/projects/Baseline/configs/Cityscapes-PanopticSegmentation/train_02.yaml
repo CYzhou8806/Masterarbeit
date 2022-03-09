@@ -1,6 +1,6 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  WEIGHTS: "./model/only_basicShare.pth"
+  WEIGHTS: "./model/adaptive_nof_fine_part1.pth"
   PIXEL_MEAN: [107.88465124608473, 102.6064127952325, 93.83097775116936]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
   PIXEL_STD: [49.61812515777384, 45.72323916028775, 42.10830307882334]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
   BACKBONE:
@@ -26,7 +26,7 @@ MODEL:
     REGRESSION_INPLANES: 192  # to change dimension during the 3D-regression
     HOURGLASS_INPLANES: 192
     HOURGLASS_TYPE: "hourglass_2D"
-    RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
+    RESOL_DISP_ADAPT: True   # weather the maxdisp reduce with the pyramids
     GRADIENT_TYPE: "sobel"
     ZERO_DIS_CONSIDERED: False
     FUSION_MODEL: "share"  # "multi" or "share"
@@ -36,16 +36,16 @@ MODEL:
     FEATURE_FUSION: True  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 2
+  IMS_PER_BATCH: 6
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.0000167
-  FREEZE_BACKBONE: False
-  FREEZE_PANOPTIC: False
+  BASE_LR: 0.0005
+  FREEZE_BACKBONE: True
+  FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
 
-  FREEZE_DISPARITY_4: False
-  FREEZE_DISPARITY_8: False
-  FREEZE_DISPARITY_16: False
+  FREEZE_DISPARITY_4: True
+  FREEZE_DISPARITY_8: True
+  FREEZE_DISPARITY_16: True
   CHECKPOINT_PERIOD: 10000
 DATASETS:
   TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
@@ -63,5 +63,5 @@ INPUT:
     TYPE: "absolute"
   IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
   DO_AUGUMENTATION: False
-OUTPUT_DIR: "./output_share"    # the dir for save/read checkpoint and ....
+OUTPUT_DIR: "./output_adaptive_share"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
