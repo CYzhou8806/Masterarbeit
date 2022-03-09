@@ -26,7 +26,7 @@ MODEL:
     REGRESSION_INPLANES: 192  # to change dimension during the 3D-regression
     HOURGLASS_INPLANES: 192
     HOURGLASS_TYPE: "hourglass_2D"
-    RESOL_DISP_ADAPT: True   # weather the maxdisp reduce with the pyramids
+    RESOL_DISP_ADAPT: False   # weather the maxdisp reduce with the pyramids
     GRADIENT_TYPE: "sobel"
     FUSION_MODEL: "multi"  # "multi" or "share"
   MODE:
