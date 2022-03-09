@@ -161,7 +161,7 @@ class TrainerBase:
                     if (self.iter+1) % inter_pre_epoche == 0:
                         cur_val_loss = self.run_eval()
                         logger.info("Epoche {} ---- val set loss: {}".format((self.iter+1)/inter_pre_epoche, cur_val_loss))
-                        if cur_val_loss < self.cur_best:
+                        if cur_val_loss < (self.cur_best - 0.0001):
                             self.cur_best = cur_val_loss
                             logger.info("Current best val loss changed: {}".format(self.cur_best))
                             self.save_best = True
