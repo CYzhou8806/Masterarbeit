@@ -39,13 +39,13 @@ SOLVER:
   IMS_PER_BATCH: 6
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
   BASE_LR: 0.0005
-  FREEZE_BACKBONE: False
-  FREEZE_PANOPTIC: False
+  FREEZE_BACKBONE: True
+  FREEZE_PANOPTIC: True
   FREEZE_DISPARITY: False
 
-  FREEZE_DISPARITY_4: False
-  FREEZE_DISPARITY_8: False
-  FREEZE_DISPARITY_16: False
+  FREEZE_DISPARITY_4: True
+  FREEZE_DISPARITY_8: True
+  FREEZE_DISPARITY_16: True
   CHECKPOINT_PERIOD: 10000
 DATASETS:
   TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
