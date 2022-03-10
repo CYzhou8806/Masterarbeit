@@ -36,16 +36,16 @@ MODEL:
     FEATURE_FUSION: True  # whether create cost volume with panoptic features
 SOLVER:
   MAX_ITER: 9999999
-  IMS_PER_BATCH: 6
+  IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.0005
-  FREEZE_BACKBONE: True
-  FREEZE_PANOPTIC: True
+  BASE_LR: 0.0000167
+  FREEZE_BACKBONE: False
+  FREEZE_PANOPTIC: False
   FREEZE_DISPARITY: False
 
-  FREEZE_DISPARITY_4: True
-  FREEZE_DISPARITY_8: True
-  FREEZE_DISPARITY_16: True
+  FREEZE_DISPARITY_4: False
+  FREEZE_DISPARITY_8: False
+  FREEZE_DISPARITY_16: False
   CHECKPOINT_PERIOD: 10000
 DATASETS:
   TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train
@@ -64,4 +64,4 @@ INPUT:
   IMG_SIZE: [375,1242]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
   DO_AUGUMENTATION: False
 OUTPUT_DIR: "./output_adaptive_share"    # the dir for save/read checkpoint and ....
-RESUME: True  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
+RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
