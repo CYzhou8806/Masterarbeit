@@ -171,7 +171,7 @@ class JointEstimation(nn.Module):
                 targets = None
                 weights = None
             sem_seg_results, sem_seg_losses, left_sem_seg_features = self.sem_seg_head(left_features, targets, weights)
-            losses.update(sem_seg_losses)  # todo:debug
+            #losses.update(sem_seg_losses)  # todo:debug
 
             # instance branch
             if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
@@ -193,8 +193,8 @@ class JointEstimation(nn.Module):
             center_results, offset_results, center_losses, offset_losses, left_ins_seg_features = self.ins_embed_head(
                 left_features, center_targets, center_weights, offset_targets, offset_weights
             )
-            losses.update(center_losses)   # todo:debug
-            losses.update(offset_losses)   # todo:debug
+            #losses.update(center_losses)   # todo:debug
+            #losses.update(offset_losses)   # todo:debug
 
             # load right images
             right_images = [x["right_image"].to(self.device) for x in batched_inputs]
@@ -854,6 +854,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             gradient_type: str,
             zero_dis_considered: bool,
             fusion_model: str,
+            adaptive_mod: str,
             # num_classes=None,
             **kwargs,
     ):
@@ -898,6 +899,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         self.regression_inplanes = regression_inplanes
         self.zero_dis_considered = zero_dis_considered
         self.fusion_model = fusion_model
+        self.adaptive_mod = adaptive_mod
 
         if img_size is None:
             self.img_size = [1024, 2048]  # h, w
@@ -954,83 +956,122 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                                                    bias=False)).cuda()
                 decoder_stage['classif3'] = classif3
                 '''
+                if not self.resol_disp_adapt:
+                    dres0 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True),
+                                          convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True))
+                    decoder_stage['dres0'] = dres0
+                    dres1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True),
+                                          convbn(self.max_disp, self.max_disp, 3, 1, 1, 1))
+                    decoder_stage['dres1'] = dres1
+                    dres2 = hourglass_2d(self.max_disp)
+                    dres3 = hourglass_2d(self.max_disp)
+                    dres4 = hourglass_2d(self.max_disp)
+                    decoder_stage['dres2'] = dres2
+                    decoder_stage['dres3'] = dres3
+                    decoder_stage['dres4'] = dres4
 
-                '''
-                dres0 = nn.Sequential(convbn(max_dis, self.max_disp, 3, 1, 1, 1),
-                                      nn.ReLU(inplace=True),
-                                      convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
-                                      nn.ReLU(inplace=True))
-                decoder_stage['dres0'] = dres0
-                dres1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
-                                      nn.ReLU(inplace=True),
-                                      convbn(self.max_disp, self.max_disp, 3, 1, 1, 1))
-                decoder_stage['dres1'] = dres1
-                dres2 = hourglass_2d(self.max_disp)
-                dres3 = hourglass_2d(self.max_disp)
-                dres4 = hourglass_2d(self.max_disp)
-                decoder_stage['dres2'] = dres2
-                decoder_stage['dres3'] = dres3
-                decoder_stage['dres4'] = dres4
+                    classif1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(self.max_disp, self.max_disp, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif1'] = classif1
+                    classif2 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(self.max_disp, self.max_disp, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif2'] = classif2
+                    classif3 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(self.max_disp, self.max_disp, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif3'] = classif3
+                elif self.adaptive_mod == 'volume_adaptive':
+                    dres0 = nn.Sequential(convbn(max_dis, self.max_disp, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True),
+                                          convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True))
+                    decoder_stage['dres0'] = dres0
+                    dres1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True),
+                                          convbn(self.max_disp, self.max_disp, 3, 1, 1, 1))
+                    decoder_stage['dres1'] = dres1
+                    dres2 = hourglass_2d(self.max_disp)
+                    dres3 = hourglass_2d(self.max_disp)
+                    dres4 = hourglass_2d(self.max_disp)
+                    decoder_stage['dres2'] = dres2
+                    decoder_stage['dres3'] = dres3
+                    decoder_stage['dres4'] = dres4
 
-                classif1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
-                                         nn.ReLU(inplace=True),
-                                         nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
-                                                   padding=1,
-                                                   stride=1,
-                                                   bias=False)).cuda()
-                decoder_stage['classif1'] = classif1
-                classif2 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
-                                         nn.ReLU(inplace=True),
-                                         nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
-                                                   padding=1,
-                                                   stride=1,
-                                                   bias=False)).cuda()
-                decoder_stage['classif2'] = classif2
-                classif3 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
-                                         nn.ReLU(inplace=True),
-                                         nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
-                                                   padding=1,
-                                                   stride=1,
-                                                   bias=False)).cuda()
-                decoder_stage['classif3'] = classif3
-                '''
-                dres0 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                      nn.ReLU(inplace=True),
-                                      convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                      nn.ReLU(inplace=True))
-                decoder_stage['dres0'] = dres0
-                dres1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                      nn.ReLU(inplace=True),
-                                      convbn(max_dis, max_dis, 3, 1, 1, 1))
-                decoder_stage['dres1'] = dres1
-                dres2 = hourglass_2d(max_dis)
-                dres3 = hourglass_2d(max_dis)
-                dres4 = hourglass_2d(max_dis)
-                decoder_stage['dres2'] = dres2
-                decoder_stage['dres3'] = dres3
-                decoder_stage['dres4'] = dres4
+                    classif1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(self.max_disp, self.max_disp, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif1'] = classif1
+                    classif2 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(self.max_disp, self.max_disp, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif2'] = classif2
+                    classif3 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(self.max_disp, self.max_disp, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif3'] = classif3
+                elif self.adaptive_mod == 'all_adaptive':
+                    dres0 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True),
+                                          convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True))
+                    decoder_stage['dres0'] = dres0
+                    dres1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                          nn.ReLU(inplace=True),
+                                          convbn(max_dis, max_dis, 3, 1, 1, 1))
+                    decoder_stage['dres1'] = dres1
+                    dres2 = hourglass_2d(max_dis)
+                    dres3 = hourglass_2d(max_dis)
+                    dres4 = hourglass_2d(max_dis)
+                    decoder_stage['dres2'] = dres2
+                    decoder_stage['dres3'] = dres3
+                    decoder_stage['dres4'] = dres4
 
-                classif1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                         nn.ReLU(inplace=True),
-                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
-                                                   padding=1,
-                                                   stride=1,
-                                                   bias=False)).cuda()
-                decoder_stage['classif1'] = classif1
-                classif2 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                         nn.ReLU(inplace=True),
-                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
-                                                   padding=1,
-                                                   stride=1,
-                                                   bias=False)).cuda()
-                decoder_stage['classif2'] = classif2
-                classif3 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
-                                         nn.ReLU(inplace=True),
-                                         nn.Conv2d(max_dis, max_dis, kernel_size=3,
-                                                   padding=1,
-                                                   stride=1,
-                                                   bias=False)).cuda()
-                decoder_stage['classif3'] = classif3
+                    classif1 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif1'] = classif1
+                    classif2 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif2'] = classif2
+                    classif3 = nn.Sequential(convbn(max_dis, max_dis, 3, 1, 1, 1),
+                                             nn.ReLU(inplace=True),
+                                             nn.Conv2d(max_dis, max_dis, kernel_size=3,
+                                                       padding=1,
+                                                       stride=1,
+                                                       bias=False)).cuda()
+                    decoder_stage['classif3'] = classif3
+                else:
+                    raise ValueError("Unexpected adaptive mod: %s" % self.adaptive_mod)
 
 
                 if self.fusion_model == "more_share":
@@ -1062,6 +1103,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         ret["num_classes"] = cfg.MODEL.DIS_EMBED_HEAD.NUM_CLASSES
         ret["zero_dis_considered"] = cfg.MODEL.DIS_EMBED_HEAD.ZERO_DIS_CONSIDERED
         ret["fusion_model"] = cfg.MODEL.DIS_EMBED_HEAD.FUSION_MODEL
+        ret["adaptive_mod"] = cfg.MODEL.DIS_EMBED_HEAD.ADAPTIVE_MOD
         return ret
 
     def forward(self, features, right_features, pyramid_features, dis_targets=None, dis_mask=None, weights=None,

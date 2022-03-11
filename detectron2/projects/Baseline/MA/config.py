@@ -105,4 +105,5 @@ def add_joint_estimation_config(cfg):
     cfg.SOLVER.FREEZE_DISPARITY_4 = False
     cfg.INPUT.CROP.VAL_SIZE = (320,1216)
     cfg.MODEL.DIS_EMBED_HEAD.FUSION_MODEL = "multi"
+    cfg.MODEL.DIS_EMBED_HEAD.ADAPTIVE_MOD = "all_adaptive"
 

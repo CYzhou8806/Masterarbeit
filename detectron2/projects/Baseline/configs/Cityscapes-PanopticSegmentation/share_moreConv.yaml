@@ -30,6 +30,7 @@ MODEL:
     GRADIENT_TYPE: "sobel"
     ZERO_DIS_CONSIDERED: False
     FUSION_MODEL: "more_share"  # "multi" or "share"
+    ADAPTIVE_MOD: "volume_adaptive"  # "volume_adaptive" or "all_adaptive"
   MODE:
     PANOPTIC_BRANCH: True
     DISPARITY_BRANCH:  True
