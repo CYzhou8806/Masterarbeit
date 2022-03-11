@@ -1076,8 +1076,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
                 if self.fusion_model == "more_share":
                     decoder_stage['fusion_block'] = share_module_more(max_dis)
-                else:
+                elif self.fusion_model == "share":
                     decoder_stage['fusion_block'] = share_module(max_dis)
+                elif self.fusion_model == "multi":
+                    pass
                 self.predictor[scale] = decoder_stage
         else:
             raise ValueError("Unexpected hourglass type: %s" % self.hourglass_type)
