@@ -1013,21 +1013,21 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
                     classif1 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
                                              nn.ReLU(inplace=True),
-                                             nn.Conv2d(self.max_disp, max_disp, kernel_size=3,
+                                             nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
                                                        padding=1,
                                                        stride=1,
                                                        bias=False)).cuda()
                     decoder_stage['classif1'] = classif1
                     classif2 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
                                              nn.ReLU(inplace=True),
-                                             nn.Conv2d(self.max_disp, max_disp, kernel_size=3,
+                                             nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
                                                        padding=1,
                                                        stride=1,
                                                        bias=False)).cuda()
                     decoder_stage['classif2'] = classif2
                     classif3 = nn.Sequential(convbn(self.max_disp, self.max_disp, 3, 1, 1, 1),
                                              nn.ReLU(inplace=True),
-                                             nn.Conv2d(self.max_disp, max_disp, kernel_size=3,
+                                             nn.Conv2d(self.max_disp, max_dis, kernel_size=3,
                                                        padding=1,
                                                        stride=1,
                                                        bias=False)).cuda()
