@@ -49,8 +49,8 @@ SOLVER:
   FREEZE_DISPARITY_16: False
   CHECKPOINT_PERIOD: 10000
 DATASETS:
-  TRAIN: ("sceneflow_flying3d_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train or sceneflow_flying3d_train
-  TEST: ("sceneflow_flying3d_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_val or kitti360_train or sceneflow_flying3d_val
+  TRAIN: ("kitti_2015_train",)   # sceneflow_driving_train or cityscapes_fine_joint_train or kitti_2015_train or kitti360_train or sceneflow_flying3d_train
+  TEST: ("kitti_2015_val",)   # sceneflow_driving_val or cityscapes_fine_joint_train or kitti_2015_val or kitti360_train or sceneflow_flying3d_val
 TEST:
   EVAL_PERIOD: 0
   PRECISE_BN:
