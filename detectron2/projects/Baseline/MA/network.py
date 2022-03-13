@@ -171,7 +171,7 @@ class JointEstimation(nn.Module):
                 targets = None
                 weights = None
             sem_seg_results, sem_seg_losses, left_sem_seg_features = self.sem_seg_head(left_features, targets, weights)
-            losses.update(sem_seg_losses)  # todo:debug
+            #losses.update(sem_seg_losses)  # todo:debug
 
             # instance branch
             if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
@@ -193,8 +193,8 @@ class JointEstimation(nn.Module):
             center_results, offset_results, center_losses, offset_losses, left_ins_seg_features = self.ins_embed_head(
                 left_features, center_targets, center_weights, offset_targets, offset_weights
             )
-            losses.update(center_losses)   # todo:debug
-            losses.update(offset_losses)   # todo:debug
+            #losses.update(center_losses)   # todo:debug
+            #losses.update(offset_losses)   # todo:debug
 
             # load right images
             right_images = [x["right_image"].to(self.device) for x in batched_inputs]
@@ -1074,7 +1074,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     raise ValueError("Unexpected adaptive mod: %s" % self.adaptive_mod)
 
 
-                if self.fusion_model == "more_share":
+                if self.fusion_model == "share_plus":
                     decoder_stage['fusion_block'] = share_module_more(max_dis)
                 elif self.fusion_model == "share":
                     decoder_stage['fusion_block'] = share_module(max_dis)
@@ -1157,7 +1157,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
                 if self.fusion_model == "multi":
                     cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
-                elif self.fusion_model == "share" or self.fusion_model == "more_share" :
+                elif self.fusion_model == "share" or self.fusion_model == "share_plus" :
                     cost_volume = self.predictor[scale]['fusion_block'](seg_cost_volume, ins_cost_volume, dis_cost_volume)
                 else:
                     raise ValueError("unexpected fusion model {}", format(self.fusion_model))
