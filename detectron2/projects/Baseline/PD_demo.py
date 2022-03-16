@@ -65,7 +65,7 @@ def get_parser_kitti2015():
 
     parser.add_argument(
         "--output",
-        default="output/adaptive_variante02/tmp_nof1_4",
+        default="output/allAdapt/nof_stage3_old",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -76,8 +76,8 @@ def get_parser_kitti2015():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        #default=['MODEL.WEIGHTS', 'model/base_sceneflow_kitti2015/model_0024999.pth'],
-        default=['MODEL.WEIGHTS', 'model/train_result/adaptive_variante02/nof/tmp_adaptive_variante02_nof_fine.pth'],
+        #default=['MODEL.WEIGHTS', 'model/train_results/volumeAdapt/pan_only/volumeAdapt_panOnly.pth'],
+        default=['MODEL.WEIGHTS', 'model/train_result_old/allAdapt/nof/allAdapt_nof_fine_part2.pth'],
         nargs=argparse.REMAINDER,
     )
     return parser
