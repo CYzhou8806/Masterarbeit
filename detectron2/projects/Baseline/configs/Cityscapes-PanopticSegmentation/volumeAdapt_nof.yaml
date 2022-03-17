@@ -29,7 +29,7 @@ MODEL:
     RESOL_DISP_ADAPT: True   # weather the maxdisp reduce with the pyramids
     GRADIENT_TYPE: "sobel"
     ZERO_DIS_CONSIDERED: False
-    FUSION_MODEL: "multi"  # "multi" or "share"
+    FUSION_MODEL: "share_plus"  # "multi" or "share" or "share_plus"
     ADAPTIVE_MOD: "volume_adaptive"  # "volume_adaptive" or "all_adaptive"
   MODE:
     PANOPTIC_BRANCH: True
@@ -39,7 +39,7 @@ SOLVER:
   MAX_ITER: 9999999
   IMS_PER_BATCH: 2
   LR_SCHEDULER_NAME: "WarmupPolyLR"  # WarmupCosineLR or WarmupPolyLR
-  BASE_LR: 0.0000167
+  BASE_LR: 0.000167
   FREEZE_BACKBONE: False
   FREEZE_PANOPTIC: False
   FREEZE_DISPARITY: False
