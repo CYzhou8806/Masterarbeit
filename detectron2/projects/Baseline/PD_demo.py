@@ -65,7 +65,7 @@ def get_parser_kitti2015():
 
     parser.add_argument(
         "--output",
-        default="group_1/evaluations/allAdapt/mul/allAdapt_mul_stage3",
+        default="group_1/evaluations/basic/nof/basic_panOnly_stage3",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -76,7 +76,7 @@ def get_parser_kitti2015():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'group_1/weights/allAdapt/mul/allAdapt_mul.pth'],
+        default=['MODEL.WEIGHTS', 'group_1/weights/basic/base_direct_nof/base_dis_panopticOnly.pth'],
         #default=['MODEL.WEIGHTS', 'model/tmp1.pth'],
         nargs=argparse.REMAINDER,
     )

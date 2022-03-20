@@ -1,6 +1,6 @@
 _BASE_: Base-PanopticDeepLab-OS16.yaml
 MODEL:
-  WEIGHTS: "./output_volumeAdapt_nof/model_best.pth"
+  WEIGHTS: "./output_volumeAdapt_pre/model_best.pth"
   PIXEL_MEAN: [107.88465124608473, 102.6064127952325, 93.83097775116936]  #[ 0.485, 0.456, 0.406 ] or [123.675, 116.280, 103.530]
   PIXEL_STD: [49.61812515777384, 45.72323916028775, 42.10830307882334]  #[ 0.229, 0.224, 0.225 ] or [58.395, 57.120, 57.375]
   BACKBONE:
@@ -64,5 +64,5 @@ INPUT:
     TYPE: "absolute"
   IMG_SIZE: [540,960]  # h, w  540,960 (sceneflow) or 375,1242 (kitti2015) or 1024,2048 (cityscapes) or 376,1408 (kitti360)
   DO_AUGUMENTATION: False
-OUTPUT_DIR: "./output_volumeAdapt_shareDirect"    # the dir for save/read checkpoint and ....
+OUTPUT_DIR: "./output_pre_volumeAdapt_shareDirect"    # the dir for save/read checkpoint and ....
 RESUME: False  # If `resume` is True, this method attempts to resume from the last checkpoint, if exists. Otherwise, load checkpoint from the cfg.WEIGHTS.
