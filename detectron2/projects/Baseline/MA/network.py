@@ -250,7 +250,7 @@ class JointEstimation(nn.Module):
                                                               dis_targets=dis_targets,
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
-            losses.update(dis_embed_loss)   # todo:debug
+            #losses.update(dis_embed_loss)   # todo:debug
         elif self.disparity_branch:
             assert not self.feature_fusion, "only disparity branch, can not feature fusion"
 
