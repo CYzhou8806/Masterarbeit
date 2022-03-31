@@ -6,11 +6,33 @@ conda activate detectron2
 conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
 =1.10
 
+python -m pip install --upgrade pip
+pip install -U 'git+https://github.com/facebookresearch/fvcore'
+pip install Cython
+pip install pycocotools
+pip install Pillow
+conda install -c conda-forge ninja
+pip install git+https://github.com/cocodataset/panopticapi.git
+pip install opencv-python
+conda install -c conda-forge tqdm
+pip install torchsummary
 
-conda env export > detectron2.yml
+
++ unzip "QuelleCode_MA_YuCAO.zip"
 
 
-########## 安装CUDA ####################
+
+
+########## build detectron2 ##############
+cd detectron2
+python -m pip install -e detectron2
+
+
+###### rebuild detectron2, if required after changes #######
+python setup.py build develop
+
+
+########## install CUDA ####################
 mkdir cuda-11.3.1
 cd cuda-11.3.1
 wget https://developer.download.nvidia.com/compute/cuda/11.3.1/local_installers/cuda_11.3.1_465.19.01_linux.run
@@ -36,73 +58,11 @@ cat /bigwork/nhgnycao/NVIDIA/CUDA/cuda-11.3.1/include/cudnn_version.h | grep CUD
 
 
 
-######### detectron2 ##########
-python -m pip install --upgrade pip
-pip install -U 'git+https://github.com/facebookresearch/fvcore'
-pip install Cython
-pip install pycocotools
-pip install Pillow
-conda install -c conda-forge ninja
-pip install git+https://github.com/cocodataset/panopticapi.git
-pip install opencv-python
-conda install -c conda-forge tqdm
-
-
-git clone https://github.com/facebookresearch/detectron2.git
-cd detectron2
-python -m pip install -e detectron2
-pip install torchsummary
-
-## test detectron2 #####
-cd demo
-python demo.py --config-file ../configs/COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x.yaml --input input1.jpg   --output ./result.jpg --opts MODEL.WEIGHTS detectron2://COCO-InstanceSegmentation/mask_rcnn_R_50_FPN_3x/137849600/model_final_f10217.pkl
-
-
-### rebuild###
-python setup.py build develop
-
-
-
-########### 卸载pycocotools#############
-python -m pip install --upgrade pip
-pip install pycocotools
-#根据提示找到已安装的pycocotools位置
-cd /home/frank/.local/lib/python3.7/site-packages
-#注意 删除的是对应的文件夹
-rm -rf pycocotools
-rm -rf pycocotools-2.0-py3.7.egg-info 
-
-
-
-#### 安装杂项
-module load GCC/8.3.0
-
-
-
-### 谷歌硬盘
-gdown 'https://drive.google.com/uc?id=14usWB-MOHF-SIYK2585Xu9ysPjE5HOQO'
-
-https://drive.google.com/file/d/14usWB-MOHF-SIYK2585Xu9ysPjE5HOQO/view?usp=sharing
-
-gdown "https://drive.google.com/u/0/uc?id=14usWB-MOHF-SIYK2585Xu9ysPjE5HOQO"
-https://drive.google.com/u/0/uc?id=14usWB-MOHF-SIYK2585Xu9ysPjE5HOQO&export=download
-
-
-1kzt_4i3lSnjnFzEByoa7TkkY4GFn2o5i
 
 
 
 
-#################学校
-source ~/.bashrc
-module load Miniconda3
-conda activate detectron2
-module load GCC/8.3.0
 
-
-
-
-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
 
 
 
