@@ -1490,12 +1490,10 @@ def build_correlation_cost_volume(max_disp, left_feature, right_feature):
     return cost_volume
 
 
-def warping_old(disp, feature):
-    warped = copy.deepcopy(feature)
-    return warped
-
-
 class Warper2d(nn.Module):
+    '''
+    warping
+    '''
     def __init__(self, direction_str='l2r', pad_mode="zeros"):
         super().__init__()
 
@@ -1557,42 +1555,6 @@ class Warper2d(nn.Module):
         mask[mask > 0] = 1
 
         return output * mask  # pre elements multi
-
-
-def optical_flow_warping(x, flo, pad_mode="zeros"):
-    """
-    warp an image/tensor (im2) back to im1, according to the optical flow
-
-    x: [B, C, H, W] (im2)
-    flo: [B, 2, H, W] flow
-    pad_mode (optional): ref to https://pytorch.org/docs/stable/nn.functional.html#grid-sample
-        "zeros": use 0 for out-of-bound grid locations,
-        "border": use border values for out-of-bound grid locations
-    """
-    B, C, H, W = x.size()
-    # mesh grid
-    xx = torch.arange(0, W).view(1, -1).repeat(H, 1)
-    yy = torch.arange(0, H).view(-1, 1).repeat(1, W)
-    xx = xx.view(1, 1, H, W).repeat(B, 1, 1, 1)
-    yy = yy.view(1, 1, H, W).repeat(B, 1, 1, 1)
-    grid = torch.cat((xx, yy), 1).float()
-
-    vgrid = grid + flo  # warp后，新图每个像素对应原图的位置
-
-    # scale grid to [-1,1]
-    vgrid[:, 0, :, :] = 2.0 * vgrid[:, 0, :, :].clone() / max(W - 1, 1) - 1.0
-    vgrid[:, 1, :, :] = 2.0 * vgrid[:, 1, :, :].clone() / max(H - 1, 1) - 1.0
-
-    vgrid = vgrid.permute(0, 2, 3, 1)
-    output = F.grid_sample(x, vgrid, padding_mode=pad_mode)
-
-    mask = torch.ones(x.size())
-    mask = F.grid_sample(mask, vgrid)
-
-    mask[mask < 0.9999] = 0
-    mask[mask > 0] = 1
-
-    return output * mask
 
 
 class hourglass(nn.Module):
@@ -1695,6 +1657,9 @@ class hourglass_2d(nn.Module):
 
 
 class share_module(nn.Module):
+    '''
+    WFM
+    '''
     def __init__(self, depth):
         super().__init__()
         self.depth = depth
@@ -1731,6 +1696,9 @@ class share_module(nn.Module):
 
 
 class share_module_more(nn.Module):
+    '''
+    AFM
+    '''
     def __init__(self, depth):
         super().__init__()
         self.depth = depth
@@ -1776,6 +1744,10 @@ class share_module_more(nn.Module):
 
 
 class Gradient(nn.Module):
+    '''
+    this is for the panoptic guided loss.
+    not relevant for current Masterarbeit.
+    '''
     def __init__(self, grad_type="sobel"):
         self.grad_type = grad_type
         super(Gradient, self).__init__()
