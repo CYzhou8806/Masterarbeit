@@ -65,7 +65,7 @@ def get_parser_kitti2015():
 
     parser.add_argument(
         "--output",
-        default="group_1/evaluations/basic/nof/basic_panOnly_stage3",
+        default="data/group_2/evaluations/allAdapt/pan_basePre",
         help="A file or directory to save output visualizations. "
              "If not given, will show output in an OpenCV window.",
     )
@@ -76,7 +76,7 @@ def get_parser_kitti2015():
     parser.add_argument(
         "--opts",
         help="Modify config options using the command-line 'KEY VALUE' pairs",
-        default=['MODEL.WEIGHTS', 'group_1/weights/basic/base_direct_nof/base_dis_panopticOnly.pth'],
+        default=['MODEL.WEIGHTS', 'data/group_2/weights/allAdapt/pan_basePre/tmp.pth'],
         #default=['MODEL.WEIGHTS', 'model/tmp1.pth'],
         nargs=argparse.REMAINDER,
     )
@@ -190,6 +190,7 @@ def main_kitti2015(args, eval=False):
     demo = JointVisualizationDemo(cfg)  # $$$ 数据集的处理仍然不清楚
 
     if args.input_dir:
+
         for root, dirs, files in os.walk(args.input_dir):
             for file in tqdm(files):
                 # if os.path.splitext(file)[0][-1] != '1':
@@ -251,11 +252,15 @@ def main_kitti2015(args, eval=False):
                             break  # esc to quit
 
         if eval:
-            dis_ground_truth_dir = args.input_dir.replace('image_2', 'disp_occ_0')
-            dis_eval_result = eval_disparity(disp_save_dir, dis_ground_truth_dir, args.output)
+            #eval_list = ['disp_occ_0', 'flat', 'construction', 'human', 'nature', 'object', 'vehicle', 'textureless', 'occlusions']
+            eval_list = ['disp_occ_0',]
+            for eval_type in eval_list:
+                dis_ground_truth_dir = args.input_dir.replace('image_2', eval_type)
+                save_path_dis_eval_result = os.path.join(args.output, eval_type+'_disparity_evaluation.txt')
+                eval_disparity(disp_save_dir, dis_ground_truth_dir, save_path_dis_eval_result)
 
             panop_eval_results, panop_eval_table = demo.evaluate(panoEval_save_dir, )
-
+            dis_eval_result = os.path.join(args.output, 'disp_occ_0_disparity_evaluation.txt')
             with open(dis_eval_result, 'a') as f:
                 f.write('\n\n')
                 f.write(panop_eval_table)

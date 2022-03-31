@@ -30,36 +30,32 @@ from PIL import Image
 from devkit.helpers.csHelpers import printError
 from devkit.helpers.labels import id2label, labels
 
-os.environ['KITTI2015_DATASET'] = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015"
+os.environ[
+    'KITTI2015_DATASET'] = "/home/eistrauben/github/Masterarbeit/detectron2/projects/Baseline/datasets/kitti_2015"
 
 
 # The main method
-def convert2panoptic(kitti2015Path=None, outputFolder=None, useTrainId=False, setNames=['training','test']):
+def convert2panopticMask(kitti2015Path=None, outputFolder=None, useTrainId=False, setNames=None, id_list=None, mod='id'):
     # Where to look for Cityscapes
+    if setNames is None:
+        setNames = ['test', ]
+    if id_list is None:
+        id_list = [8, 9, 10, ]
     if kitti2015Path is None:
         if 'KITTI2015_DATASET' in os.environ:
             kitti2015Path = os.environ['KITTI2015_DATASET']
         else:
-            kitti2015Path = os.path.join(os.path.dirname(os.path.realpath(__file__)),'..','..')
+            kitti2015Path = os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', '..')
         kitti2015Path = os.path.join(kitti2015Path, "data_scene_flow")
 
     if outputFolder is None:
         outputFolder = os.path.join(kitti2015Path, "tmp")
 
-    categories = []
-    for label in labels:
-        if label.ignoreInEval:
-            continue
-        categories.append({'id': int(label.trainId) if useTrainId else int(label.id),
-                           'name': label.name,
-                           'color': label.color,
-                           'supercategory': label.category,
-                           'isthing': 1 if label.hasInstances else 0})
 
     for setName in setNames:
-        outputFolder = os.path.join(kitti2015Path, setName)
+        # outputFolder = os.path.join(kitti2015Path, setName)
         # how to search for all ground truth
-        searchFine   = os.path.join(kitti2015Path, setName, "*", "*_instanceIds.png")
+        searchFine = os.path.join(kitti2015Path, setName, "*", "*_instanceIds.png")
         # search files
         filesFine = glob.glob(searchFine)
         filesFine.sort()
@@ -68,14 +64,13 @@ def convert2panoptic(kitti2015Path=None, outputFolder=None, useTrainId=False, se
         # quit if we did not find anything
         if not files:
             printError(
-                "Did not find any files for {} set using matching pattern {}. Please consult the README.".format(setName, searchFine)
+                "Did not find any files for {} set using matching pattern {}. Please consult the README.".format(
+                    setName, searchFine)
             )
         # a bit verbose
         print("Converting {} annotation files for {} set.".format(len(files), setName))
 
-        outputBaseFile = "panoptic"
-        outFile = os.path.join(outputFolder, "{}.json".format(outputBaseFile))
-        print("Json file with the annotations in panoptic format will be saved in {}".format(outFile))
+        outputBaseFile = "new_flat"
         panopticFolder = os.path.join(outputFolder, outputBaseFile)
         if not os.path.exists(panopticFolder):
             print("Creating folder {} for {} panoptic segmentation PNGs".format(panopticFolder, setName))
@@ -87,79 +82,41 @@ def convert2panoptic(kitti2015Path=None, outputFolder=None, useTrainId=False, se
             os.makedirs(panopticFolder)
         print("Corresponding segmentations in .png format will be saved in {}".format(panopticFolder))
 
-        images = []
-        annotations = []
         for progress, f in enumerate(files):
             originalFormat = np.array(Image.open(f))
-            fileName = os.path.basename(f)
 
-            imageId = fileName.replace("_instanceIds.png", "")
-            inputFileName = fileName.replace("_instanceIds.png", ".png")
-            outputFileName = fileName.replace("_instanceIds.png", "_panoptic.png")
-            # image entry, id for image is its filename without extension
-            images.append({"id": imageId,
-                           "width": int(originalFormat.shape[1]),
-                           "height": int(originalFormat.shape[0]),
-                           "file_name": inputFileName})
+            fileName = os.path.basename(f)
+            outputFileName = fileName.replace("_instanceIds.png", ".png")
 
             pan_format = np.zeros(
                 (originalFormat.shape[0], originalFormat.shape[1], 3), dtype=np.uint8
             )
 
             segmentIds = np.unique(originalFormat)
-            segmInfo = []
             for segmentId in segmentIds:
                 if segmentId < 1000:
                     semanticId = segmentId
-                    isCrowd = 1
                 else:
                     semanticId = segmentId // 1000
-                    isCrowd = 0
                 labelInfo = id2label[semanticId]
-                categoryId = labelInfo.trainId if useTrainId else labelInfo.id
-                if labelInfo.ignoreInEval:
+                if mod == 'catid':
+                    curId = labelInfo.categoryId
+                elif mod == 'id':
+                    curId = labelInfo.id
+                else:
+                    raise ValueError('unexcepted mod')
+
+                if curId not in id_list:
                     continue
-                if not labelInfo.hasInstances:
-                    isCrowd = 0
 
                 mask = originalFormat == segmentId
-                color = [segmentId % 256, segmentId // 256, segmentId // 256 // 256]
-                pan_format[mask] = color
-
-                area = np.sum(mask) # segment area computation
-
-                # bbox computation for a segment
-                hor = np.sum(mask, axis=0)
-                hor_idx = np.nonzero(hor)[0]
-                x = hor_idx[0]
-                width = hor_idx[-1] - x + 1
-                vert = np.sum(mask, axis=1)
-                vert_idx = np.nonzero(vert)[0]
-                y = vert_idx[0]
-                height = vert_idx[-1] - y + 1
-                bbox = [int(x), int(y), int(width), int(height)]
-
-                segmInfo.append({"id": int(segmentId),
-                                 "category_id": int(categoryId),
-                                 "area": int(area),
-                                 "bbox": bbox,
-                                 "iscrowd": isCrowd})
-
-            annotations.append({'image_id': imageId,
-                                'file_name': outputFileName,
-                                "segments_info": segmInfo})
+                color = labelInfo.color
+                pan_format[mask] = (255,255,255)
 
             Image.fromarray(pan_format).save(os.path.join(panopticFolder, outputFileName))
-
             print("\rProgress: {:>3.2f} %".format((progress + 1) * 100 / len(files)), end=' ')
             sys.stdout.flush()
 
-        print("\nSaving the json file {}".format(outFile))
-        d = {'images': images,
-             'annotations': annotations,
-             'categories': categories}
-        with open(outFile, 'w') as f:
-            json.dump(d, f, sort_keys=True, indent=4)
 
 
 def main():
@@ -179,11 +136,11 @@ def main():
                         dest="setNames",
                         help="set names to which apply the function to",
                         nargs='+',
-                        default=['test',],
+                        default=['test', ],
                         type=str)
     args = parser.parse_args()
 
-    convert2panoptic(args.kitti2015Path, args.outputFolder, args.useTrainId, args.setNames)
+    convert2panopticMask(args.kitti2015Path, args.outputFolder, args.useTrainId, args.setNames)
 
 
 # call the main

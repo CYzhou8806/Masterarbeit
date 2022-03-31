@@ -1,8 +1,0 @@
-
-
-MODEL:
-  BACKBONE:
-    NAME: "build_psm_backbone"
-SOLVER:
-  OPTIMIZER: "ADAM"
-  BASE_LR: 0.001

@@ -58,16 +58,6 @@ predictions from feature maps.
 """
 
 
-def l1_norm_loss(prediction, gt, mask):
-    diff = torch.abs(prediction - gt)
-    diff_nz = diff[mask]
-
-    if len(diff_nz) == 0:
-        return torch.tensor(0.0)
-    else:
-        return torch.mean(diff_nz)
-
-
 @META_ARCH_REGISTRY.register()
 class JointEstimation(nn.Module):
     """
@@ -193,8 +183,8 @@ class JointEstimation(nn.Module):
             center_results, offset_results, center_losses, offset_losses, left_ins_seg_features = self.ins_embed_head(
                 left_features, center_targets, center_weights, offset_targets, offset_weights
             )
-            losses.update(center_losses)   # todo:debug
-            losses.update(offset_losses)   # todo:debug
+            losses.update(center_losses)  # todo:debug
+            losses.update(offset_losses)  # todo:debug
 
             # load right images
             right_images = [x["right_image"].to(self.device) for x in batched_inputs]
@@ -250,7 +240,7 @@ class JointEstimation(nn.Module):
                                                               dis_targets=dis_targets,
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
-            losses.update(dis_embed_loss)   # todo:debug
+            losses.update(dis_embed_loss)  # todo:debug
         elif self.disparity_branch:
             assert not self.feature_fusion, "only disparity branch, can not feature fusion"
 
@@ -317,7 +307,6 @@ class JointEstimation(nn.Module):
 
             raise RuntimeError("excepted stop")
             '''
-
 
             losses.update(dis_embed_loss)
         else:
@@ -906,7 +895,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         else:
             self.img_size = img_size
 
-        #self.warp = Warper2d(direction_str='r2l', pad_mode="zeros")
+        # self.warp = Warper2d(direction_str='r2l', pad_mode="zeros")
         self.warp = Warper2d(direction_str='l2r', pad_mode="zeros")
 
         if self.hourglass_type == "hourglass_2D":
@@ -1073,7 +1062,6 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 else:
                     raise ValueError("Unexpected adaptive mod: %s" % self.adaptive_mod)
 
-
                 if self.fusion_model == "share_plus":
                     decoder_stage['fusion_block'] = share_module_more(max_dis)
                 elif self.fusion_model == "share":
@@ -1119,7 +1107,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
         # for i, scale in enumerate(['1/16', '1/8','1/4']):
-        for i, scale in enumerate(['1/16', '1/8','1/4']): # todo:debug
+        for i, scale in enumerate(['1/16', '1/8', '1/4']):  # todo:debug
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1138,7 +1126,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     seg_cost_volume = build_correlation_cost_volume(
                         max_dis,
                         self.warp(dis, pyramid_features[scale][0][0], scale),
-                        pyramid_features[scale][0][1],)
+                        pyramid_features[scale][0][1], )
                     ins_cost_volume = build_correlation_cost_volume(
                         max_dis,
                         self.warp(dis, pyramid_features[scale][1][0], scale),
@@ -1149,22 +1137,27 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                         pyramid_features[scale][2][1], )
 
                 if draw_feature_map:
-                    self.count_FM+=1
-                    if self.count_FM>3:
-                        #draw_features(ins_cost_volume.shape[1],ins_cost_volume.shape[3], ins_cost_volume.shape[2], ins_cost_volume.cpu().numpy(), "{}/ins_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
-                        #draw_features(seg_cost_volume.shape[1],seg_cost_volume.shape[3], seg_cost_volume.shape[2], seg_cost_volume.cpu().numpy(), "{}/seg_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
-                        draw_features(dis_cost_volume.shape[1],dis_cost_volume.shape[3], dis_cost_volume.shape[2], dis_cost_volume.cpu().numpy(), "{}/dis_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                    self.count_FM += 1
+                    if self.count_FM > 3:
+                        # draw_features(ins_cost_volume.shape[1],ins_cost_volume.shape[3], ins_cost_volume.shape[2], ins_cost_volume.cpu().numpy(), "{}/ins_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                        # draw_features(seg_cost_volume.shape[1],seg_cost_volume.shape[3], seg_cost_volume.shape[2], seg_cost_volume.cpu().numpy(), "{}/seg_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                        draw_features(dis_cost_volume.shape[1], dis_cost_volume.shape[3], dis_cost_volume.shape[2],
+                                      dis_cost_volume.cpu().numpy(),
+                                      "{}/dis_volume_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
 
                 if self.fusion_model == "multi":
                     cost_volume = seg_cost_volume * ins_cost_volume * dis_cost_volume
-                elif self.fusion_model == "share" or self.fusion_model == "share_plus" :
-                    cost_volume = self.predictor[scale]['fusion_block'](seg_cost_volume, ins_cost_volume, dis_cost_volume)
+                elif self.fusion_model == "share" or self.fusion_model == "share_plus":
+                    cost_volume = self.predictor[scale]['fusion_block'](seg_cost_volume, ins_cost_volume,
+                                                                        dis_cost_volume)
                 else:
                     raise ValueError("unexpected fusion model {}", format(self.fusion_model))
 
                 if draw_feature_map:
                     if self.count_FM > 3:
-                        draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                        draw_features(cost_volume.shape[1], cost_volume.shape[3], cost_volume.shape[2],
+                                      cost_volume.cpu().numpy(),
+                                      "{}/volume_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
 
             else:
                 if not len(disparity):
@@ -1179,10 +1172,10 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                 cost_volume = dis_cost_volume
 
                 if draw_feature_map:
-                    self.count_FM+=1
-                    if self.count_FM>3:
-                       #draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/cost_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
-                       pass
+                    self.count_FM += 1
+                    if self.count_FM > 3:
+                        # draw_features(cost_volume.shape[1],cost_volume.shape[3], cost_volume.shape[2], cost_volume.cpu().numpy(), "{}/cost_volume_{}.png".format('/home/eistrauben/桌面/fm',self.count_FM))
+                        pass
 
             cost0 = self.predictor[scale]['dres0'](cost_volume)
             cost0 = self.predictor[scale]['dres1'](cost0) + cost0
@@ -1236,9 +1229,9 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             pred3 = F.softmax(cost3, dim=1)
             if draw_feature_map:
                 if self.count_FM > 4:
-                    #draw_features(pred3.shape[1], pred3.shape[3], pred3.shape[2],pred3.cpu().numpy(), "{}/pred3_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
-                    #draw_features(pred1.shape[1], pred1.shape[3], pred1.shape[2],pred1.cpu().numpy(), "{}/pred1_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
-                    #draw_features(pred2.shape[1], pred2.shape[3], pred2.shape[2],pred2.cpu().numpy(), "{}/pred2_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
+                    # draw_features(pred3.shape[1], pred3.shape[3], pred3.shape[2],pred3.cpu().numpy(), "{}/pred3_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
+                    # draw_features(pred1.shape[1], pred1.shape[3], pred1.shape[2],pred1.cpu().numpy(), "{}/pred1_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
+                    # draw_features(pred2.shape[1], pred2.shape[3], pred2.shape[2],pred2.cpu().numpy(), "{}/pred2_{}.png".format('/home/eistrauben/桌面/fm', self.count_FM))
                     pass
 
             if self.resol_disp_adapt:
@@ -1301,16 +1294,16 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
         dis_mask = torch.unsqueeze(dis_mask, 1)
         dis_targets = torch.unsqueeze(dis_targets, 1)
         dis_mask_bool = dis_mask == 1.0
-        #print(torch.sum(dis_mask_bool))
+        # print(torch.sum(dis_mask_bool))
         if not self.zero_dis_considered:
             mask_no_zero = dis_targets > 0.0
             dis_mask_bool = dis_mask_bool & mask_no_zero
         else:
             mask_no_zero = dis_targets >= 0.0
             dis_mask_bool = dis_mask_bool & mask_no_zero
-        #print(torch.sum(dis_mask_bool))
+        # print(torch.sum(dis_mask_bool))
 
-        #print(torch.sum(dis_mask_bool))
+        # print(torch.sum(dis_mask_bool))
         dis_mask_bool.detach_()
 
         if self.loss_type == "panoptic_guided":
@@ -1327,7 +1320,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             # to avoid nan
             for c in range(pan_mask.shape[0]):
                 if not (pan_mask[c, 1:-1, 1:-1] == 1.0).any():
-                    pan_mask[c][1,1] = 1.0
+                    pan_mask[c][1, 1] = 1.0
 
             pan_mask = torch.unsqueeze(pan_mask, 1)
             pan_mask = pan_mask[:, :, 1:-1, 1:-1]  # to adapt the changes after gradient
@@ -1367,7 +1360,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     else:
                         sm_loss_pyramid = self.hourglass_loss_weight[j] * torch.mean(sm_sum)
                     # print(sm_loss_pyramid)
-                #assert bdry_loss_pyramid
+                # assert bdry_loss_pyramid
                 assert sm_loss_pyramid
 
                 if bdry_loss:
@@ -1379,7 +1372,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
                     sm_loss = self.internal_loss_weight[i] * sm_loss_pyramid + sm_loss
                 else:
                     sm_loss = self.internal_loss_weight[i] * sm_loss_pyramid
-            #assert bdry_loss
+            # assert bdry_loss
             assert sm_loss
 
             if torch.isnan(sm_loss):
@@ -1447,20 +1440,20 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             for i in range(len(predictions)):  # for each pyramid
                 if l1_norm:
                     l1_norm = l1_norm + self.internal_loss_weight[i] * \
-                                (self.hourglass_loss_weight[0] *
-                                 l1_norm_loss(predictions[i][0], dis_targets, dis_mask_bool) +
-                                 self.hourglass_loss_weight[1] *
-                                 l1_norm_loss(predictions[i][1], dis_targets, dis_mask_bool) +
-                                 self.hourglass_loss_weight[2] *
-                                 l1_norm_loss(predictions[i][2], dis_targets, dis_mask_bool))
+                              (self.hourglass_loss_weight[0] *
+                               l1_norm_loss(predictions[i][0], dis_targets, dis_mask_bool) +
+                               self.hourglass_loss_weight[1] *
+                               l1_norm_loss(predictions[i][1], dis_targets, dis_mask_bool) +
+                               self.hourglass_loss_weight[2] *
+                               l1_norm_loss(predictions[i][2], dis_targets, dis_mask_bool))
                 else:
                     l1_norm = self.internal_loss_weight[i] * \
-                                (self.hourglass_loss_weight[0] *
-                                 l1_norm_loss(predictions[i][0], dis_targets, dis_mask_bool) +
-                                 self.hourglass_loss_weight[1] *
-                                 l1_norm_loss(predictions[i][1], dis_targets, dis_mask_bool) +
-                                 self.hourglass_loss_weight[2] *
-                                 l1_norm_loss(predictions[i][2], dis_targets, dis_mask_bool))
+                              (self.hourglass_loss_weight[0] *
+                               l1_norm_loss(predictions[i][0], dis_targets, dis_mask_bool) +
+                               self.hourglass_loss_weight[1] *
+                               l1_norm_loss(predictions[i][1], dis_targets, dis_mask_bool) +
+                               self.hourglass_loss_weight[2] *
+                               l1_norm_loss(predictions[i][2], dis_targets, dis_mask_bool))
                 '''
                 if l1_norm:
                     l1_norm = l1_norm + self.internal_loss_weight[i] * \
@@ -1710,7 +1703,8 @@ class share_module(nn.Module):
         super().__init__()
         self.depth = depth
         for i in range(self.depth):
-            exec('self.conv{} = {}'.format(i, nn.Conv2d(3, 1, kernel_size=(3, 3), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda()))
+            exec('self.conv{} = {}'.format(i, nn.Conv2d(3, 1, kernel_size=(3, 3), stride=(1, 1), padding=1,
+                                                        dilation=(1, 1), bias=False).cuda()))
 
     def forward(self, x, y, z):
         assert x.shape[1] == y.shape[1] == z.shape[1] == self.depth, \
@@ -1734,8 +1728,6 @@ class share_module(nn.Module):
             tmp = torch.cat((x[:, i, :, :].unsqueeze(1), y[:, i, :, :].unsqueeze(1), z[:, i, :, :].unsqueeze(1)), 1)
             out.append(value(tmp))
 
-
-
         res = torch.cat(tuple(out), 1)
         assert res.shape[1] == self.depth
 
@@ -1749,7 +1741,7 @@ class share_module_more(nn.Module):
         layers = self.__dict__['_modules']
         for i in range(self.depth):
             # exec('self.in_conv{} = {}'.format(i, nn.Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda()))
-            #exec('self.out_conv{} = {}'.format(i, nn.Conv2d(32, 1, kernel_size=(1, 1), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda()))
+            # exec('self.out_conv{} = {}'.format(i, nn.Conv2d(32, 1, kernel_size=(1, 1), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda()))
             tmp = nn.Sequential(
                 nn.Conv2d(3, 32, kernel_size=(3, 3), stride=(1, 1), padding=1, dilation=(1, 1), bias=False).cuda(),
                 nn.ReLU(inplace=True),
@@ -2047,3 +2039,13 @@ class DeepLabV3PlusHeadDecoder(nn.Module):
         loss = self.loss(predictions, targets)
         losses = {"loss_sem_seg": loss * self.loss_weight}
         return losses
+
+
+def l1_norm_loss(prediction, gt, mask):
+    diff = torch.abs(prediction - gt)
+    diff_nz = diff[mask]
+
+    if len(diff_nz) == 0:
+        return torch.tensor(0.0)
+    else:
+        return torch.mean(diff_nz)
