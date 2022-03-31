@@ -78,7 +78,6 @@ class JointEstimation(nn.Module):
         self.feature_fusion = cfg.MODEL.MODE.FEATURE_FUSION
         self.dis_loss_type = cfg.MODEL.DIS_EMBED_HEAD.LOSS_TYPE
 
-        # TODO: following meaning still not clear
         self.register_buffer("pixel_mean", torch.tensor(cfg.MODEL.PIXEL_MEAN).view(-1, 1, 1), False)
         self.register_buffer("pixel_std", torch.tensor(cfg.MODEL.PIXEL_STD).view(-1, 1, 1), False)
         self.meta = MetadataCatalog.get("cityscapes_fine_panoptic_train")
@@ -161,7 +160,7 @@ class JointEstimation(nn.Module):
                 targets = None
                 weights = None
             sem_seg_results, sem_seg_losses, left_sem_seg_features = self.sem_seg_head(left_features, targets, weights)
-            losses.update(sem_seg_losses)  # todo:debug
+            losses.update(sem_seg_losses)
 
             # instance branch
             if "center" in batched_inputs[0] and "offset" in batched_inputs[0]:
@@ -183,8 +182,8 @@ class JointEstimation(nn.Module):
             center_results, offset_results, center_losses, offset_losses, left_ins_seg_features = self.ins_embed_head(
                 left_features, center_targets, center_weights, offset_targets, offset_weights
             )
-            losses.update(center_losses)  # todo:debug
-            losses.update(offset_losses)  # todo:debug
+            losses.update(center_losses)
+            losses.update(offset_losses)
 
             # load right images
             right_images = [x["right_image"].to(self.device) for x in batched_inputs]
@@ -240,7 +239,7 @@ class JointEstimation(nn.Module):
                                                               dis_targets=dis_targets,
                                                               dis_mask=dis_mask, pan_guided=pan_guided,
                                                               pan_mask=pan_mask)
-            losses.update(dis_embed_loss)  # todo:debug
+            losses.update(dis_embed_loss)
         elif self.disparity_branch:
             assert not self.feature_fusion, "only disparity branch, can not feature fusion"
 
@@ -1106,8 +1105,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
 
         disparity = []  # form coarse to fine
         zoom = [16, 8, 4]
-        # for i, scale in enumerate(['1/16', '1/8','1/4']):
-        for i, scale in enumerate(['1/16', '1/8', '1/4']):  # todo:debug
+        for i, scale in enumerate(['1/16', '1/8', '1/4']):
             if self.resol_disp_adapt:
                 max_dis = self.max_disp // zoom[i]
             else:
@@ -1409,7 +1407,7 @@ class JointEstimationDisEmbedHead(DeepLabV3PlusHead):
             losses = {"loss_dis_guided": loss * self.loss_weight}
         elif self.loss_type == "smoothL1_only":
             smooth_l1 = None
-            for i in range(len(predictions)):  # for each pyramid  #todo:debug
+            for i in range(len(predictions)):  # for each pyramid
                 # assert len(predictions) ==3
                 if smooth_l1:
                     smooth_l1 = smooth_l1 + self.internal_loss_weight[i] * \
@@ -1492,12 +1490,11 @@ def build_correlation_cost_volume(max_disp, left_feature, right_feature):
     return cost_volume
 
 
-def warping_old(disp, feature):  # TODO: to add operations
+def warping_old(disp, feature):
     warped = copy.deepcopy(feature)
     return warped
 
 
-# TODO: transform to function
 class Warper2d(nn.Module):
     def __init__(self, direction_str='l2r', pad_mode="zeros"):
         super().__init__()
@@ -1540,7 +1537,6 @@ class Warper2d(nn.Module):
         assert len(disp.shape) == 4
         scale_factor = self.scale[scale]
 
-        # TODO: check the difference
         # disp = F.interpolate(disp, scale_factor=scale_factor)
         disp = F.interpolate(disp, scale_factor=scale_factor, recompute_scale_factor=True)
 

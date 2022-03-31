@@ -10,7 +10,7 @@ MODEL:
     IN_FEATURES: ["res2", "res3", "res5"]
     PROJECT_FEATURES: ["res2", "res3"]
     PROJECT_CHANNELS: [32, 64]
-    # PROJECT_CHANNELS: None  # TODO: the meaning
+    # PROJECT_CHANNELS: None
     ASPP_CHANNELS: 256
     ASPP_DILATIONS: [6, 12, 18]
     ASPP_DROPOUT: 0.1

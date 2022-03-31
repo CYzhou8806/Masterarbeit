@@ -64,8 +64,6 @@ from detectron2.data.common import DatasetFromList, MapDataset
 import torch.utils.data as torchdata
 from detectron2.data.samplers import InferenceSampler
 
-
-# TODO: the meaning is not clear
 import torch.distributed as dist
 
 dist.init_process_group('gloo', init_method='file:///tmp/somefile', rank=0, world_size=1)
@@ -117,9 +115,9 @@ class Trainer(DefaultTrainer):
             ), "CityscapesEvaluator currently do not work with multiple machines."
             #evaluator_list.append(CityscapesSemSegEvaluator(dataset_name))
             #evaluator_list.append(CityscapesInstanceEvaluator(dataset_name))
-            pass    # todo: has been changed
+            pass
         if evaluator_type == "coco_panoptic_seg":
-            pass    # todo: has been changed
+            pass
             '''
             # `thing_classes` in COCO panoptic metadata includes both thing and
             # stuff classes for visualization. COCOEvaluator requires metadata
@@ -152,7 +150,7 @@ class Trainer(DefaultTrainer):
         register_all_sceneflow_flying3d(_root)
         register_all_kitti_2015(_root)
         register_all_kitti360(_root)
-        mapper = JointDeeplabDatasetMapper(cfg) # TODO: changes
+        mapper = JointDeeplabDatasetMapper(cfg)
         return build_detection_train_loader(cfg, mapper=mapper)
 
     @classmethod

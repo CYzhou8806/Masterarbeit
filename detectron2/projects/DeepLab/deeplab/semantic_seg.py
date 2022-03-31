@@ -77,7 +77,7 @@ class DeepLabV3PlusHead(nn.Module):
         self.common_stride    = common_stride  # output stride
         self.loss_weight      = loss_weight
         self.loss_type        = loss_type
-        self.decoder_only     = num_classes is None     # TODO: to find out the meaning
+        self.decoder_only     = num_classes is None
         self.use_depthwise_separable_conv = use_depthwise_separable_conv
         # fmt: on
 
